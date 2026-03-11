@@ -34,7 +34,7 @@ export default function App() {
   const [busqueda, setBusqueda] = useState("");
   const [modalAbierto, setModalAbierto] = useState(false);
   const [reservaEditando, setReservaEditando] = useState(null);
-  const [form, setForm] = useState({ nombre: "", telefono: "", email: "", fecha: getTodayStr(), hora: "13:30", personas: "", mesa: 1, notas: "", estado: "tomada", tomadaPor: "" });
+  const [form, setForm] = useState({ nombre: "", telefono: "", email: "", fecha: "", hora: "", personas: "", mesa: 1, notas: "", estado: "tomada", tomadaPor: "" });
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [toast, setToast] = useState(null);
   const [textoPegado, setTextoPegado] = useState("");
@@ -71,7 +71,7 @@ export default function App() {
 
   const abrirNueva = () => {
     setReservaEditando(null);
-    setForm({ nombre: "", telefono: "", email: "", fecha: getTodayStr(), hora: "13:30", personas: "", mesa: 1, notas: "", estado: "tomada", tomadaPor: "" });
+    setForm({ nombre: "", telefono: "", email: "", fecha: "", hora: "", personas: "", mesa: 1, notas: "", estado: "tomada", tomadaPor: "" });
     setModalAbierto(true);
   };
 
@@ -83,7 +83,7 @@ export default function App() {
 
   const guardarReserva = () => {
     if (!form.tomadaPor) return showToast("Indica quién toma la reserva", "error");
-    if (!form.nombre || !form.fecha || !form.hora) return showToast("Rellena los campos obligatorios", "error");
+    if (!form.nombre || !form.fecha || !form.hora) return showToast("Selecciona nombre, fecha y hora", "error");
     if (!form.personas || form.personas < 1) return showToast("Indica el número de personas", "error");
     if (reservaEditando) {
       setReservas(rs => rs.map(r => r.id === reservaEditando ? { ...form, id: r.id } : r));
@@ -422,7 +422,23 @@ ${textoPegado}`
 
             {/* Filtros */}
             <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap" }}>
-              <input type="date" className="input-field" style={{ width: 180 }} value={filtroFecha} onChange={e => setFiltroFecha(e.target.value)} />
+              <div style={{ display: "flex", gap: 4 }}>
+                <select className="input-field" style={{ width: 64 }} value={filtroFecha ? filtroFecha.split("-")[2] : ""}
+                  onChange={e => { const p = (filtroFecha||getTodayStr()).split("-"); setFiltroFecha(e.target.value ? `${p[0]}-${p[1]}-${e.target.value}` : ""); }}>
+                  <option value="">Día</option>
+                  {Array.from({length:31},(_,i)=>String(i+1).padStart(2,"0")).map(d=><option key={d} value={d}>{d}</option>)}
+                </select>
+                <select className="input-field" style={{ width: 110 }} value={filtroFecha ? filtroFecha.split("-")[1] : ""}
+                  onChange={e => { const p = (filtroFecha||getTodayStr()).split("-"); setFiltroFecha(e.target.value ? `${p[0]}-${e.target.value}-${p[2]}` : ""); }}>
+                  <option value="">Mes</option>
+                  {[["01","Enero"],["02","Febrero"],["03","Marzo"],["04","Abril"],["05","Mayo"],["06","Junio"],["07","Julio"],["08","Agosto"],["09","Septiembre"],["10","Octubre"],["11","Noviembre"],["12","Diciembre"]].map(([v,l])=><option key={v} value={v}>{l}</option>)}
+                </select>
+                <select className="input-field" style={{ width: 80 }} value={filtroFecha ? filtroFecha.split("-")[0] : ""}
+                  onChange={e => { const p = (filtroFecha||getTodayStr()).split("-"); setFiltroFecha(e.target.value ? `${e.target.value}-${p[1]}-${p[2]}` : ""); }}>
+                  <option value="">Año</option>
+                  {["2025","2026","2027"].map(y=><option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
               <input type="text" className="input-field" style={{ width: 220 }} placeholder="Buscar cliente..." value={busqueda} onChange={e => setBusqueda(e.target.value)} />
               <select className="input-field" style={{ width: 160 }} value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}>
                 <option value="todas">Todos los estados</option>
@@ -754,11 +770,12 @@ ${textoPegado}`
               </div>
               <div>
                 <label>Fecha *</label>
-                <input type="date" className="input-field" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} autoComplete="off" autoCorrect="off" />
+                <input type="date" className="input-field" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} autoComplete="off" />
               </div>
               <div>
                 <label>Hora *</label>
                 <select className="input-field" value={form.hora} onChange={e => setForm(f => ({ ...f, hora: e.target.value }))}>
+                  <option value="">— Seleccionar hora —</option>
                   {HORARIOS.map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
               </div>
