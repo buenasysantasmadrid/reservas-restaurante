@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import logoImg from './logo_buenasysantas.jpg';
 
 const MESAS = [1, 2, 3, 4, 5, 6, 7, 8];
 // Horarios: 13:30-16:00 cada 15 min, 20:30-23:30 cada 15 min
@@ -272,27 +273,13 @@ ${textoPegado}`
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#c8e6c9", fontFamily: "'Georgia', serif", color: "#1a2e1a", position: "relative" }}>
-      {/* Watermark leaves */}
-      <svg style={{ position: "fixed", bottom: 0, right: 0, width: "55vw", maxWidth: 700, opacity: 0.07, pointerEvents: "none", zIndex: 0 }} viewBox="0 0 600 500" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M580 480 Q400 200 100 300 Q300 100 580 480Z" fill="#1b5e20"/>
-        <path d="M520 480 Q350 250 80 350 Q250 120 520 480Z" fill="#2e7d32"/>
-        <path d="M460 480 Q320 280 60 380 Q200 150 460 480Z" fill="#1b5e20"/>
-        <path d="M300 480 Q200 300 20 380 Q100 180 300 480Z" fill="#388e3c"/>
-        <ellipse cx="480" cy="200" rx="80" ry="30" transform="rotate(-40 480 200)" fill="#1b5e20"/>
-        <ellipse cx="420" cy="160" rx="70" ry="25" transform="rotate(-55 420 160)" fill="#2e7d32"/>
-        <ellipse cx="350" cy="130" rx="60" ry="22" transform="rotate(-65 350 130)" fill="#1b5e20"/>
-        <path d="M480 200 Q440 300 400 400" stroke="#1b5e20" strokeWidth="3"/>
-        <path d="M420 160 Q390 270 360 380" stroke="#2e7d32" strokeWidth="2.5"/>
-        <ellipse cx="150" cy="400" rx="90" ry="32" transform="rotate(30 150 400)" fill="#388e3c"/>
-        <ellipse cx="100" cy="350" rx="75" ry="28" transform="rotate(20 100 350)" fill="#2e7d32"/>
-        <path d="M150 400 Q180 320 200 240" stroke="#2e7d32" strokeWidth="3"/>
-        <circle cx="550" cy="100" r="40" fill="#1b5e20"/>
-        <circle cx="530" cy="80" r="30" fill="#2e7d32"/>
-        <circle cx="510" cy="110" r="25" fill="#388e3c"/>
-      </svg>
+    <div style={{ minHeight: "100vh", background: "#f0f7f0", fontFamily: "'Georgia', serif", color: "#1a2e1a", position: "relative" }}>
+      {/* Watermark - restaurant name */}
+      <div style={{ position: "fixed", bottom: -20, right: -10, opacity: 0.04, pointerEvents: "none", zIndex: 0, fontFamily: "'Dancing Script', cursive", fontSize: 180, fontWeight: 700, color: "#1b5e20", lineHeight: 0.9, userSelect: "none" }}>
+        buenas<br/>y santas
+      </div>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=Jost:wght@300;400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Cormorant+Garamond:wght@300;400;600;700&family=Jost:wght@300;400;500&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
           --gold: #2e7d32;
@@ -303,18 +290,18 @@ ${textoPegado}`
           --cream: #1a2e1a;
           --muted: #555;
         }
-        body { background: #c8e6c9; }
+        body { background: #f0f7f0; }
         .font-display { font-family: 'Cormorant Garamond', serif; }
         .font-body { font-family: 'Jost', sans-serif; }
         input, select, textarea { outline: none; }
         input::placeholder, textarea::placeholder { color: #555; }
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #c8e6c9; }
+        ::-webkit-scrollbar-track { background: #f0f7f0; }
         ::-webkit-scrollbar-thumb { background: #81c784; border-radius: 3px; }
         .nav-btn { background: none; border: none; cursor: pointer; padding: 10px 20px; font-family: 'Jost', sans-serif; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: #4a7a4a; transition: color 0.2s; }
         .nav-btn.active { color: #1b5e20; border-bottom: 2px solid #1b5e20; font-weight: 600; }
         .nav-btn:hover { color: #1b5e20; }
-        .card { background: #ffffff; border: 1px solid #c8e6c9; border-radius: 4px; }
+        .card { background: #ffffff; border: 1px solid #dcedc8; border-radius: 8px; box-shadow: 0 2px 8px rgba(46,125,50,0.08); }
         .stat-card { background: #ffffff; border: 1px solid #c8e6c9; border-radius: 4px; padding: 24px; transition: border-color 0.2s; }
         .stat-card:hover { border-color: #2e7d32; }
         .btn-gold { background: #2e7d32; color: #ffffff; border: none; cursor: pointer; font-family: 'Jost', sans-serif; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; padding: 12px 24px; transition: background 0.2s; font-weight: 500; }
@@ -324,9 +311,9 @@ ${textoPegado}`
         .input-field { background: #ffffff; border: 1px solid #a5d6a7; color: #1a2e1a; padding: 10px 14px; font-family: 'Jost', sans-serif; font-size: 14px; width: 100%; transition: border-color 0.2s; }
         .input-field:focus { border-color: #2e7d32; }
         .badge { display: inline-block; padding: 3px 10px; font-family: 'Jost', sans-serif; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; border-radius: 2px; }
-        .badge-confirmada { background: #1a2e1a; color: #5dba5d; border: 1px solid #2a4a2a; }
-        .badge-tomada { background: #2e2a1a; color: #c9a84c; border: 1px solid #4a3a1a; }
-        .badge-cancelada { background: #2e1a1a; color: #ba5d5d; border: 1px solid #4a2a2a; }
+        .badge-confirmada { background: #e8f5e9; color: #1b5e20; border: 1px solid #81c784; }
+        .badge-tomada { background: #fff8e1; color: #f57f17; border: 1px solid #ffcc02; }
+        .badge-cancelada { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
         .row-hover { transition: background 0.15s; }
         .row-hover:hover { background: #f1f8f1; }
         .overlay { position: fixed; inset: 0; background: rgba(0,60,0,0.4); z-index: 50; display: flex; align-items: center; justify-content: center; }
@@ -341,11 +328,11 @@ ${textoPegado}`
       `}</style>
 
       {/* HEADER */}
-      <header style={{ borderBottom: "1px solid #a5d6a7", background: "#ffffff", padding: "0 40px", position: "relative", zIndex: 1, display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 600, color: "#1b5e20", letterSpacing: 3 }}>RESERVAS</span>
-          <span style={{ color: "#a5d6a7", fontSize: 18 }}>|</span>
-          <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 3, color: "#4a7a4a", textTransform: "uppercase" }}>Panel de Gestión</span>
+      <header style={{ borderBottom: "1px solid #a5d6a7", background: "#ffffff", padding: "0 40px", position: "relative", zIndex: 1, display: "flex", alignItems: "center", justifyContent: "space-between", height: 72 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          <img src={logoImg} alt="Buenas y Santas" style={{ height: 56, objectFit: "contain" }} />
+          <span style={{ color: "#c8e6c9", fontSize: 22 }}>|</span>
+          <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 3, color: "#6a9a6a", textTransform: "uppercase" }}>Gestión de Reservas</span>
         </div>
         <nav style={{ display: "flex", gap: 4 }}>
           <button className={`nav-btn ${vista === "reservas" ? "active" : ""}`} onClick={() => setVista("reservas")}>Reservas</button>
@@ -432,7 +419,7 @@ ${textoPegado}`
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32 }}>
               <div>
                 <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 3, color: "#4a7a4a", textTransform: "uppercase", marginBottom: 8 }}>Gestión</p>
-                <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 42, fontWeight: 300, letterSpacing: 2 }}>Reservas</h1>
+                <h1 style={{ fontFamily: "'Dancing Script', cursive", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Reservas</h1>
               </div>
               <button className="btn-gold" onClick={abrirNueva}>+ Nueva reserva</button>
             </div>
@@ -587,7 +574,7 @@ ${textoPegado}`
       {vista === "pegar" && (
         <div style={{ padding: "40px", maxWidth: 800, margin: "0 auto", position: "relative", zIndex: 1 }}>
           <div style={{ marginBottom: 32 }}>
-            <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 42, fontWeight: 300, letterSpacing: 2, color: "#1b5e20" }}>Pegar mensaje</h1>
+            <h1 style={{ fontFamily: "'Dancing Script', cursive", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Pegar mensaje</h1>
           </div>
 
           <div className="card" style={{ padding: 32 }}>
@@ -625,7 +612,7 @@ ${textoPegado}`
       {vista === "sheet" && (
         <div style={{ padding: "40px", maxWidth: 900, margin: "0 auto", position: "relative", zIndex: 1 }}>
           <div style={{ marginBottom: 32 }}>
-            <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 42, fontWeight: 300, letterSpacing: 2, color: "#1b5e20" }}>Nueva WhatsApp</h1>
+            <h1 style={{ fontFamily: "'Dancing Script', cursive", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Nueva WhatsApp</h1>
           </div>
 
           <div style={{ display: "flex", gap: 12, marginBottom: 32, alignItems: "center" }}>
@@ -697,7 +684,7 @@ ${textoPegado}`
       {modalAbierto && (
         <div className="overlay" onClick={e => e.target === e.currentTarget && setModalAbierto(false)}>
           <div className="modal">
-            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 300, marginBottom: 32 }}>
+            <h2 style={{ fontFamily: "'Dancing Script', cursive", fontSize: 32, fontWeight: 700, color: "#1a1a1a", marginBottom: 28 }}>
               {reservaEditando ? "Editar reserva" : "Nueva reserva"}
             </h2>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
