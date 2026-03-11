@@ -44,6 +44,7 @@ export default function App() {
   const [sheetCargando, setSheetCargando] = useState(false);
   const [sheetFilas, setSheetFilas] = useState([]);
   const [sheetError, setSheetError] = useState("");
+  const [pendingSheetRow, setPendingSheetRow] = useState(null);
 
   const showToast = (msg, tipo = "ok") => {
     setToast({ msg, tipo });
@@ -93,6 +94,14 @@ export default function App() {
       showToast("Reserva creada ✓");
     }
     setModalAbierto(false);
+    // Si viene de Google Sheet, marcar fila y volver a Nueva WhatsApp
+    if (pendingSheetRow) {
+      const { filaNum, filaIdx } = pendingSheetRow;
+      fetch("https://script.google.com/macros/s/AKfycbwVUQM8OVLNXTExp0rd6qYkJjukpEb94OB5A-dY9EqIVbPg4JdDrzhftsu9JDXgPG0D7g/exec?action=marcar&row=" + filaNum)
+        .then(() => setSheetFilas(f => f.filter((_, idx) => idx !== filaIdx + 1)));
+      setPendingSheetRow(null);
+      setVista("sheet");
+    }
   };
 
   const eliminarReserva = (id) => {
@@ -170,7 +179,7 @@ export default function App() {
       }
     }
     const horaRaw = get("hora", "time");
-    let horaFmt = "14:00";
+    let horaFmt = "";
     if (horaRaw) {
       const m = horaRaw.match(/(\d{1,2}):(\d{2})/);
       if (m) horaFmt = `${m[1].padStart(2,"0")}:${m[2]}`;
@@ -723,18 +732,11 @@ ${textoPegado}`
                                 const d = importarFilaSheet(headers, fila);
                                 setReservaEditando(null);
                                 setForm(d);
+                                setPendingSheetRow({ filaNum: fila[fila.length - 1], filaIdx: i });
                                 setModalAbierto(true);
-                                // Número de fila real: el sheet lo manda como último elemento de la fila
-                                const filaNum = fila[fila.length - 1];
-                                fetch("https://script.google.com/macros/s/AKfycbwVUQM8OVLNXTExp0rd6qYkJjukpEb94OB5A-dY9EqIVbPg4JdDrzhftsu9JDXgPG0D7g/exec?action=marcar&row=" + filaNum)
-                                  .then(() => setSheetFilas(f => f.filter((_, idx) => idx !== i + 1)));
                               }}>
                               + Importar
                             </button>
-                            {(() => {
-                              const d = importarFilaSheet(headers, fila);
-                              return d.telefono ? <BtnWhatsApp reserva={d} style={{ padding: "8px 14px", fontSize: 11 }} /> : null;
-                            })()}
                           </div>
                         </td>
                       </tr>
