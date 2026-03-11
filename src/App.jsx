@@ -135,7 +135,7 @@ export default function App() {
     setSheetError("");
     setSheetFilas([]);
     try {
-      const url = "https://script.google.com/macros/s/AKfycbwVUQM8OVLNXTExp0rd6qYkJjukpEb94OB5A-dY9EqIVbPg4JdDrzhftsu9JDXgPG0D7g/exec";
+      const url = "https://script.google.com/macros/s/AKfycbxr4Yb8O1Db5W0sEh9eywRa-4rUgjd72TMZC_WJjvyTiDBljmtzj3tu5JhqHqqV0-y0HA/exec";
       const res = await fetch(url);
       if (!res.ok) throw new Error("No se pudo conectar con Google Sheets");
       const json = await res.json();
