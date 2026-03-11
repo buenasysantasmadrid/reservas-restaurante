@@ -158,52 +158,47 @@ export default function App() {
   };
 
   const importarFilaSheet = (headers, fila) => {
-    const get = (...keys) => {
-      for (const k of keys) {
-        const idx = headers.findIndex(h => h.includes(k));
-        if (idx !== -1 && fila[idx]) return fila[idx];
-      }
-      return "";
-    };
-    const fechaRaw = get("fecha");
-    let fechaFmt = getTodayStr();
+    // Columnas fijas: A=Nombre, B=Telefono, C=Fecha, D=Pax, E=Comentarios, F=Mail
+    const nombre    = String(fila[0] || "");
+    const telefono  = String(fila[1] || "");
+    const fechaRaw  = fila[2];
+    const pax       = fila[3];
+    const notas     = String(fila[4] || "");
+    const email     = String(fila[5] || "");
+
+    // Parsear fecha — puede venir como Date, string dd/mm/yyyy o yyyy-mm-dd
+    let fechaFmt = "";
     if (fechaRaw) {
-      const d = new Date(fechaRaw);
-      if (!isNaN(d)) fechaFmt = d.toISOString().split("T")[0];
-      else {
-        const partes = fechaRaw.split(/[\/\-]/);
-        if (partes.length === 3) {
-          const [a, b, c] = partes;
-          if (a.length === 4) fechaFmt = `${a}-${b.padStart(2,"0")}-${c.padStart(2,"0")}`;
-          else fechaFmt = `${c}-${b.padStart(2,"0")}-${a.padStart(2,"0")}`;
+      if (fechaRaw instanceof Date || (typeof fechaRaw === "object" && fechaRaw.getTime)) {
+        fechaFmt = new Date(fechaRaw).toISOString().split("T")[0];
+      } else {
+        const s = String(fechaRaw).trim();
+        const d = new Date(s);
+        if (!isNaN(d)) {
+          fechaFmt = d.toISOString().split("T")[0];
+        } else {
+          // Intentar dd/mm/yyyy o dd-mm-yyyy
+          const partes = s.split(/[\/\-]/);
+          if (partes.length === 3) {
+            const [a, b, c] = partes;
+            if (a.length === 4) fechaFmt = `${a}-${b.padStart(2,"0")}-${c.padStart(2,"0")}`;
+            else fechaFmt = `${c}-${b.padStart(2,"0")}-${a.padStart(2,"0")}`;
+          }
         }
       }
     }
-    const horaRaw = get("hora", "time", "horario", "hour");
-    let horaFmt = "";
-    if (horaRaw) {
-      // Google Sheets puede pasar hora como fracción decimal (ej: 0.875 = 21:00)
-      if (typeof horaRaw === "number" && horaRaw < 1) {
-        const totalMin = Math.round(horaRaw * 24 * 60);
-        const hh = Math.floor(totalMin / 60);
-        const mm = totalMin % 60;
-        horaFmt = `${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}`;
-      } else {
-        const m = String(horaRaw).match(/(\d{1,2}):(\d{2})/);
-        if (m) horaFmt = `${m[1].padStart(2,"0")}:${m[2]}`;
-      }
-    }
-    const personas = parseInt(get("pax","personas","person","guests")) || 2;
+
     return {
-      nombre: get("nombre","name"),
-      telefono: get("telefono","tel","phone","móvil","movil"),
-      email: get("mail","email","correo"),
+      nombre,
+      telefono,
+      email,
       fecha: fechaFmt,
-      hora: horaFmt,
-      personas,
-      notas: get("comentarios","notas","comment","nota"),
-      mesa: 1,
-      estado: "tomada"
+      hora: "",
+      personas: parseInt(pax) || "",
+      notas,
+      mesas: [],
+      estado: "tomada",
+      tomadaPor: ""
     };
   };
 
