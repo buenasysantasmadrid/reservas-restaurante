@@ -44,7 +44,6 @@ export default function App() {
   const [sheetCargando, setSheetCargando] = useState(false);
   const [sheetFilas, setSheetFilas] = useState([]);
   const [sheetError, setSheetError] = useState("");
-  const [pendingSheetRow, setPendingSheetRow] = useState(null);
 
   const showToast = (msg, tipo = "ok") => {
     setToast({ msg, tipo });
@@ -94,15 +93,7 @@ export default function App() {
       showToast("Reserva creada ✓");
     }
     setModalAbierto(false);
-    // Si viene de Google Sheet, marcar fila y volver a Nueva WhatsApp
-    if (pendingSheetRow) {
-      const { filaNum, filaIdx } = pendingSheetRow;
-      fetch("https://script.google.com/macros/s/AKfycbwVUQM8OVLNXTExp0rd6qYkJjukpEb94OB5A-dY9EqIVbPg4JdDrzhftsu9JDXgPG0D7g/exec?action=marcar&row=" + filaNum)
-        .then(() => setSheetFilas(f => f.filter((_, idx) => idx !== filaIdx + 1)));
-      setPendingSheetRow(null);
-      setVista("sheet");
-      cargarDesdeSheet();
-    }
+    if (vista === "sheet") setVista("sheet");
   };
 
   const eliminarReserva = (id) => {
@@ -732,13 +723,12 @@ ${textoPegado}`
                               const d = importarFilaSheet(headers, fila);
                               setReservaEditando(null);
                               setForm(d);
-                              setPendingSheetRow({ filaNum: fila[fila.length - 1], filaIdx: i });
                               setModalAbierto(true);
                             }}>
                             + Importar
                           </button>
                         </td>
-                        {fila.slice(0, -1).map((celda, j) => {
+                        {fila.map((celda, j) => {
                           // Ocultar columnas: última (fila real), col G (importado=idx 6), hora (idx que matchee "hora")
                           const hdr = String(headers[j] || "").toLowerCase();
                           if (hdr.includes("import") || hdr.includes("hora") || hdr.includes("time")) return null;
