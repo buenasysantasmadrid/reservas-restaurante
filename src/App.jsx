@@ -1,7 +1,19 @@
 import { useState, useEffect } from "react";
 
 const MESAS = [1, 2, 3, 4, 5, 6, 7, 8];
-const HORARIOS = ["13:00", "13:30", "14:00", "14:30", "15:00", "20:00", "20:30", "21:00", "21:30", "22:00"];
+// Horarios: 13:30-16:00 cada 15 min, 20:30-23:30 cada 15 min
+const HORARIOS = (() => {
+  const slots = [];
+  for (let h = 13, m = 30; h < 16 || (h === 16 && m === 0); m += 15) {
+    slots.push(`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`);
+    if (m === 45) { h++; m = -15; }
+  }
+  for (let h = 20, m = 30; h < 23 || (h === 23 && m <= 30); m += 15) {
+    slots.push(`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`);
+    if (m === 45) { h++; m = -15; }
+  }
+  return slots;
+})();
 
 const initialReservas = [
   { id: 1, nombre: "María García", telefono: "611 234 567", email: "maria@email.com", fecha: "2026-03-10", hora: "14:00", personas: 4, mesa: 3, notas: "Cumpleaños", estado: "confirmada" },
@@ -22,7 +34,7 @@ export default function App() {
   const [busqueda, setBusqueda] = useState("");
   const [modalAbierto, setModalAbierto] = useState(false);
   const [reservaEditando, setReservaEditando] = useState(null);
-  const [form, setForm] = useState({ nombre: "", telefono: "", email: "", fecha: getTodayStr(), hora: "14:00", personas: 2, mesa: 1, notas: "", estado: "tomada" });
+  const [form, setForm] = useState({ nombre: "", telefono: "", email: "", fecha: getTodayStr(), hora: "13:30", personas: "", mesa: 1, notas: "", estado: "tomada", tomadaPor: "" });
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [toast, setToast] = useState(null);
   const [textoPegado, setTextoPegado] = useState("");
@@ -59,7 +71,7 @@ export default function App() {
 
   const abrirNueva = () => {
     setReservaEditando(null);
-    setForm({ nombre: "", telefono: "", email: "", fecha: getTodayStr(), hora: "14:00", personas: 2, mesa: 1, notas: "", estado: "tomada" });
+    setForm({ nombre: "", telefono: "", email: "", fecha: getTodayStr(), hora: "13:30", personas: "", mesa: 1, notas: "", estado: "tomada", tomadaPor: "" });
     setModalAbierto(true);
   };
 
@@ -70,7 +82,9 @@ export default function App() {
   };
 
   const guardarReserva = () => {
+    if (!form.tomadaPor) return showToast("Indica quién toma la reserva", "error");
     if (!form.nombre || !form.fecha || !form.hora) return showToast("Rellena los campos obligatorios", "error");
+    if (!form.personas || form.personas < 1) return showToast("Indica el número de personas", "error");
     if (reservaEditando) {
       setReservas(rs => rs.map(r => r.id === reservaEditando ? { ...form, id: r.id } : r));
       showToast("Reserva actualizada ✓");
@@ -557,7 +571,10 @@ ${textoPegado}`
               placeholder={`Ejemplos:\n"Hola! Querría reservar para 4 personas el viernes 14 a las 21h. Soy Laura, tel 622 111 333"\n\n"Buenos días, reserva para mañana sábado, 2 personas, 14:30. Carlos López, 611234567. Tenemos intolerancia al gluten."`}
               style={{ resize: "vertical", lineHeight: 1.7, fontSize: 14 }}
             />
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 20, alignItems: "center" }}>
+              {datosInterpretados && datosInterpretados.telefono && (
+                <BtnWhatsApp reserva={{ ...datosInterpretados, mesa: 1 }} style={{ padding: "12px 20px" }} />
+              )}
               <button
                 className="btn-gold"
                 onClick={interpretarTexto}
@@ -653,15 +670,21 @@ ${textoPegado}`
                           </td>
                         ))}
                         <td style={{ padding: "14px 16px" }}>
-                          <button className="btn-gold" style={{ padding: "8px 16px", fontSize: 11 }}
-                            onClick={() => {
+                          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                            <button className="btn-gold" style={{ padding: "8px 16px", fontSize: 11 }}
+                              onClick={() => {
+                                const d = importarFilaSheet(headers, fila);
+                                setReservaEditando(null);
+                                setForm(d);
+                                setModalAbierto(true);
+                              }}>
+                              + Importar
+                            </button>
+                            {(() => {
                               const d = importarFilaSheet(headers, fila);
-                              setReservaEditando(null);
-                              setForm(d);
-                              setModalAbierto(true);
-                            }}>
-                            + Importar
-                          </button>
+                              return d.telefono ? <BtnWhatsApp reserva={d} style={{ padding: "8px 14px", fontSize: 11 }} /> : null;
+                            })()}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -684,36 +707,14 @@ ${textoPegado}`
             </h2>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
 
-              {/* Desplegable de clientes existentes */}
+              {/* TOMADA POR — primero y obligatorio */}
               <div style={{ gridColumn: "1/-1" }}>
-                <label>Cliente existente</label>
-                <select
-                  className="input-field"
-                  value={nombresClientes.includes(form.nombre) ? form.nombre : ""}
-                  onChange={e => seleccionarNombre(e.target.value)}
-                  style={{ marginBottom: 10 }}
-                >
-                  <option value="">— Seleccionar cliente existente —</option>
-                  {nombresClientes.map(n => (
-                    <option key={n} value={n}>{n}</option>
-                  ))}
-                </select>
-                <label>Nombre *</label>
-                <input
-                  className="input-field"
-                  value={form.nombre}
-                  onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-                  placeholder="O escribe un nombre nuevo"
-                />
-              </div>
-
-              {/* Tomada por */}
-              <div style={{ gridColumn: "1/-1" }}>
-                <label>Tomada por</label>
+                <label style={{ color: !form.tomadaPor ? "#c9a84c" : "#666" }}>Tomada por *</label>
                 <select
                   className="input-field"
                   value={form.tomadaPor || ""}
                   onChange={e => setForm(f => ({ ...f, tomadaPor: e.target.value }))}
+                  style={{ borderColor: !form.tomadaPor ? "#c9a84c44" : "#2a2a2a" }}
                 >
                   <option value="">— Seleccionar —</option>
                   {["RAMIRO","YAMILA","LUCIANA","SHENAY","JESSICA","JULIO","JENNIFER","OTRO"].map(n => (
@@ -722,17 +723,38 @@ ${textoPegado}`
                 </select>
               </div>
 
+              {/* Cliente con búsqueda por texto + datalist */}
+              <div style={{ gridColumn: "1/-1" }}>
+                <label>Cliente *</label>
+                <input
+                  className="input-field"
+                  list="lista-clientes"
+                  value={form.nombre}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setForm(f => ({ ...f, nombre: val }));
+                    const existente = reservas.find(r => r.nombre === val);
+                    if (existente) setForm(f => ({ ...f, nombre: existente.nombre, telefono: existente.telefono, email: existente.email }));
+                  }}
+                  placeholder="Escribe o busca un cliente..."
+                  autoComplete="off"
+                />
+                <datalist id="lista-clientes">
+                  {nombresClientes.map(n => <option key={n} value={n} />)}
+                </datalist>
+              </div>
+
               <div>
                 <label>Teléfono</label>
-                <input className="input-field" value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} placeholder="6xx xxx xxx" />
+                <input className="input-field" value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} autoComplete="off" />
               </div>
               <div>
                 <label>Email</label>
-                <input className="input-field" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="correo@email.com" />
+                <input className="input-field" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} autoComplete="off" />
               </div>
               <div>
                 <label>Fecha *</label>
-                <input type="date" className="input-field" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} />
+                <input type="date" className="input-field" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} autoComplete="off" autoCorrect="off" />
               </div>
               <div>
                 <label>Hora *</label>
@@ -741,8 +763,15 @@ ${textoPegado}`
                 </select>
               </div>
               <div>
-                <label>Nº de personas</label>
-                <input type="number" className="input-field" min={1} max={20} value={form.personas} onChange={e => setForm(f => ({ ...f, personas: parseInt(e.target.value) }))} />
+                <label style={{ color: !form.personas ? "#c9a84c" : "#666" }}>Nº de personas *</label>
+                <input
+                  type="number"
+                  className="input-field"
+                  min={1} max={40}
+                  value={form.personas}
+                  onChange={e => setForm(f => ({ ...f, personas: parseInt(e.target.value) || "" }))}
+                  style={{ borderColor: !form.personas ? "#c9a84c44" : "#2a2a2a" }}
+                />
               </div>
               <div>
                 <label>Estado</label>
@@ -753,8 +782,8 @@ ${textoPegado}`
                 </select>
               </div>
               <div style={{ gridColumn: "1/-1" }}>
-                <label>Notas</label>
-                <textarea className="input-field" value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} placeholder="Alergias, celebraciones, preferencias..." rows={3} style={{ resize: "vertical" }} />
+                <label>Observaciones</label>
+                <textarea className="input-field" value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} rows={3} style={{ resize: "vertical" }} />
               </div>
             </div>
 
