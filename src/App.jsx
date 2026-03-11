@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import logoImg from './logo_buenasysantas.jpg';
 
-const MESAS = [1, 2, 3, 4, 5, 6, 7, 8];
+const MESAS = [1, 2, 3, 4, 5, 15, 6, 16, 7, 17, 8, 18, 10, 11, 12, 13, 40, 41, 30, 31];
 // Horarios: 13:30-16:00 cada 15 min, 20:30-23:30 cada 15 min
 const HORARIOS = (() => {
   const slots = [];
@@ -35,7 +34,7 @@ export default function App() {
   const [busqueda, setBusqueda] = useState("");
   const [modalAbierto, setModalAbierto] = useState(false);
   const [reservaEditando, setReservaEditando] = useState(null);
-  const [form, setForm] = useState({ nombre: "", telefono: "", email: "", fecha: "", hora: "", personas: "", mesa: 1, notas: "", estado: "tomada", tomadaPor: "" });
+  const [form, setForm] = useState({ nombre: "", telefono: "", email: "", fecha: "", hora: "", personas: "", mesas: [], notas: "", estado: "tomada", tomadaPor: "" });
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [toast, setToast] = useState(null);
   const [textoPegado, setTextoPegado] = useState("");
@@ -72,13 +71,13 @@ export default function App() {
 
   const abrirNueva = () => {
     setReservaEditando(null);
-    setForm({ nombre: "", telefono: "", email: "", fecha: "", hora: "", personas: "", mesa: 1, notas: "", estado: "tomada", tomadaPor: "" });
+    setForm({ nombre: "", telefono: "", email: "", fecha: "", hora: "", personas: "", mesas: [], notas: "", estado: "tomada", tomadaPor: "" });
     setModalAbierto(true);
   };
 
   const abrirEditar = (r) => {
     setReservaEditando(r.id);
-    setForm({ ...r });
+    setForm({ ...r, mesas: r.mesas || (r.mesa ? [r.mesa] : []) });
     setModalAbierto(true);
   };
 
@@ -90,7 +89,7 @@ export default function App() {
       setReservas(rs => rs.map(r => r.id === reservaEditando ? { ...form, id: r.id } : r));
       showToast("Reserva actualizada ✓");
     } else {
-      setReservas(rs => [...rs, { ...form, id: Date.now() }]);
+      setReservas(rs => [...rs, { ...form, mesa: form.mesas.join("+"), id: Date.now() }]);
       showToast("Reserva creada ✓");
     }
     setModalAbierto(false);
@@ -238,7 +237,7 @@ ${textoPegado}`
   const enviarWhatsApp = (r) => {
     const tel = r.telefono.replace(/\D/g, "");
     const fecha = new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
-    const msg = `Hola ${r.nombre} 👋, le confirmamos su reserva para *${r.personas} personas* el *${fecha}* a las *${r.hora}* (Mesa ${r.mesa}). ¡Le esperamos! 🍽️`;
+    const msg = `Hola ${r.nombre} 👋, le confirmamos su reserva para *${r.personas} personas* el *${fecha}* a las *${r.hora}* (Mesa ${r.mesas && r.mesas.length > 0 ? r.mesas.join("+") : r.mesa}). ¡Le esperamos! 🍽️`;
     window.open(`https://wa.me/34${tel}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
@@ -273,13 +272,45 @@ ${textoPegado}`
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f0f7f0", fontFamily: "'Georgia', serif", color: "#1a2e1a", position: "relative" }}>
-      {/* Watermark - restaurant name */}
-      <div style={{ position: "fixed", bottom: -20, right: -10, opacity: 0.04, pointerEvents: "none", zIndex: 0, fontFamily: "'Dancing Script', cursive", fontSize: 180, fontWeight: 700, color: "#1b5e20", lineHeight: 0.9, userSelect: "none" }}>
-        buenas<br/>y santas
-      </div>
+    <div style={{ minHeight: "100vh", background: "#b8ddb8", fontFamily: "'Georgia', serif", color: "#1a2e1a", position: "relative" }}>
+      {/* Hojas marca de agua */}
+      <svg style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh", pointerEvents: "none", zIndex: 0 }} viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+        <g opacity="0.13" fill="#1b5e20">
+          {/* Rama grande esquina inferior derecha */}
+          <path d="M1200 800 Q1050 600 1100 400 Q1160 580 1200 800Z"/>
+          <path d="M1150 800 Q1000 580 1060 360 Q1120 560 1150 800Z"/>
+          <path d="M1080 800 Q950 600 990 380 Q1060 570 1080 800Z"/>
+          <path d="M1000 800 Q890 610 920 420 Q990 590 1000 800Z"/>
+          <line x1="1100" y1="400" x2="1200" y2="800" stroke="#1b5e20" strokeWidth="2"/>
+          <line x1="1060" y1="360" x2="1150" y2="800" stroke="#2e7d32" strokeWidth="1.5"/>
+          <line x1="990" y1="380" x2="1080" y2="800" stroke="#1b5e20" strokeWidth="1.5"/>
+          {/* Hojas sueltas esquina inferior derecha */}
+          <path d="M920 750 Q970 700 1020 730 Q970 770 920 750Z"/>
+          <path d="M860 780 Q910 720 970 760 Q910 790 860 780Z"/>
+          {/* Rama izquierda superior */}
+          <path d="M0 0 Q60 100 20 220 Q-20 110 0 0Z"/>
+          <path d="M40 0 Q110 110 70 240 Q20 120 40 0Z"/>
+          <path d="M90 0 Q170 120 130 260 Q70 130 90 0Z"/>
+          <path d="M0 50 Q80 80 100 160 Q30 140 0 50Z"/>
+          <path d="M0 120 Q90 140 120 230 Q40 210 0 120Z"/>
+          <line x1="20" y1="220" x2="0" y2="0" stroke="#2e7d32" strokeWidth="2"/>
+          <line x1="70" y1="240" x2="40" y2="0" stroke="#1b5e20" strokeWidth="1.5"/>
+          {/* Hojitas sueltas dispersas */}
+          <path d="M300 680 Q340 640 390 665 Q350 700 300 680Z"/>
+          <path d="M250 720 Q285 675 335 698 Q295 735 250 720Z"/>
+          <path d="M550 750 Q590 710 635 732 Q595 765 550 750Z"/>
+          <path d="M180 500 Q215 460 260 482 Q222 515 180 500Z"/>
+          <path d="M700 620 Q735 578 782 600 Q742 635 700 620Z"/>
+          <path d="M420 400 Q450 360 495 380 Q460 415 420 400Z"/>
+          <path d="M820 350 Q848 308 893 330 Q860 368 820 350Z"/>
+          <path d="M600 180 Q628 138 673 160 Q640 198 600 180Z"/>
+          <path d="M150 280 Q178 238 223 260 Q190 298 150 280Z"/>
+          <path d="M950 200 Q978 158 1023 180 Q990 218 950 200Z"/>
+        </g>
+      </svg>
+      
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Cormorant+Garamond:wght@300;400;600;700&family=Jost:wght@300;400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400;1,600&family=Cormorant+Garamond:wght@300;400;600;700&family=Jost:wght@300;400;500&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
           --gold: #2e7d32;
@@ -290,7 +321,7 @@ ${textoPegado}`
           --cream: #1a2e1a;
           --muted: #555;
         }
-        body { background: #f0f7f0; }
+        body { background: #b8ddb8; }
         .font-display { font-family: 'Cormorant Garamond', serif; }
         .font-body { font-family: 'Jost', sans-serif; }
         input, select, textarea { outline: none; }
@@ -298,7 +329,7 @@ ${textoPegado}`
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #f0f7f0; }
         ::-webkit-scrollbar-thumb { background: #81c784; border-radius: 3px; }
-        .nav-btn { background: none; border: none; cursor: pointer; padding: 10px 20px; font-family: 'Jost', sans-serif; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: #4a7a4a; transition: color 0.2s; }
+        .nav-btn { background: none; border: none; cursor: pointer; padding: 10px 20px; font-family: 'Jost', sans-serif; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: #1a3a1a; transition: color 0.2s; }
         .nav-btn.active { color: #1b5e20; border-bottom: 2px solid #1b5e20; font-weight: 600; }
         .nav-btn:hover { color: #1b5e20; }
         .card { background: #ffffff; border: 1px solid #dcedc8; border-radius: 8px; box-shadow: 0 2px 8px rgba(46,125,50,0.08); }
@@ -330,15 +361,20 @@ ${textoPegado}`
       {/* HEADER */}
       <header style={{ borderBottom: "1px solid #a5d6a7", background: "#ffffff", padding: "0 40px", position: "relative", zIndex: 1, display: "flex", alignItems: "center", justifyContent: "space-between", height: 72 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <img src={logoImg} alt="Buenas y Santas" style={{ height: 56, objectFit: "contain" }} />
+          <div style={{ lineHeight: 1.1 }}>
+            <div style={{ fontFamily: "'Lora', serif", fontSize: 26, fontWeight: 700, color: "#1a1a1a", fontStyle: "italic" }}>
+              Buenas <span style={{ color: "#2e7d32" }}>y</span> Santas
+            </div>
+            <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, letterSpacing: 3, color: "#5a8a5a", textTransform: "uppercase", marginTop: 3 }}>nueva cocina casera</div>
+          </div>
           <span style={{ color: "#c8e6c9", fontSize: 22 }}>|</span>
           <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 3, color: "#6a9a6a", textTransform: "uppercase" }}>Gestión de Reservas</span>
         </div>
         <nav style={{ display: "flex", gap: 4 }}>
-          <button className={`nav-btn ${vista === "reservas" ? "active" : ""}`} onClick={() => setVista("reservas")}>Reservas</button>
-          <button className="nav-btn" onClick={abrirNueva}>+ Nueva</button>
-          <button className={`nav-btn ${vista === "pegar" ? "active" : ""}`} onClick={() => setVista("pegar")}>📋 Pegar WhatsApp</button>
-          <button className={`nav-btn ${vista === "sheet" ? "active" : ""}`} onClick={() => setVista("sheet")}>📲 Nueva WhatsApp</button>
+          <button className={`nav-btn ${vista === "reservas" ? "active" : ""}`} onClick={() => setVista("reservas")} style={{ color: vista === "reservas" ? "#1b5e20" : "#1a3a1a" }}>Reservas</button>
+          <button className="nav-btn" onClick={abrirNueva} style={{ color: "#1a3a1a" }}>+ Nueva</button>
+          <button className={`nav-btn ${vista === "pegar" ? "active" : ""}`} onClick={() => setVista("pegar")} style={{ color: vista === "pegar" ? "#1b5e20" : "#1a3a1a" }}>📋 Pegar WhatsApp</button>
+          <button className={`nav-btn ${vista === "sheet" ? "active" : ""}`} onClick={() => setVista("sheet")} style={{ color: vista === "sheet" ? "#1b5e20" : "#1a3a1a" }}>📲 Nueva WhatsApp</button>
         </nav>
       </header>
 
@@ -382,7 +418,7 @@ ${textoPegado}`
                     <div key={r.id} style={{ borderBottom: "1px solid #c8e6c9", padding: "14px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <div>
                         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18 }}>{r.nombre}</p>
-                        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", marginTop: 2 }}>{r.hora} · {r.personas} personas · Mesa {r.mesa}</p>
+                        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", marginTop: 2 }}>{r.hora} · {r.personas} personas · {r.mesas && r.mesas.length > 0 ? "Mesa "+r.mesas.join("+") : r.mesa ? "Mesa "+r.mesa : ""}</p>
                         <div style={{ marginTop: 8 }}>
                           <BtnWhatsApp reserva={r} style={{ padding: "4px 10px", fontSize: 10 }} />
                         </div>
@@ -419,7 +455,7 @@ ${textoPegado}`
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32 }}>
               <div>
                 <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 3, color: "#4a7a4a", textTransform: "uppercase", marginBottom: 8 }}>Gestión</p>
-                <h1 style={{ fontFamily: "'Dancing Script', cursive", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Reservas</h1>
+                <h1 style={{ fontFamily: "'Lora', serif", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Reservas</h1>
               </div>
               <button className="btn-gold" onClick={abrirNueva}>+ Nueva reserva</button>
             </div>
@@ -475,7 +511,36 @@ ${textoPegado}`
                       <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</td>
                       <td style={{ padding: "16px 20px", fontFamily: "'Cormorant Garamond', serif", fontSize: 18, color: "#1b5e20" }}>{r.hora}</td>
                       <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{r.personas} pax</td>
-                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>Mesa {r.mesa}</td>
+                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                          {(r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []).map(m => (
+                            <span key={m} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#2e7d32", color: "#fff", borderRadius: 4, padding: "2px 8px", fontSize: 12, fontFamily: "'Jost', sans-serif", width: "fit-content" }}>
+                              {m}
+                              <button type="button" onClick={() => setReservas(rs => rs.map(x => x.id === r.id ? { ...x, mesas: (x.mesas||[x.mesa]||[]).filter(v => v !== m) } : x))}
+                                style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 13, padding: 0, lineHeight: 1 }}>×</button>
+                            </span>
+                          ))}
+                          <select
+                            style={{ fontSize: 11, padding: "3px 6px", border: "1px solid #a5d6a7", borderRadius: 4, background: "#fff", color: "#2e7d32", fontFamily: "'Jost', sans-serif", cursor: "pointer", marginTop: 2 }}
+                            value=""
+                            onChange={e => {
+                              const val = parseInt(e.target.value);
+                              if (!val) return;
+                              setReservas(rs => rs.map(x => {
+                                if (x.id !== r.id) return x;
+                                const curr = x.mesas || (x.mesa ? [x.mesa] : []);
+                                if (curr.includes(val) || curr.length >= 8) return x;
+                                return { ...x, mesas: [...curr, val] };
+                              }));
+                            }}
+                          >
+                            <option value="">+ mesa</option>
+                            {MESAS.filter(m => !(r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []).includes(m)).map(m => (
+                              <option key={m} value={m}>Mesa {m}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </td>
                       <td style={{ padding: "16px 20px" }}>
                         <select
                           value={r.estado}
@@ -557,7 +622,7 @@ ${textoPegado}`
                 <div key={r.id} style={{ padding: "20px 28px", borderBottom: "1px solid #c8e6c9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
                     <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18 }}>{new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
-                    <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", marginTop: 4 }}>{r.hora} · {r.personas} personas · Mesa {r.mesa}{r.notas ? ` · ${r.notas}` : ""}</p>
+                    <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", marginTop: 4 }}>{r.hora} · {r.personas} personas · {r.mesas && r.mesas.length > 0 ? "Mesa "+r.mesas.join("+") : r.mesa ? "Mesa "+r.mesa : ""}{r.notas ? ` · ${r.notas}` : ""}</p>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <BtnWhatsApp reserva={r} style={{ padding: "4px 10px", fontSize: 10 }} />
@@ -574,7 +639,7 @@ ${textoPegado}`
       {vista === "pegar" && (
         <div style={{ padding: "40px", maxWidth: 800, margin: "0 auto", position: "relative", zIndex: 1 }}>
           <div style={{ marginBottom: 32 }}>
-            <h1 style={{ fontFamily: "'Dancing Script', cursive", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Pegar mensaje</h1>
+            <h1 style={{ fontFamily: "'Lora', serif", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Pegar mensaje</h1>
           </div>
 
           <div className="card" style={{ padding: 32 }}>
@@ -612,7 +677,7 @@ ${textoPegado}`
       {vista === "sheet" && (
         <div style={{ padding: "40px", maxWidth: 900, margin: "0 auto", position: "relative", zIndex: 1 }}>
           <div style={{ marginBottom: 32 }}>
-            <h1 style={{ fontFamily: "'Dancing Script', cursive", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Nueva WhatsApp</h1>
+            <h1 style={{ fontFamily: "'Lora', serif", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Nueva WhatsApp</h1>
           </div>
 
           <div style={{ display: "flex", gap: 12, marginBottom: 32, alignItems: "center" }}>
@@ -684,7 +749,7 @@ ${textoPegado}`
       {modalAbierto && (
         <div className="overlay" onClick={e => e.target === e.currentTarget && setModalAbierto(false)}>
           <div className="modal">
-            <h2 style={{ fontFamily: "'Dancing Script', cursive", fontSize: 32, fontWeight: 700, color: "#1a1a1a", marginBottom: 28 }}>
+            <h2 style={{ fontFamily: "'Lora', serif", fontSize: 32, fontWeight: 700, color: "#1a1a1a", marginBottom: 28 }}>
               {reservaEditando ? "Editar reserva" : "Nueva reserva"}
             </h2>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
