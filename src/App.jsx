@@ -178,11 +178,19 @@ export default function App() {
         }
       }
     }
-    const horaRaw = get("hora", "time");
+    const horaRaw = get("hora", "time", "horario", "hour");
     let horaFmt = "";
     if (horaRaw) {
-      const m = horaRaw.match(/(\d{1,2}):(\d{2})/);
-      if (m) horaFmt = `${m[1].padStart(2,"0")}:${m[2]}`;
+      // Google Sheets puede pasar hora como fracción decimal (ej: 0.875 = 21:00)
+      if (typeof horaRaw === "number" && horaRaw < 1) {
+        const totalMin = Math.round(horaRaw * 24 * 60);
+        const hh = Math.floor(totalMin / 60);
+        const mm = totalMin % 60;
+        horaFmt = `${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}`;
+      } else {
+        const m = String(horaRaw).match(/(\d{1,2}):(\d{2})/);
+        if (m) horaFmt = `${m[1].padStart(2,"0")}:${m[2]}`;
+      }
     }
     const personas = parseInt(get("pax","personas","person","guests")) || 2;
     return {
@@ -711,34 +719,39 @@ ${textoPegado}`
                 <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 600 }}>
                   <thead>
                     <tr style={{ borderBottom: "1px solid #c8e6c9" }}>
-                      {sheetFilas[0].map((h, i) => (
-                        <th key={i} style={{ padding: "12px 16px", textAlign: "left", fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", fontWeight: 400 }}>{h}</th>
-                      ))}
-                      <th style={{ padding: "12px 16px", fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", fontWeight: 400 }}>Acción</th>
+                      <th style={{ padding: "12px 16px", fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", fontWeight: 400 }}></th>
+                      {sheetFilas[0].map((h, i) => {
+                        const hdr = String(h).toLowerCase();
+                        if (hdr.includes("import") || hdr.includes("hora") || hdr.includes("time")) return null;
+                        return <th key={i} style={{ padding: "12px 16px", textAlign: "left", fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", fontWeight: 400 }}>{h}</th>;
+                      })}
                     </tr>
                   </thead>
                   <tbody>
                     {sheetFilas.slice(1).map((fila, i) => (
                       <tr key={i} className="row-hover" style={{ borderBottom: "1px solid #c8e6c9" }}>
-                        {fila.map((celda, j) => (
-                          <td key={j} style={{ padding: "14px 16px", fontFamily: celda ? "'Cormorant Garamond', serif" : "'Jost', sans-serif", fontSize: celda ? 16 : 13, color: celda ? "#1a2e1a" : "#888" }}>
-                            {celda || "—"}
-                          </td>
-                        ))}
                         <td style={{ padding: "14px 16px" }}>
-                          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                            <button className="btn-gold" style={{ padding: "8px 16px", fontSize: 11 }}
-                              onClick={() => {
-                                const d = importarFilaSheet(headers, fila);
-                                setReservaEditando(null);
-                                setForm(d);
-                                setPendingSheetRow({ filaNum: fila[fila.length - 1], filaIdx: i });
-                                setModalAbierto(true);
-                              }}>
-                              + Importar
-                            </button>
-                          </div>
+                          <button className="btn-gold" style={{ padding: "8px 16px", fontSize: 11 }}
+                            onClick={() => {
+                              const d = importarFilaSheet(headers, fila);
+                              setReservaEditando(null);
+                              setForm(d);
+                              setPendingSheetRow({ filaNum: fila[fila.length - 1], filaIdx: i });
+                              setModalAbierto(true);
+                            }}>
+                            + Importar
+                          </button>
                         </td>
+                        {fila.slice(0, -1).map((celda, j) => {
+                          // Ocultar columnas: última (fila real), col G (importado=idx 6), hora (idx que matchee "hora")
+                          const hdr = String(headers[j] || "").toLowerCase();
+                          if (hdr.includes("import") || hdr.includes("hora") || hdr.includes("time")) return null;
+                          return (
+                            <td key={j} style={{ padding: "14px 16px", fontFamily: celda ? "'Cormorant Garamond', serif" : "'Jost', sans-serif", fontSize: celda ? 16 : 13, color: celda ? "#1a2e1a" : "#888" }}>
+                              {celda || "—"}
+                            </td>
+                          );
+                        })}
                       </tr>
                     ))}
                   </tbody>
