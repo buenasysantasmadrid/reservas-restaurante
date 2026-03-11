@@ -707,6 +707,21 @@ ${textoPegado}`
                 />
               </div>
 
+              {/* Tomada por */}
+              <div style={{ gridColumn: "1/-1" }}>
+                <label>Tomada por</label>
+                <select
+                  className="input-field"
+                  value={form.tomadaPor || ""}
+                  onChange={e => setForm(f => ({ ...f, tomadaPor: e.target.value }))}
+                >
+                  <option value="">— Seleccionar —</option>
+                  {["RAMIRO","YAMILA","LUCIANA","SHENAY","JESSICA","JULIO","JENNIFER","OTRO"].map(n => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+              </div>
+
               <div>
                 <label>Teléfono</label>
                 <input className="input-field" value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} placeholder="6xx xxx xxx" />
@@ -730,12 +745,6 @@ ${textoPegado}`
                 <input type="number" className="input-field" min={1} max={20} value={form.personas} onChange={e => setForm(f => ({ ...f, personas: parseInt(e.target.value) }))} />
               </div>
               <div>
-                <label>Mesa</label>
-                <select className="input-field" value={form.mesa} onChange={e => setForm(f => ({ ...f, mesa: parseInt(e.target.value) }))}>
-                  {MESAS.map(m => <option key={m} value={m}>Mesa {m}</option>)}
-                </select>
-              </div>
-              <div>
                 <label>Estado</label>
                 <select className="input-field" value={form.estado} onChange={e => setForm(f => ({ ...f, estado: e.target.value }))}>
                   <option value="tomada">Tomada</option>
@@ -749,16 +758,12 @@ ${textoPegado}`
               </div>
             </div>
 
-            {/* Botón WhatsApp en el modal al editar */}
-            {form.telefono && reservaEditando && (
-              <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid #222" }}>
-                <BtnWhatsApp reserva={form} style={{ width: "100%", justifyContent: "center", padding: "10px" }} />
-              </div>
-            )}
-
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 24 }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 24, alignItems: "center" }}>
               <button className="btn-outline" onClick={() => setModalAbierto(false)}>Cancelar</button>
-              <button className="btn-gold" onClick={guardarReserva}>{reservaEditando ? "Guardar cambios" : "Crear reserva"}</button>
+              {form.telefono && (
+                <BtnWhatsApp reserva={form} style={{ padding: "12px 20px" }} />
+              )}
+              <button className="btn-gold" onClick={guardarReserva}>{reservaEditando ? "Guardar cambios" : "Tomar reserva"}</button>
             </div>
           </div>
         </div>
