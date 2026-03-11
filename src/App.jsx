@@ -712,7 +712,7 @@ ${textoPegado}`
                     {sheetFilas.slice(1).map((fila, i) => (
                       <tr key={i} className="row-hover" style={{ borderBottom: "1px solid #c8e6c9" }}>
                         {fila.map((celda, j) => (
-                          <td key={j} style={{ padding: "14px 16px", fontFamily: celda ? "'Cormorant Garamond', serif" : "'Jost', sans-serif", fontSize: celda ? 16 : 13, color: celda ? "#f0ebe0" : "#333" }}>
+                          <td key={j} style={{ padding: "14px 16px", fontFamily: celda ? "'Cormorant Garamond', serif" : "'Jost', sans-serif", fontSize: celda ? 16 : 13, color: celda ? "#1a2e1a" : "#888" }}>
                             {celda || "—"}
                           </td>
                         ))}
