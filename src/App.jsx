@@ -6,7 +6,7 @@ const HORARIOS = ["13:00", "13:30", "14:00", "14:30", "15:00", "20:00", "20:30",
 const initialReservas = [
   { id: 1, nombre: "María García", telefono: "611 234 567", email: "maria@email.com", fecha: "2026-03-10", hora: "14:00", personas: 4, mesa: 3, notas: "Cumpleaños", estado: "confirmada" },
   { id: 2, nombre: "Carlos López", telefono: "622 345 678", email: "carlos@email.com", fecha: "2026-03-10", hora: "21:00", personas: 2, mesa: 1, notas: "", estado: "confirmada" },
-  { id: 3, nombre: "Ana Martínez", telefono: "633 456 789", email: "ana@email.com", fecha: "2026-03-11", hora: "13:30", personas: 6, mesa: 5, notas: "Alergia al gluten", estado: "pendiente" },
+  { id: 3, nombre: "Ana Martínez", telefono: "633 456 789", email: "ana@email.com", fecha: "2026-03-11", hora: "13:30", personas: 6, mesa: 5, notas: "Alergia al gluten", estado: "tomada" },
   { id: 4, nombre: "Pedro Sánchez", telefono: "644 567 890", email: "pedro@email.com", fecha: "2026-03-09", hora: "20:30", personas: 3, mesa: 2, notas: "", estado: "cancelada" },
 ];
 
@@ -22,7 +22,7 @@ export default function App() {
   const [busqueda, setBusqueda] = useState("");
   const [modalAbierto, setModalAbierto] = useState(false);
   const [reservaEditando, setReservaEditando] = useState(null);
-  const [form, setForm] = useState({ nombre: "", telefono: "", email: "", fecha: getTodayStr(), hora: "14:00", personas: 2, mesa: 1, notas: "", estado: "confirmada" });
+  const [form, setForm] = useState({ nombre: "", telefono: "", email: "", fecha: getTodayStr(), hora: "14:00", personas: 2, mesa: 1, notas: "", estado: "tomada" });
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [toast, setToast] = useState(null);
   const [textoPegado, setTextoPegado] = useState("");
@@ -45,6 +45,9 @@ export default function App() {
     return matchFecha && matchEstado && matchBusqueda;
   });
 
+  // Lista de nombres únicos para el desplegable de clientes
+  const nombresClientes = [...new Set(reservas.map(r => r.nombre))].sort();
+
   const clientes = Object.values(
     reservas.reduce((acc, r) => {
       if (!acc[r.email]) acc[r.email] = { nombre: r.nombre, email: r.email, telefono: r.telefono, visitas: 0, reservas: [] };
@@ -56,7 +59,7 @@ export default function App() {
 
   const abrirNueva = () => {
     setReservaEditando(null);
-    setForm({ nombre: "", telefono: "", email: "", fecha: getTodayStr(), hora: "14:00", personas: 2, mesa: 1, notas: "", estado: "confirmada" });
+    setForm({ nombre: "", telefono: "", email: "", fecha: getTodayStr(), hora: "14:00", personas: 2, mesa: 1, notas: "", estado: "tomada" });
     setModalAbierto(true);
   };
 
@@ -85,6 +88,17 @@ export default function App() {
 
   const cambiarEstado = (id, estado) => {
     setReservas(rs => rs.map(r => r.id === id ? { ...r, estado } : r));
+  };
+
+  // Al elegir un cliente existente, autocompleta sus datos
+  const seleccionarNombre = (nombre) => {
+    if (!nombre) { setForm(f => ({ ...f, nombre: "" })); return; }
+    const existente = reservas.find(r => r.nombre === nombre);
+    if (existente) {
+      setForm(f => ({ ...f, nombre: existente.nombre, telefono: existente.telefono, email: existente.email }));
+    } else {
+      setForm(f => ({ ...f, nombre }));
+    }
   };
 
   const parseCSV = (texto) => {
@@ -157,7 +171,7 @@ export default function App() {
       personas,
       notas: get("comentarios","notas","comment","nota"),
       mesa: 1,
-      estado: "confirmada"
+      estado: "tomada"
     };
   };
 
@@ -198,7 +212,7 @@ ${textoPegado}`
       const clean = texto.replace(/```json|```/g, "").trim();
       const parsed = JSON.parse(clean);
       setDatosInterpretados(parsed);
-      setForm(f => ({ ...f, ...parsed, mesa: f.mesa, estado: "confirmada", personas: parsed.personas || 2 }));
+      setForm(f => ({ ...f, ...parsed, mesa: f.mesa, estado: "tomada", personas: parsed.personas || 2 }));
       setModalAbierto(true);
     } catch (e) {
       showToast("No se pudo interpretar el mensaje", "error");
@@ -213,10 +227,33 @@ ${textoPegado}`
     window.open(`https://wa.me/34${tel}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
+  // ── Botón WhatsApp reutilizable ──────────────────────────────────────────────
+  const BtnWhatsApp = ({ reserva, style = {} }) => (
+    reserva.telefono ? (
+      <button
+        onClick={() => enviarWhatsApp(reserva)}
+        title="Enviar confirmación por WhatsApp"
+        style={{
+          padding: "6px 14px", fontSize: 11, background: "#25D366", border: "none",
+          color: "#fff", cursor: "pointer", fontFamily: "'Jost', sans-serif",
+          letterSpacing: 1, textTransform: "uppercase", transition: "background 0.2s",
+          display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 500, ...style
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = "#1ebe5a"}
+        onMouseLeave={e => e.currentTarget.style.background = "#25D366"}
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+        </svg>
+        WhatsApp
+      </button>
+    ) : null
+  );
+
   const stats = {
     hoy: reservas.filter(r => r.fecha === getTodayStr()).length,
     confirmadas: reservas.filter(r => r.estado === "confirmada").length,
-    pendientes: reservas.filter(r => r.estado === "pendiente").length,
+    pendientes: reservas.filter(r => r.estado === "tomada").length,
     personas: reservas.filter(r => r.fecha === getTodayStr() && r.estado === "confirmada").reduce((s, r) => s + r.personas, 0),
   };
 
@@ -256,7 +293,7 @@ ${textoPegado}`
         .input-field:focus { border-color: #c9a84c; }
         .badge { display: inline-block; padding: 3px 10px; font-family: 'Jost', sans-serif; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; border-radius: 2px; }
         .badge-confirmada { background: #1a2e1a; color: #5dba5d; border: 1px solid #2a4a2a; }
-        .badge-pendiente { background: #2e2a1a; color: #c9a84c; border: 1px solid #4a3a1a; }
+        .badge-tomada { background: #2e2a1a; color: #c9a84c; border: 1px solid #4a3a1a; }
         .badge-cancelada { background: #2e1a1a; color: #ba5d5d; border: 1px solid #4a2a2a; }
         .row-hover { transition: background 0.15s; }
         .row-hover:hover { background: #1e1e1e; }
@@ -303,7 +340,7 @@ ${textoPegado}`
               {[
                 { label: "Reservas hoy", valor: stats.hoy, sub: "total del día" },
                 { label: "Confirmadas", valor: stats.confirmadas, sub: "en total" },
-                { label: "Pendientes", valor: stats.pendientes, sub: "por confirmar" },
+                { label: "Tomadas", valor: stats.pendientes, sub: "por confirmar" },
                 { label: "Comensales hoy", valor: stats.personas, sub: "personas esperadas" },
               ].map((s, i) => (
                 <div key={i} className="stat-card">
@@ -315,7 +352,7 @@ ${textoPegado}`
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-              {/* Próximas reservas */}
+              {/* Reservas de hoy */}
               <div className="card" style={{ padding: 32 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
                   <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 400 }}>Reservas de hoy</h2>
@@ -328,6 +365,9 @@ ${textoPegado}`
                       <div>
                         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18 }}>{r.nombre}</p>
                         <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#555", marginTop: 2 }}>{r.hora} · {r.personas} personas · Mesa {r.mesa}</p>
+                        <div style={{ marginTop: 8 }}>
+                          <BtnWhatsApp reserva={r} style={{ padding: "4px 10px", fontSize: 10 }} />
+                        </div>
                       </div>
                       <span className={`badge badge-${r.estado}`}>{r.estado}</span>
                     </div>
@@ -373,7 +413,7 @@ ${textoPegado}`
               <select className="input-field" style={{ width: 160 }} value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}>
                 <option value="todas">Todos los estados</option>
                 <option value="confirmada">Confirmadas</option>
-                <option value="pendiente">Pendientes</option>
+                <option value="tomada">Tomadas</option>
                 <option value="cancelada">Canceladas</option>
               </select>
               {filtroFecha && <button className="btn-outline" onClick={() => setFiltroFecha("")}>Ver todas las fechas</button>}
@@ -409,26 +449,15 @@ ${textoPegado}`
                           className={`badge badge-${r.estado}`}
                           style={{ cursor: "pointer", border: "none", appearance: "none", paddingRight: 8 }}
                         >
+                          <option value="tomada">Tomada</option>
                           <option value="confirmada">Confirmada</option>
-                          <option value="pendiente">Pendiente</option>
                           <option value="cancelada">Cancelada</option>
                         </select>
                       </td>
                       <td style={{ padding: "16px 20px" }}>
                         <div style={{ display: "flex", gap: 8 }}>
                           <button className="btn-outline" style={{ padding: "6px 12px", fontSize: 11 }} onClick={() => abrirEditar(r)}>Editar</button>
-                          {r.telefono && (
-                            <button
-                              onClick={() => enviarWhatsApp(r)}
-                              title="Enviar confirmación por WhatsApp"
-                              style={{ padding: "6px 14px", fontSize: 11, background: "#25D366", border: "none", color: "#fff", cursor: "pointer", fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", transition: "background 0.2s", display: "flex", alignItems: "center", gap: 6, fontWeight: 500 }}
-                              onMouseEnter={e => e.currentTarget.style.background = "#1ebe5a"}
-                              onMouseLeave={e => e.currentTarget.style.background = "#25D366"}
-                            >
-                              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                              WhatsApp
-                            </button>
-                          )}
+                          <BtnWhatsApp reserva={r} />
                           <button className="btn-outline" style={{ padding: "6px 12px", fontSize: 11, borderColor: "#4a2a2a", color: "#ba5d5d" }} onClick={() => eliminarReserva(r.id)}>✕</button>
                         </div>
                       </td>
@@ -496,7 +525,10 @@ ${textoPegado}`
                     <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18 }}>{new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
                     <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#555", marginTop: 4 }}>{r.hora} · {r.personas} personas · Mesa {r.mesa}{r.notas ? ` · ${r.notas}` : ""}</p>
                   </div>
-                  <span className={`badge badge-${r.estado}`}>{r.estado}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <BtnWhatsApp reserva={r} style={{ padding: "4px 10px", fontSize: 10 }} />
+                    <span className={`badge badge-${r.estado}`}>{r.estado}</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -642,6 +674,8 @@ ${textoPegado}`
           <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
         </div>
       )}
+
+      {/* ── MODAL NUEVA / EDITAR RESERVA ── */}
       {modalAbierto && (
         <div className="overlay" onClick={e => e.target === e.currentTarget && setModalAbierto(false)}>
           <div className="modal">
@@ -649,10 +683,30 @@ ${textoPegado}`
               {reservaEditando ? "Editar reserva" : "Nueva reserva"}
             </h2>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+
+              {/* Desplegable de clientes existentes */}
               <div style={{ gridColumn: "1/-1" }}>
-                <label>Nombre del cliente *</label>
-                <input className="input-field" value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Nombre completo" />
+                <label>Cliente existente</label>
+                <select
+                  className="input-field"
+                  value={nombresClientes.includes(form.nombre) ? form.nombre : ""}
+                  onChange={e => seleccionarNombre(e.target.value)}
+                  style={{ marginBottom: 10 }}
+                >
+                  <option value="">— Seleccionar cliente existente —</option>
+                  {nombresClientes.map(n => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+                <label>Nombre *</label>
+                <input
+                  className="input-field"
+                  value={form.nombre}
+                  onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
+                  placeholder="O escribe un nombre nuevo"
+                />
               </div>
+
               <div>
                 <label>Teléfono</label>
                 <input className="input-field" value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} placeholder="6xx xxx xxx" />
@@ -684,8 +738,8 @@ ${textoPegado}`
               <div>
                 <label>Estado</label>
                 <select className="input-field" value={form.estado} onChange={e => setForm(f => ({ ...f, estado: e.target.value }))}>
+                  <option value="tomada">Tomada</option>
                   <option value="confirmada">Confirmada</option>
-                  <option value="pendiente">Pendiente</option>
                   <option value="cancelada">Cancelada</option>
                 </select>
               </div>
@@ -694,7 +748,15 @@ ${textoPegado}`
                 <textarea className="input-field" value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} placeholder="Alergias, celebraciones, preferencias..." rows={3} style={{ resize: "vertical" }} />
               </div>
             </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 32 }}>
+
+            {/* Botón WhatsApp en el modal al editar */}
+            {form.telefono && reservaEditando && (
+              <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid #222" }}>
+                <BtnWhatsApp reserva={form} style={{ width: "100%", justifyContent: "center", padding: "10px" }} />
+              </div>
+            )}
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 24 }}>
               <button className="btn-outline" onClick={() => setModalAbierto(false)}>Cancelar</button>
               <button className="btn-gold" onClick={guardarReserva}>{reservaEditando ? "Guardar cambios" : "Crear reserva"}</button>
             </div>
