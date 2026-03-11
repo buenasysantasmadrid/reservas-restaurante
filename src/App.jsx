@@ -101,6 +101,7 @@ export default function App() {
         .then(() => setSheetFilas(f => f.filter((_, idx) => idx !== filaIdx + 1)));
       setPendingSheetRow(null);
       setVista("sheet");
+      cargarDesdeSheet();
     }
   };
 
