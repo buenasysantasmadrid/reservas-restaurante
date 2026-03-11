@@ -149,18 +149,19 @@ export default function App() {
   };
 
   const importarFilaSheet = (headers, fila) => {
-    // Columnas fijas: A=Nombre, B=Telefono, C=Fecha, D=Pax, E=Comentarios, F=Mail
-    const nombre    = String(fila[0] || "");
-    const telefono  = String(fila[1] || "");
-    const fechaRaw  = fila[2];
-    const pax       = fila[3];
-    const notas     = String(fila[4] || "");
-    const email     = String(fila[5] || "");
+    // A=Nombre, B=Telefono, C=Dia, D=Hora, E=Pax, F=Comentarios, G=Mail
+    const nombre   = String(fila[0] || "");
+    const telefono = String(fila[1] || "");
+    const fechaRaw = fila[2];
+    const horaRaw  = fila[3];
+    const pax      = fila[4];
+    const notas    = String(fila[5] || "");
+    const email    = String(fila[6] || "");
 
-    // Parsear fecha — puede venir como Date, string dd/mm/yyyy o yyyy-mm-dd
+    // Parsear fecha
     let fechaFmt = "";
     if (fechaRaw) {
-      if (fechaRaw instanceof Date || (typeof fechaRaw === "object" && fechaRaw.getTime)) {
+      if (typeof fechaRaw === "object" && fechaRaw.getTime) {
         fechaFmt = new Date(fechaRaw).toISOString().split("T")[0];
       } else {
         const s = String(fechaRaw).trim();
@@ -168,7 +169,6 @@ export default function App() {
         if (!isNaN(d)) {
           fechaFmt = d.toISOString().split("T")[0];
         } else {
-          // Intentar dd/mm/yyyy o dd-mm-yyyy
           const partes = s.split(/[\/\-]/);
           if (partes.length === 3) {
             const [a, b, c] = partes;
@@ -179,12 +179,26 @@ export default function App() {
       }
     }
 
+    // Parsear hora — puede venir como fracción decimal de Sheets (0.875 = 21:00) o string "21:00"
+    let horaFmt = "";
+    if (horaRaw !== "" && horaRaw !== null && horaRaw !== undefined) {
+      if (typeof horaRaw === "number" && horaRaw < 1) {
+        const totalMin = Math.round(horaRaw * 24 * 60);
+        const hh = Math.floor(totalMin / 60);
+        const mm = totalMin % 60;
+        horaFmt = `${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}`;
+      } else {
+        const m = String(horaRaw).match(/(\d{1,2}):(\d{2})/);
+        if (m) horaFmt = `${m[1].padStart(2,"0")}:${m[2]}`;
+      }
+    }
+
     return {
       nombre,
       telefono,
       email,
       fecha: fechaFmt,
-      hora: "",
+      hora: horaFmt,
       personas: parseInt(pax) || "",
       notas,
       mesas: [],
