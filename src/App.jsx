@@ -130,7 +130,8 @@ export default function App() {
       mesa: r.mesa || "",
       estado: r.estado || "",
       notas: r.notas || "",
-      tomadaPor: r.tomadaPor || ""
+      tomadaPor: r.tomadaPor || "",
+      fechaTomada: r.fechaTomada || ""
     }));
 
     try {
