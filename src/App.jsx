@@ -544,24 +544,8 @@ ${textoPegado}`
             </div>
 
             {/* Filtros */}
-            <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap" }}>
-              <div style={{ display: "flex", gap: 4 }}>
-                <select className="input-field" style={{ width: 64 }} value={filtroFecha ? filtroFecha.split("-")[2] : ""}
-                  onChange={e => { const p = (filtroFecha||getTodayStr()).split("-"); setFiltroFecha(e.target.value ? `${p[0]}-${p[1]}-${e.target.value}` : ""); }}>
-                  <option value="">Día</option>
-                  {Array.from({length:31},(_,i)=>String(i+1).padStart(2,"0")).map(d=><option key={d} value={d}>{d}</option>)}
-                </select>
-                <select className="input-field" style={{ width: 110 }} value={filtroFecha ? filtroFecha.split("-")[1] : ""}
-                  onChange={e => { const p = (filtroFecha||getTodayStr()).split("-"); setFiltroFecha(e.target.value ? `${p[0]}-${e.target.value}-${p[2]}` : ""); }}>
-                  <option value="">Mes</option>
-                  {[["01","Enero"],["02","Febrero"],["03","Marzo"],["04","Abril"],["05","Mayo"],["06","Junio"],["07","Julio"],["08","Agosto"],["09","Septiembre"],["10","Octubre"],["11","Noviembre"],["12","Diciembre"]].map(([v,l])=><option key={v} value={v}>{l}</option>)}
-                </select>
-                <select className="input-field" style={{ width: 80 }} value={filtroFecha ? filtroFecha.split("-")[0] : ""}
-                  onChange={e => { const p = (filtroFecha||getTodayStr()).split("-"); setFiltroFecha(e.target.value ? `${e.target.value}-${p[1]}-${p[2]}` : ""); }}>
-                  <option value="">Año</option>
-                  {["2025","2026","2027"].map(y=><option key={y} value={y}>{y}</option>)}
-                </select>
-              </div>
+            <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap", alignItems: "center" }}>
+              <input type="date" className="input-field" style={{ width: 180 }} value={filtroFecha} onChange={e => setFiltroFecha(e.target.value)} />
               <input type="text" className="input-field" style={{ width: 220 }} placeholder="Buscar cliente..." value={busqueda} onChange={e => setBusqueda(e.target.value)} />
               <select className="input-field" style={{ width: 160 }} value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}>
                 <option value="todas">Todos los estados</option>
