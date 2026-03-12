@@ -135,8 +135,8 @@ export default function App() {
     }));
 
     try {
-      const url = "https://script.google.com/macros/s/AKfycbxr4Yb8O1Db5W0sEh9eywRa-4rUgjd72TMZC_WJjvyTiDBljmtzj3tu5JhqHqqV0-y0HA/exec";
-      const res = await fetch(url, { method: "POST", body: JSON.stringify(filas) });
+      const url = "https://script.google.com/macros/s/AKfycbxr4Yb8O1Db5W0sEh9eywRa-4rUgjd72TMZC_WJjvyTiDBljmtzj3tu5JhqHqqV0-y0HA/exec?action=archivar&datos=" + encodeURIComponent(JSON.stringify(filas));
+      const res = await fetch(url);
       if (!res.ok) throw new Error("Error al conectar con Google Sheets");
       // Guardar clientes en memoria antes de borrar las reservas
       setClientesArchivados(prev => {
@@ -547,7 +547,7 @@ ${textoPegado}`
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid #c8e6c9" }}>
-                    {["Cliente", "Fecha", "Hora", "Personas", "Mesa", "Estado", "Tomada por", "Cuando", "Acciones"].map(h => (
+                    {["Cliente", "Fecha", "Hora", "Personas", "Mesa", "Estado", "Mail", "Tomada por", "Cuando", "Acciones"].map(h => (
                       <th key={h} style={{ padding: "14px 20px", textAlign: "left", fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", fontWeight: 400 }}>{h}</th>
                     ))}
                   </tr>
@@ -605,6 +605,9 @@ ${textoPegado}`
                           <option value="confirmada">Confirmada</option>
                           <option value="cancelada">Cancelada</option>
                         </select>
+                      </td>
+                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>
+                        {r.email || "—"}
                       </td>
                       <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>
                         {r.tomadaPor || "—"}
