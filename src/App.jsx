@@ -553,7 +553,7 @@ ${textoPegado}`
                 <option value="tomada">Tomadas</option>
                 <option value="cancelada">Canceladas</option>
               </select>
-              {filtroFecha && <button className="btn-outline" onClick={() => setFiltroFecha("")}>Ver todas las fechas</button>}
+              <button className="btn-outline" onClick={() => setFiltroFecha("")}>Ver todas las fechas</button>
             </div>
 
             {/* Tabla */}
