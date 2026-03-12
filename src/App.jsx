@@ -725,9 +725,29 @@ ${textoPegado}`
                           </button>
                         </td>
                         {fila.map((celda, j) => {
-                          // Ocultar columnas: última (fila real), col G (importado=idx 6), hora (idx que matchee "hora")
                           const hdr = String(headers[j] || "").toLowerCase();
                           if (hdr.includes("import") || hdr.includes("hora") || hdr.includes("time")) return null;
+                          // Columna C (índice 2): separar fecha y hora
+                          if (j === 2 && celda) {
+                            const d = new Date(celda);
+                            let fechaStr = "—";
+                            let horaStr = "";
+                            if (!isNaN(d)) {
+                              const dd = String(d.getDate()).padStart(2,"0");
+                              const mm = String(d.getMonth()+1).padStart(2,"0");
+                              const yyyy = d.getFullYear();
+                              const hh = String(d.getHours()).padStart(2,"0");
+                              const min = String(d.getMinutes()).padStart(2,"0");
+                              fechaStr = `${dd}/${mm}/${yyyy}`;
+                              horaStr = `${hh}:${min}`;
+                            }
+                            return (
+                              <td key={j} style={{ padding: "14px 16px", fontFamily: "'Cormorant Garamond', serif", fontSize: 16, color: "#1a2e1a" }}>
+                                <div>{fechaStr}</div>
+                                <div style={{ fontSize: 13, color: "#1b5e20" }}>{horaStr}</div>
+                              </td>
+                            );
+                          }
                           return (
                             <td key={j} style={{ padding: "14px 16px", fontFamily: celda ? "'Cormorant Garamond', serif" : "'Jost', sans-serif", fontSize: celda ? 16 : 13, color: celda ? "#1a2e1a" : "#888" }}>
                               {celda || "—"}
