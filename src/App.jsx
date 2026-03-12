@@ -38,6 +38,7 @@ export default function App() {
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [toast, setToast] = useState(null);
   const [confirmarWA, setConfirmarWA] = useState(false);
+  const [pendingSheetIdx, setPendingSheetIdx] = useState(null);
   const [textoPegado, setTextoPegado] = useState("");
   const [interpretando, setInterpretando] = useState(false);
   const [datosInterpretados, setDatosInterpretados] = useState(null);
@@ -98,6 +99,10 @@ export default function App() {
 
   const confirmarYGuardar = () => {
     setReservas(rs => [...rs, { ...form, mesa: form.mesas.join("+"), id: Date.now() }]);
+    if (pendingSheetIdx !== null) {
+      setSheetFilas(fs => [fs[0], ...fs.slice(1).filter((_, idx) => idx + 1 !== pendingSheetIdx)]);
+      setPendingSheetIdx(null);
+    }
     showToast("Reserva creada ✓");
     setConfirmarWA(false);
     setModalAbierto(false);
@@ -734,6 +739,7 @@ ${textoPegado}`
                               const d = importarFilaSheet(headers, fila);
                               setReservaEditando(null);
                               setForm(d);
+                              setPendingSheetIdx(i + 1); // +1 porque slice(1)
                               setModalAbierto(true);
                             }}>
                             + Importar
