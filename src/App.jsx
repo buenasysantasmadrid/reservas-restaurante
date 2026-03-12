@@ -149,38 +149,26 @@ export default function App() {
   };
 
   const importarFilaSheet = (headers, fila) => {
-    // A=Nombre, B=Telefono, C=Dia+Hora juntos, D=Pax, E=Comentarios, F=Mail
-    const nombre       = String(fila[0] || "");
-    const telefono     = String(fila[1] || "");
-    const fechaHoraRaw = fila[2];
-    const pax          = fila[3];
-    const notas        = String(fila[4] || "");
-    const email        = String(fila[5] || "");
+    // A=Nombre, B=Telefono, C="dd/mm/yyyy HH:MM:SS", D=Pax, E=Comentarios, F=Mail
+    const nombre   = String(fila[0] || "");
+    const telefono = String(fila[1] || "");
+    const raw      = String(fila[2] || "").trim();
+    const pax      = fila[3];
+    const notas    = String(fila[4] || "");
+    const email    = String(fila[5] || "");
 
+    // Separar "11/03/2026 15:30:00" en fecha y hora
     let fechaFmt = "";
     let horaFmt = "";
-
-    if (fechaHoraRaw) {
-      if (typeof fechaHoraRaw === "object" && fechaHoraRaw.getTime) {
-        const d = new Date(fechaHoraRaw);
-        fechaFmt = d.toISOString().split("T")[0];
-        const hh = d.getHours();
-        const mm = d.getMinutes();
-        if (hh > 0 || mm > 0) horaFmt = `${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}`;
-      } else {
-        const s = String(fechaHoraRaw).trim();
-        const matchHora = s.match(/(\d{1,2}):(\d{2})/);
-        if (matchHora) horaFmt = `${matchHora[1].padStart(2,"0")}:${matchHora[2]}`;
-        const solofecha = s.split(" ")[0].split("T")[0];
-        const partes = solofecha.split(/[\/\-]/);
-        if (partes.length === 3) {
-          const [a, b, c] = partes;
-          if (a.length === 4) fechaFmt = `${a}-${b.padStart(2,"0")}-${c.padStart(2,"0")}`;
-          else fechaFmt = `${c}-${b.padStart(2,"0")}-${a.padStart(2,"0")}`;
-        } else {
-          const d = new Date(solofecha);
-          if (!isNaN(d)) fechaFmt = d.toISOString().split("T")[0];
-        }
+    if (raw) {
+      const [partefecha, partehora] = raw.split(" ");
+      // fecha: dd/mm/yyyy → yyyy-mm-dd
+      const [dd, mm, yyyy] = partefecha.split("/");
+      if (dd && mm && yyyy) fechaFmt = `${yyyy}-${mm.padStart(2,"0")}-${dd.padStart(2,"0")}`;
+      // hora: HH:MM:SS → HH:MM
+      if (partehora) {
+        const [hh, min] = partehora.split(":");
+        horaFmt = `${hh.padStart(2,"0")}:${min}`;
       }
     }
 
