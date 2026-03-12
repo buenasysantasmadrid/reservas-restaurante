@@ -118,10 +118,18 @@ export default function App() {
     const pasadas = reservas.filter(r => r.fecha < hoy);
     if (pasadas.length === 0) return showToast("No hay reservas pasadas para archivar", "error");
 
-    const filas = pasadas.map(r => [
-      r.nombre, r.telefono || "", r.fecha, r.hora || "",
-      r.personas || "", r.notas || "", r.email || "", r.estado || "", r.tomadaPor || ""
-    ]);
+    const filas = pasadas.map(r => ({
+      nombre: r.nombre,
+      telefono: r.telefono || "",
+      fecha: r.fecha,
+      hora: r.hora || "",
+      personas: r.personas || "",
+      mesas: r.mesas || [],
+      mesa: r.mesa || "",
+      estado: r.estado || "",
+      notas: r.notas || "",
+      tomadaPor: r.tomadaPor || ""
+    }));
 
     try {
       const url = "https://script.google.com/macros/s/AKfycbxr4Yb8O1Db5W0sEh9eywRa-4rUgjd72TMZC_WJjvyTiDBljmtzj3tu5JhqHqqV0-y0HA/exec";
