@@ -109,6 +109,66 @@ export default function App() {
     if (vista === "sheet") setVista("sheet");
   };
 
+  const archivarReservasPasadas = async () => {
+    const hoy = getTodayStr();
+    const pasadas = reservas.filter(r => r.fecha < hoy);
+    if (pasadas.length === 0) return showToast("No hay reservas pasadas para archivar", "error");
+
+    // Preparar filas para Google Sheets: Nombre, Telefono, Fecha, Hora, Pax, Comentarios, Mail, Estado
+    const filas = pasadas.map(r => [
+      r.nombre,
+      r.telefono || "",
+      r.fecha,
+      r.hora || "",
+      r.personas || "",
+      r.notas || "",
+      r.email || "",
+      r.estado || ""
+    ]);
+
+    try {
+      const url = "https://script.google.com/macros/s/AKfycbxr4Yb8O1Db5W0sEh9eywRa-4rUgjd72TMZC_WJjvyTiDBljmtzj3tu5JhqHqqV0-y0HA/exec";
+      const res = await fetch(url, {
+        method: "POST",
+        body: JSON.stringify(filas)
+      });
+      if (!res.ok) throw new Error("Error al conectar con Google Sheets");
+      // Borrar reservas pasadas pero conservar clientes
+      setReservas(rs => rs.filter(r => r.fecha >= hoy));
+      showToast(`${pasadas.length} reserva${pasadas.length > 1 ? "s" : ""} archivada${pasadas.length > 1 ? "s" : ""} ✓`);
+    } catch (e) {
+      showToast("Error al archivar en Google Sheets", "error");
+    }
+  };
+
+  // Archivar automáticamente al cargar si hay reservas de días anteriores
+  useEffect(() => {
+    const hoy = getTodayStr();
+    const pasadas = reservas.filter(r => r.fecha < hoy);
+    if (pasadas.length === 0) return;
+    const url = "https://script.google.com/macros/s/AKfycbxr4Yb8O1Db5W0sEh9eywRa-4rUgjd72TMZC_WJjvyTiDBljmtzj3tu5JhqHqqV0-y0HA/exec";
+    fetch(url, {
+      method: "POST",
+      body: JSON.stringify(pasadas.map(r => ({
+        nombre: r.nombre,
+        telefono: r.telefono || "",
+        fecha: r.fecha,
+        hora: r.hora || "",
+        personas: r.personas || "",
+        mesas: r.mesas || [],
+        mesa: r.mesa || "",
+        estado: r.estado || "",
+        notas: r.notas || "",
+        tomadaPor: r.tomadaPor || ""
+      })))
+    }).then(() => {
+      setReservas(rs => rs.filter(r => r.fecha >= hoy));
+      showToast(`${pasadas.length} reserva${pasadas.length > 1 ? "s" : ""} archivada${pasadas.length > 1 ? "s" : ""} automáticamente ✓`);
+    }).catch(() => {
+      // Silencioso si falla, el usuario puede archivar manualmente
+    });
+  }, []);
+
   const eliminarReserva = (id) => {
     setReservas(rs => rs.filter(r => r.id !== id));
     showToast("Reserva eliminada", "error");
@@ -477,7 +537,10 @@ ${textoPegado}`
                 <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 3, color: "#4a7a4a", textTransform: "uppercase", marginBottom: 8 }}>Gestión</p>
                 <h1 style={{ fontFamily: "'Lora', serif", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Reservas</h1>
               </div>
-              <button className="btn-gold" onClick={abrirNueva}>+ Nueva reserva</button>
+              <div style={{ display: "flex", gap: 12 }}>
+                <button className="btn-outline" style={{ borderColor: "#81c784", color: "#2e7d32", fontSize: 11 }} onClick={archivarReservasPasadas}>📦 Archivar pasadas</button>
+                <button className="btn-gold" onClick={abrirNueva}>+ Nueva reserva</button>
+              </div>
             </div>
 
             {/* Filtros */}
