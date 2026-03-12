@@ -356,7 +356,7 @@ ${textoPegado}`
         .row-hover:hover { background: #f1f8f1; }
         .overlay { position: fixed; inset: 0; background: rgba(0,60,0,0.4); z-index: 50; display: flex; align-items: center; justify-content: center; }
         .modal { background: #ffffff; border: 1px solid #c8e6c9; padding: 40px; width: 90%; max-width: 560px; max-height: 90vh; overflow-y: auto; }
-        .toast { position: fixed; bottom: 32px; right: 32px; padding: 14px 24px; font-family: 'Jost', sans-serif; font-size: 13px; letter-spacing: 1px; z-index: 100; border-radius: 2px; animation: fadeIn 0.3s; }
+        .toast { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); padding: 18px 36px; font-family: 'Jost', sans-serif; font-size: 16px; letter-spacing: 1px; z-index: 100; border-radius: 4px; animation: fadeIn 0.3s; text-align: center; white-space: nowrap; box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
         .toast-ok { background: #e8f5e9; border: 1px solid #81c784; color: #1b5e20; }
         .toast-error { background: #ffebee; border: 1px solid #ef9a9a; color: #b71c1c; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
