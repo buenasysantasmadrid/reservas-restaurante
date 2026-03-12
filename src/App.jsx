@@ -149,47 +149,38 @@ export default function App() {
   };
 
   const importarFilaSheet = (headers, fila) => {
-    // A=Nombre, B=Telefono, C=Dia, D=Hora, E=Pax, F=Comentarios, G=Mail
-    const nombre   = String(fila[0] || "");
-    const telefono = String(fila[1] || "");
-    const fechaRaw = fila[2];
-    const horaRaw  = fila[3];
-    const pax      = fila[4];
-    const notas    = String(fila[5] || "");
-    const email    = String(fila[6] || "");
+    // A=Nombre, B=Telefono, C=Dia+Hora juntos, D=Pax, E=Comentarios, F=Mail
+    const nombre       = String(fila[0] || "");
+    const telefono     = String(fila[1] || "");
+    const fechaHoraRaw = fila[2];
+    const pax          = fila[3];
+    const notas        = String(fila[4] || "");
+    const email        = String(fila[5] || "");
 
-    // Parsear fecha
     let fechaFmt = "";
-    if (fechaRaw) {
-      if (typeof fechaRaw === "object" && fechaRaw.getTime) {
-        fechaFmt = new Date(fechaRaw).toISOString().split("T")[0];
-      } else {
-        const s = String(fechaRaw).trim();
-        const d = new Date(s);
-        if (!isNaN(d)) {
-          fechaFmt = d.toISOString().split("T")[0];
-        } else {
-          const partes = s.split(/[\/\-]/);
-          if (partes.length === 3) {
-            const [a, b, c] = partes;
-            if (a.length === 4) fechaFmt = `${a}-${b.padStart(2,"0")}-${c.padStart(2,"0")}`;
-            else fechaFmt = `${c}-${b.padStart(2,"0")}-${a.padStart(2,"0")}`;
-          }
-        }
-      }
-    }
-
-    // Parsear hora — puede venir como fracción decimal de Sheets (0.875 = 21:00) o string "21:00"
     let horaFmt = "";
-    if (horaRaw !== "" && horaRaw !== null && horaRaw !== undefined) {
-      if (typeof horaRaw === "number" && horaRaw < 1) {
-        const totalMin = Math.round(horaRaw * 24 * 60);
-        const hh = Math.floor(totalMin / 60);
-        const mm = totalMin % 60;
-        horaFmt = `${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}`;
+
+    if (fechaHoraRaw) {
+      if (typeof fechaHoraRaw === "object" && fechaHoraRaw.getTime) {
+        const d = new Date(fechaHoraRaw);
+        fechaFmt = d.toISOString().split("T")[0];
+        const hh = d.getHours();
+        const mm = d.getMinutes();
+        if (hh > 0 || mm > 0) horaFmt = `${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}`;
       } else {
-        const m = String(horaRaw).match(/(\d{1,2}):(\d{2})/);
-        if (m) horaFmt = `${m[1].padStart(2,"0")}:${m[2]}`;
+        const s = String(fechaHoraRaw).trim();
+        const matchHora = s.match(/(\d{1,2}):(\d{2})/);
+        if (matchHora) horaFmt = `${matchHora[1].padStart(2,"0")}:${matchHora[2]}`;
+        const solofecha = s.split(" ")[0].split("T")[0];
+        const partes = solofecha.split(/[\/\-]/);
+        if (partes.length === 3) {
+          const [a, b, c] = partes;
+          if (a.length === 4) fechaFmt = `${a}-${b.padStart(2,"0")}-${c.padStart(2,"0")}`;
+          else fechaFmt = `${c}-${b.padStart(2,"0")}-${a.padStart(2,"0")}`;
+        } else {
+          const d = new Date(solofecha);
+          if (!isNaN(d)) fechaFmt = d.toISOString().split("T")[0];
+        }
       }
     }
 
