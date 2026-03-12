@@ -135,8 +135,8 @@ export default function App() {
     }));
 
     try {
-      const url = "https://script.google.com/macros/s/AKfycbxr4Yb8O1Db5W0sEh9eywRa-4rUgjd72TMZC_WJjvyTiDBljmtzj3tu5JhqHqqV0-y0HA/exec?action=archivar&datos=" + encodeURIComponent(JSON.stringify(filas));
-      const res = await fetch(url);
+      const url = "https://script.google.com/macros/s/AKfycbxr4Yb8O1Db5W0sEh9eywRa-4rUgjd72TMZC_WJjvyTiDBljmtzj3tu5JhqHqqV0-y0HA/exec";
+      const res = await fetch(url, { method: "POST", body: JSON.stringify(filas) });
       if (!res.ok) throw new Error("Error al conectar con Google Sheets");
       // Guardar clientes en memoria antes de borrar las reservas
       setClientesArchivados(prev => {
