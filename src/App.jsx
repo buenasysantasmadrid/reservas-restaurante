@@ -35,7 +35,7 @@ export default function App() {
   const [busqueda, setBusqueda] = useState("");
   const [modalAbierto, setModalAbierto] = useState(false);
   const [reservaEditando, setReservaEditando] = useState(null);
-  const [form, setForm] = useState({ nombre: "", telefono: "", email: "", fecha: "", hora: "", personas: "", mesas: [], notas: "", estado: "tomada", tomadaPor: "", prefijo: "+34" });
+  const [form, setForm] = useState({ nombre: "", telefono: "", email: "", fecha: "", hora: "", personas: "", mesas: [], notas: "", estado: "tomada", tomadaPor: "" });
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [toast, setToast] = useState(null);
   const [confirmarWA, setConfirmarWA] = useState(false);
@@ -77,7 +77,7 @@ export default function App() {
 
   const abrirNueva = () => {
     setReservaEditando(null);
-    setForm({ nombre: "", telefono: "", email: "", fecha: "", hora: "", personas: "", mesas: [], notas: "", estado: "tomada", tomadaPor: "", prefijo: "+34" });
+    setForm({ nombre: "", telefono: "", email: "", fecha: "", hora: "", personas: "", mesas: [], notas: "", estado: "tomada", tomadaPor: "" });
     setModalAbierto(true);
   };
 
@@ -122,7 +122,7 @@ export default function App() {
 
     const filas = pasadas.map(r => ({
       nombre: r.nombre,
-      telefono: r.prefijo ? `${r.prefijo} ${r.telefono}` : r.telefono || "",
+      telefono: r.telefono || "",
       fecha: r.fecha,
       hora: r.hora || "",
       personas: r.personas || "",
@@ -225,24 +225,7 @@ export default function App() {
   const importarFilaSheet = (headers, fila) => {
     // A=Nombre, B=Telefono, C="2026-03-11T14:30:00.000Z", D=Pax, E=Comentarios, F=Mail
     const nombre   = String(fila[0] || "");
-    const telRaw = String(fila[1] || "").trim();
-    // Separar prefijo del número
-    let prefijo = "+34";
-    let telefono = telRaw;
-    const telDigits = telRaw.replace(/\D/g, "");
-    if (telRaw.startsWith("+")) {
-      // Tiene + explícito: extraer prefijo (1-3 dígitos tras el +)
-      const m = telRaw.match(/^(\+\d{1,3})(\s?.*)$/);
-      if (m) { prefijo = m[1]; telefono = m[2].trim().replace(/\D/g, ""); }
-    } else if (telDigits.length > 9) {
-      // Sin + pero con código de país: detectar prefijos conocidos
-      const prefijos = [["54",2],["55",2],["56",2],["57",2],["58",2],["51",2],["52",2],["44",2],["33",2],["49",2],["39",2],["31",2],["32",2],["41",2],["34",2],["1",1]];
-      const found = prefijos.find(([p]) => telDigits.startsWith(p));
-      if (found) { prefijo = "+" + found[0]; telefono = telDigits.slice(found[0].length); }
-      else { telefono = telDigits; }
-    } else {
-      telefono = telDigits;
-    }
+    const telefono = String(fila[1] || "");
     const raw      = String(fila[2] || "").trim();
     const pax      = fila[3];
     const notas    = String(fila[4] || "");
@@ -262,7 +245,6 @@ export default function App() {
     return {
       nombre,
       telefono,
-      prefijo,
       email,
       fecha: fechaFmt,
       hora: horaFmt,
@@ -322,12 +304,8 @@ ${textoPegado}`
   const enviarWhatsApp = (r) => {
     const raw = String(r.telefono || "").trim();
     let tel;
-    // Usar prefijo del form si existe, si no detectar del número
     const digits = raw.replace(/\D/g, "");
-    if (r.prefijo) {
-      const preDigits = r.prefijo.replace(/\D/g, "");
-      tel = preDigits + digits;
-    } else if (raw.startsWith("+")) {
+    if (raw.startsWith("+")) {
       tel = digits;
     } else if (digits.length > 9) {
       tel = digits;
@@ -591,7 +569,7 @@ ${textoPegado}`
                     <tr key={r.id} className="row-hover" style={{ borderBottom: "1px solid #c8e6c9" }}>
                       <td style={{ padding: "16px 20px" }}>
                         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17 }}>{r.nombre}</p>
-                        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a", marginTop: 2 }}>{r.prefijo ? `${r.prefijo} ${r.telefono}` : r.telefono}</p>
+                        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a", marginTop: 2 }}>{r.telefono}</p>
                       </td>
                       <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</td>
                       <td style={{ padding: "16px 20px", fontFamily: "'Cormorant Garamond', serif", fontSize: 18, color: "#1b5e20" }}>{r.hora}</td>
@@ -885,10 +863,7 @@ ${textoPegado}`
 
               <div>
                 <label>Teléfono</label>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input className="input-field" value={form.prefijo} onChange={e => setForm(f => ({ ...f, prefijo: e.target.value }))} autoComplete="off" style={{ width: 70 }} placeholder="+34" />
-                  <input className="input-field" value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} autoComplete="off" />
-                </div>
+                <input className="input-field" value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} autoComplete="off" />
               </div>
               <div>
                 <label>Email</label>
