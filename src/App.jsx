@@ -35,7 +35,7 @@ export default function App() {
   const [busqueda, setBusqueda] = useState("");
   const [modalAbierto, setModalAbierto] = useState(false);
   const [reservaEditando, setReservaEditando] = useState(null);
-  const [form, setForm] = useState({ nombre: "", telefono: "", email: "", fecha: "", hora: "", personas: "", mesas: [], notas: "", estado: "tomada", tomadaPor: "" });
+  const [form, setForm] = useState({ nombre: "", telefono: "", email: "", fecha: "", hora: "", personas: "", mesas: [], notas: "", estado: "tomada", tomadaPor: "", prefijo: "+34" });
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [toast, setToast] = useState(null);
   const [confirmarWA, setConfirmarWA] = useState(false);
@@ -77,7 +77,7 @@ export default function App() {
 
   const abrirNueva = () => {
     setReservaEditando(null);
-    setForm({ nombre: "", telefono: "", email: "", fecha: "", hora: "", personas: "", mesas: [], notas: "", estado: "tomada", tomadaPor: "" });
+    setForm({ nombre: "", telefono: "", email: "", fecha: "", hora: "", personas: "", mesas: [], notas: "", estado: "tomada", tomadaPor: "", prefijo: "+34" });
     setModalAbierto(true);
   };
 
@@ -225,7 +225,24 @@ export default function App() {
   const importarFilaSheet = (headers, fila) => {
     // A=Nombre, B=Telefono, C="2026-03-11T14:30:00.000Z", D=Pax, E=Comentarios, F=Mail
     const nombre   = String(fila[0] || "");
-    const telefono = String(fila[1] || "");
+    const telRaw = String(fila[1] || "").trim();
+    // Separar prefijo del número
+    let prefijo = "+34";
+    let telefono = telRaw;
+    const telDigits = telRaw.replace(/\D/g, "");
+    if (telRaw.startsWith("+")) {
+      // Tiene + explícito: extraer prefijo (1-3 dígitos tras el +)
+      const m = telRaw.match(/^(\+\d{1,3})(\s?.*)$/);
+      if (m) { prefijo = m[1]; telefono = m[2].trim().replace(/\D/g, ""); }
+    } else if (telDigits.length > 9) {
+      // Sin + pero con código de país: detectar prefijos conocidos
+      const prefijos = [["54",2],["55",2],["56",2],["57",2],["58",2],["51",2],["52",2],["44",2],["33",2],["49",2],["39",2],["31",2],["32",2],["41",2],["34",2],["1",1]];
+      const found = prefijos.find(([p]) => telDigits.startsWith(p));
+      if (found) { prefijo = "+" + found[0]; telefono = telDigits.slice(found[0].length); }
+      else { telefono = telDigits; }
+    } else {
+      telefono = telDigits;
+    }
     const raw      = String(fila[2] || "").trim();
     const pax      = fila[3];
     const notas    = String(fila[4] || "");
@@ -245,6 +262,7 @@ export default function App() {
     return {
       nombre,
       telefono,
+      prefijo,
       email,
       fecha: fechaFmt,
       hora: horaFmt,
@@ -303,19 +321,22 @@ ${textoPegado}`
 
   const enviarWhatsApp = (r) => {
     const raw = String(r.telefono || "").trim();
-    // Detectar prefijo internacional
     let tel;
-    if (raw.startsWith("+")) {
-      // Tiene + explícito: quitar solo el +, mantener el código de país
-      tel = raw.replace(/\D/g, "");
+    // Usar prefijo del form si existe, si no detectar del número
+    const digits = raw.replace(/\D/g, "");
+    if (r.prefijo) {
+      const preDigits = r.prefijo.replace(/\D/g, "");
+      tel = preDigits + digits;
+    } else if (raw.startsWith("+")) {
+      tel = digits;
+    } else if (digits.length > 9) {
+      tel = digits;
     } else {
-      // Sin +: asumir España, quitar todo lo que no sea dígito y añadir 34
-      const digits = raw.replace(/\D/g, "");
       tel = "34" + digits;
     }
     const fecha = new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
     const msg = `Hola ${r.nombre} 👋, le confirmamos su reserva para *${r.personas} personas* el *${fecha}* a las *${r.hora}* (Mesa ${r.mesas && r.mesas.length > 0 ? r.mesas.join("+") : r.mesa}). ¡Le esperamos! 🍽️`;
-    window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, "_blank");
+    window.open(`https://wa.me/+${tel}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
   // ── Botón WhatsApp reutilizable ──────────────────────────────────────────────
@@ -864,7 +885,10 @@ ${textoPegado}`
 
               <div>
                 <label>Teléfono</label>
-                <input className="input-field" value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} autoComplete="off" />
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input className="input-field" value={form.prefijo} onChange={e => setForm(f => ({ ...f, prefijo: e.target.value }))} autoComplete="off" style={{ width: 70 }} placeholder="+34" />
+                  <input className="input-field" value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} autoComplete="off" />
+                </div>
               </div>
               <div>
                 <label>Email</label>
