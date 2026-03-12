@@ -29,6 +29,7 @@ function getTodayStr() {
 export default function App() {
   const [vista, setVista] = useState("reservas");
   const [reservas, setReservas] = useState(initialReservas);
+  const [clientesArchivados, setClientesArchivados] = useState([]);
   const [filtroFecha, setFiltroFecha] = useState(getTodayStr());
   const [filtroEstado, setFiltroEstado] = useState("todas");
   const [busqueda, setBusqueda] = useState("");
@@ -60,7 +61,10 @@ export default function App() {
   });
 
   // Lista de nombres únicos para el desplegable de clientes
-  const nombresClientes = [...new Set(reservas.map(r => r.nombre))].sort();
+  const nombresClientes = [...new Set([
+    ...reservas.map(r => r.nombre),
+    ...clientesArchivados.map(c => c.nombre)
+  ])].sort();
 
   const clientes = Object.values(
     reservas.reduce((acc, r) => {
@@ -114,60 +118,31 @@ export default function App() {
     const pasadas = reservas.filter(r => r.fecha < hoy);
     if (pasadas.length === 0) return showToast("No hay reservas pasadas para archivar", "error");
 
-    // Preparar filas para Google Sheets: Nombre, Telefono, Fecha, Hora, Pax, Comentarios, Mail, Estado
     const filas = pasadas.map(r => [
-      r.nombre,
-      r.telefono || "",
-      r.fecha,
-      r.hora || "",
-      r.personas || "",
-      r.notas || "",
-      r.email || "",
-      r.estado || ""
+      r.nombre, r.telefono || "", r.fecha, r.hora || "",
+      r.personas || "", r.notas || "", r.email || "", r.estado || ""
     ]);
 
     try {
       const url = "https://script.google.com/macros/s/AKfycbxr4Yb8O1Db5W0sEh9eywRa-4rUgjd72TMZC_WJjvyTiDBljmtzj3tu5JhqHqqV0-y0HA/exec";
-      const res = await fetch(url, {
-        method: "POST",
-        body: JSON.stringify(filas)
-      });
+      const res = await fetch(url, { method: "POST", body: JSON.stringify(filas) });
       if (!res.ok) throw new Error("Error al conectar con Google Sheets");
-      // Borrar reservas pasadas pero conservar clientes
+      // Guardar clientes en memoria antes de borrar las reservas
+      setClientesArchivados(prev => {
+        const todos = [...prev];
+        pasadas.forEach(r => {
+          if (!todos.find(c => c.nombre === r.nombre)) {
+            todos.push({ nombre: r.nombre, telefono: r.telefono || "", email: r.email || "" });
+          }
+        });
+        return todos;
+      });
       setReservas(rs => rs.filter(r => r.fecha >= hoy));
       showToast(`${pasadas.length} reserva${pasadas.length > 1 ? "s" : ""} archivada${pasadas.length > 1 ? "s" : ""} ✓`);
     } catch (e) {
       showToast("Error al archivar en Google Sheets", "error");
     }
   };
-
-  // Archivar automáticamente al cargar si hay reservas de días anteriores
-  useEffect(() => {
-    const hoy = getTodayStr();
-    const pasadas = reservas.filter(r => r.fecha < hoy);
-    if (pasadas.length === 0) return;
-    const url = "https://script.google.com/macros/s/AKfycbxr4Yb8O1Db5W0sEh9eywRa-4rUgjd72TMZC_WJjvyTiDBljmtzj3tu5JhqHqqV0-y0HA/exec";
-    fetch(url, {
-      method: "POST",
-      body: JSON.stringify(pasadas.map(r => ({
-        nombre: r.nombre,
-        telefono: r.telefono || "",
-        fecha: r.fecha,
-        hora: r.hora || "",
-        personas: r.personas || "",
-        mesas: r.mesas || [],
-        mesa: r.mesa || "",
-        estado: r.estado || "",
-        notas: r.notas || "",
-        tomadaPor: r.tomadaPor || ""
-      })))
-    }).then(() => {
-      setReservas(rs => rs.filter(r => r.fecha >= hoy));
-      showToast(`${pasadas.length} reserva${pasadas.length > 1 ? "s" : ""} archivada${pasadas.length > 1 ? "s" : ""} automáticamente ✓`);
-    }).catch(() => {
-      // Silencioso si falla, el usuario puede archivar manualmente
-    });
-  }, []);
 
   const eliminarReserva = (id) => {
     setReservas(rs => rs.filter(r => r.id !== id));
@@ -181,9 +156,9 @@ export default function App() {
   // Al elegir un cliente existente, autocompleta sus datos
   const seleccionarNombre = (nombre) => {
     if (!nombre) { setForm(f => ({ ...f, nombre: "" })); return; }
-    const existente = reservas.find(r => r.nombre === nombre);
+    const existente = reservas.find(r => r.nombre === nombre) || clientesArchivados.find(c => c.nombre === nombre);
     if (existente) {
-      setForm(f => ({ ...f, nombre: existente.nombre, telefono: existente.telefono, email: existente.email }));
+      setForm(f => ({ ...f, nombre: existente.nombre, telefono: existente.telefono || "", email: existente.email || "" }));
     } else {
       setForm(f => ({ ...f, nombre }));
     }
@@ -845,8 +820,8 @@ ${textoPegado}`
                   onChange={e => {
                     const val = e.target.value;
                     setForm(f => ({ ...f, nombre: val }));
-                    const existente = reservas.find(r => r.nombre === val);
-                    if (existente) setForm(f => ({ ...f, nombre: existente.nombre, telefono: existente.telefono, email: existente.email }));
+                    const existente = reservas.find(r => r.nombre === val) || clientesArchivados.find(c => c.nombre === val);
+                    if (existente) setForm(f => ({ ...f, nombre: existente.nombre, telefono: existente.telefono || "", email: existente.email || "" }));
                   }}
                   placeholder="Escribe o busca un cliente..."
                   autoComplete="off"
