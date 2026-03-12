@@ -103,8 +103,8 @@ export default function App() {
 
   const confirmarYGuardar = () => {
     const ahora = new Date();
-    const fechaTomada = `${String(ahora.getDate()).padStart(2,"0")}/${String(ahora.getMonth()+1).padStart(2,"0")}/${ahora.getFullYear()} ${String(ahora.getHours()).padStart(2,"0")}:${String(ahora.getMinutes()).padStart(2,"0")}`;
-    setReservas(rs => [...rs, { ...form, mesa: form.mesas.join("+"), id: Date.now(), fechaTomada }]);
+    const cuando = `${String(ahora.getDate()).padStart(2,"0")}/${String(ahora.getMonth()+1).padStart(2,"0")}/${ahora.getFullYear()} ${String(ahora.getHours()).padStart(2,"0")}:${String(ahora.getMinutes()).padStart(2,"0")}`;
+    setReservas(rs => [...rs, { ...form, mesa: form.mesas.join("+"), id: Date.now(), cuando }]);
     if (pendingSheetIdx !== null) {
       setSheetFilas(fs => [fs[0], ...fs.slice(1).filter((_, idx) => idx + 1 !== pendingSheetIdx)]);
       setPendingSheetIdx(null);
@@ -131,7 +131,7 @@ export default function App() {
       estado: r.estado || "",
       notas: r.notas || "",
       tomadaPor: r.tomadaPor || "",
-      fechaTomada: r.fechaTomada || ""
+      cuando: r.cuando || ""
     }));
 
     try {
@@ -610,7 +610,7 @@ ${textoPegado}`
                         {r.tomadaPor || "—"}
                       </td>
                       <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a" }}>
-                        {r.fechaTomada || "—"}
+                        {r.cuando || "—"}
                       </td>
                       <td style={{ padding: "16px 20px" }}>
                         <div style={{ display: "flex", gap: 8 }}>
