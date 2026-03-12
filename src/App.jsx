@@ -102,7 +102,9 @@ export default function App() {
   };
 
   const confirmarYGuardar = () => {
-    setReservas(rs => [...rs, { ...form, mesa: form.mesas.join("+"), id: Date.now() }]);
+    const ahora = new Date();
+    const fechaTomada = `${String(ahora.getDate()).padStart(2,"0")}/${String(ahora.getMonth()+1).padStart(2,"0")}/${ahora.getFullYear()} ${String(ahora.getHours()).padStart(2,"0")}:${String(ahora.getMinutes()).padStart(2,"0")}`;
+    setReservas(rs => [...rs, { ...form, mesa: form.mesas.join("+"), id: Date.now(), fechaTomada }]);
     if (pendingSheetIdx !== null) {
       setSheetFilas(fs => [fs[0], ...fs.slice(1).filter((_, idx) => idx + 1 !== pendingSheetIdx)]);
       setPendingSheetIdx(null);
@@ -544,7 +546,7 @@ ${textoPegado}`
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid #c8e6c9" }}>
-                    {["Cliente", "Fecha", "Hora", "Personas", "Mesa", "Estado", "Acciones"].map(h => (
+                    {["Cliente", "Fecha", "Hora", "Personas", "Mesa", "Estado", "Tomada por", "Cuando", "Acciones"].map(h => (
                       <th key={h} style={{ padding: "14px 20px", textAlign: "left", fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", fontWeight: 400 }}>{h}</th>
                     ))}
                   </tr>
@@ -602,6 +604,12 @@ ${textoPegado}`
                           <option value="confirmada">Confirmada</option>
                           <option value="cancelada">Cancelada</option>
                         </select>
+                      </td>
+                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>
+                        {r.tomadaPor || "—"}
+                      </td>
+                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a" }}>
+                        {r.fechaTomada || "—"}
                       </td>
                       <td style={{ padding: "16px 20px" }}>
                         <div style={{ display: "flex", gap: 8 }}>
