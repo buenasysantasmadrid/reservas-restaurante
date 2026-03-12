@@ -302,10 +302,20 @@ ${textoPegado}`
   };
 
   const enviarWhatsApp = (r) => {
-    const tel = r.telefono.replace(/\D/g, "");
+    const raw = String(r.telefono || "").trim();
+    // Detectar prefijo internacional
+    let tel;
+    if (raw.startsWith("+")) {
+      // Tiene + explícito: quitar solo el +, mantener el código de país
+      tel = raw.replace(/\D/g, "");
+    } else {
+      // Sin +: asumir España, quitar todo lo que no sea dígito y añadir 34
+      const digits = raw.replace(/\D/g, "");
+      tel = "34" + digits;
+    }
     const fecha = new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
     const msg = `Hola ${r.nombre} 👋, le confirmamos su reserva para *${r.personas} personas* el *${fecha}* a las *${r.hora}* (Mesa ${r.mesas && r.mesas.length > 0 ? r.mesas.join("+") : r.mesa}). ¡Le esperamos! 🍽️`;
-    window.open(`https://wa.me/34${tel}?text=${encodeURIComponent(msg)}`, "_blank");
+    window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
   // ── Botón WhatsApp reutilizable ──────────────────────────────────────────────
