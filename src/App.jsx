@@ -140,7 +140,21 @@ export default function App() {
       if (!res.ok) throw new Error("No se pudo conectar con Google Sheets");
       const json = await res.json();
       if (!Array.isArray(json) || json.length < 2) throw new Error("No hay datos en la hoja");
-      setSheetFilas(json);
+
+      // Filtrar filas que ya existen en reservas (por nombre + fecha)
+      const headers = json[0];
+      const filasFiltradas = json.slice(1).filter(fila => {
+        const nombreFila = String(fila[0] || "").toLowerCase().trim();
+        const raw = String(fila[2] || "").trim();
+        const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        const fechaFila = m ? `${m[1]}-${m[2]}-${m[3]}` : "";
+        return !reservas.some(r =>
+          r.nombre.toLowerCase().trim() === nombreFila && r.fecha === fechaFila
+        );
+      });
+
+      if (filasFiltradas.length === 0) throw new Error("No hay reservas nuevas pendientes de importar");
+      setSheetFilas([json[0], ...filasFiltradas]);
     } catch (e) {
       setSheetError(e.message || "Error al conectar con Google Sheets");
     } finally {
