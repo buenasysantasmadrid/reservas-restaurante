@@ -37,6 +37,7 @@ export default function App() {
   const [form, setForm] = useState({ nombre: "", telefono: "", email: "", fecha: "", hora: "", personas: "", mesas: [], notas: "", estado: "tomada", tomadaPor: "" });
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [toast, setToast] = useState(null);
+  const [confirmarWA, setConfirmarWA] = useState(false);
   const [textoPegado, setTextoPegado] = useState("");
   const [interpretando, setInterpretando] = useState(false);
   const [datosInterpretados, setDatosInterpretados] = useState(null);
@@ -85,13 +86,20 @@ export default function App() {
     if (!form.tomadaPor) return showToast("Indica quién toma la reserva", "error");
     if (!form.nombre || !form.fecha || !form.hora) return showToast("Selecciona nombre, fecha y hora", "error");
     if (!form.personas || form.personas < 1) return showToast("Indica el número de personas", "error");
-    if (reservaEditando) {
-      setReservas(rs => rs.map(r => r.id === reservaEditando ? { ...form, id: r.id } : r));
-      showToast("Reserva actualizada ✓");
-    } else {
-      setReservas(rs => [...rs, { ...form, mesa: form.mesas.join("+"), id: Date.now() }]);
-      showToast("Reserva creada ✓");
+    if (!reservaEditando) {
+      // Nueva reserva: pedir confirmación de WhatsApp primero
+      setConfirmarWA(true);
+      return;
     }
+    setReservas(rs => rs.map(r => r.id === reservaEditando ? { ...form, id: r.id } : r));
+    showToast("Reserva actualizada ✓");
+    setModalAbierto(false);
+  };
+
+  const confirmarYGuardar = () => {
+    setReservas(rs => [...rs, { ...form, mesa: form.mesas.join("+"), id: Date.now() }]);
+    showToast("Reserva creada ✓");
+    setConfirmarWA(false);
     setModalAbierto(false);
     if (vista === "sheet") setVista("sheet");
   };
@@ -858,6 +866,31 @@ ${textoPegado}`
                 <BtnWhatsApp reserva={form} style={{ padding: "12px 20px" }} />
               )}
               <button className="btn-gold" onClick={guardarReserva}>{reservaEditando ? "Guardar cambios" : "Tomar reserva"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmarWA && (
+        <div className="overlay" style={{ zIndex: 60 }}>
+          <div className="modal" style={{ maxWidth: 420, textAlign: "center", padding: "48px 40px" }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>📱</div>
+            <h2 style={{ fontFamily: "'Lora', serif", fontSize: 26, fontWeight: 700, color: "#1a1a1a", marginBottom: 12 }}>
+              ¿Enviaste el WhatsApp?
+            </h2>
+            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 14, color: "#4a7a4a", marginBottom: 32, lineHeight: 1.6 }}>
+              Confirma que has enviado la confirmación al cliente antes de guardar la reserva.
+            </p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+              <button className="btn-outline" onClick={() => setConfirmarWA(false)}>
+                Volver
+              </button>
+              {form.telefono && (
+                <BtnWhatsApp reserva={form} style={{ padding: "12px 20px" }} />
+              )}
+              <button className="btn-gold" onClick={confirmarYGuardar}>
+                Sí, guardar reserva
+              </button>
             </div>
           </div>
         </div>
