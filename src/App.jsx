@@ -122,7 +122,7 @@ export default function App() {
 
     const filas = pasadas.map(r => ({
       nombre: r.nombre,
-      telefono: r.telefono || "",
+      telefono: r.prefijo ? `${r.prefijo} ${r.telefono}` : r.telefono || "",
       fecha: r.fecha,
       hora: r.hora || "",
       personas: r.personas || "",
