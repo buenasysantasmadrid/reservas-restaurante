@@ -149,29 +149,22 @@ export default function App() {
   };
 
   const importarFilaSheet = (headers, fila) => {
-    // A=Nombre, B=Telefono, C=fecha+hora (Date object o string), D=Pax, E=Comentarios, F=Mail
+    // A=Nombre, B=Telefono, C="2026-03-11T14:30:00.000Z", D=Pax, E=Comentarios, F=Mail
     const nombre   = String(fila[0] || "");
     const telefono = String(fila[1] || "");
-    const raw      = fila[2];
+    const raw      = String(fila[2] || "").trim();
     const pax      = fila[3];
     const notas    = String(fila[4] || "");
     const email    = String(fila[5] || "");
 
+    // Parsear "2026-03-11T14:30:00.000Z" directamente sin Date para evitar problemas de zona horaria
     let fechaFmt = "";
     let horaFmt = "";
-
     if (raw) {
-      // Viene como "2026-03-11T14:30:00.000Z" o Date object
-      const d = new Date(raw);
-      if (!isNaN(d)) {
-        // Usar hora LOCAL (no UTC) para no perder la hora por zona horaria
-        const yyyy = d.getFullYear();
-        const mm   = String(d.getMonth() + 1).padStart(2, "0");
-        const dd   = String(d.getDate()).padStart(2, "0");
-        const hh   = String(d.getHours()).padStart(2, "0");
-        const min  = String(d.getMinutes()).padStart(2, "0");
-        fechaFmt = `${yyyy}-${mm}-${dd}`;
-        horaFmt  = `${hh}:${min}`;
+      const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+      if (m) {
+        fechaFmt = `${m[1]}-${m[2]}-${m[3]}`;
+        horaFmt  = `${m[4]}:${m[5]}`;
       }
     }
 
@@ -727,20 +720,12 @@ ${textoPegado}`
                         {fila.map((celda, j) => {
                           const hdr = String(headers[j] || "").toLowerCase();
                           if (hdr.includes("import") || hdr.includes("hora") || hdr.includes("time")) return null;
-                          // Columna C (índice 2): separar fecha y hora
+                          // Columna C (índice 2): separar fecha y hora del string ISO
                           if (j === 2 && celda) {
-                            const d = new Date(celda);
-                            let fechaStr = "—";
-                            let horaStr = "";
-                            if (!isNaN(d)) {
-                              const dd = String(d.getDate()).padStart(2,"0");
-                              const mm = String(d.getMonth()+1).padStart(2,"0");
-                              const yyyy = d.getFullYear();
-                              const hh = String(d.getHours()).padStart(2,"0");
-                              const min = String(d.getMinutes()).padStart(2,"0");
-                              fechaStr = `${dd}/${mm}/${yyyy}`;
-                              horaStr = `${hh}:${min}`;
-                            }
+                            const s = String(celda);
+                            const m = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+                            const fechaStr = m ? `${m[3]}/${m[2]}/${m[1]}` : s;
+                            const horaStr  = m ? `${m[4]}:${m[5]}` : "";
                             return (
                               <td key={j} style={{ padding: "14px 16px", fontFamily: "'Cormorant Garamond', serif", fontSize: 16, color: "#1a2e1a" }}>
                                 <div>{fechaStr}</div>
