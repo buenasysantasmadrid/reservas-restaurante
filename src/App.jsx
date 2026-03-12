@@ -120,7 +120,7 @@ export default function App() {
 
     const filas = pasadas.map(r => [
       r.nombre, r.telefono || "", r.fecha, r.hora || "",
-      r.personas || "", r.notas || "", r.email || "", r.estado || ""
+      r.personas || "", r.notas || "", r.email || "", r.estado || "", r.tomadaPor || ""
     ]);
 
     try {
