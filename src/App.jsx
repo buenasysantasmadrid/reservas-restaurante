@@ -35,7 +35,7 @@ export default function App() {
   const [busqueda, setBusqueda] = useState("");
   const [modalAbierto, setModalAbierto] = useState(false);
   const [reservaEditando, setReservaEditando] = useState(null);
-  const [form, setForm] = useState({ nombre: "", telefono: "", email: "", fecha: "", hora: "", personas: "", mesas: [], notas: "", estado: "tomada", tomadaPor: "" });
+  const [form, setForm] = useState({ nombre: "", telefono: "", email: "", fecha: "", hora: "", personas: "", mesas: [], notas: "", estado: "tomada", tomadaPor: "", prefijo: "+34" });
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [toast, setToast] = useState(null);
   const [confirmarWA, setConfirmarWA] = useState(false);
@@ -77,7 +77,7 @@ export default function App() {
 
   const abrirNueva = () => {
     setReservaEditando(null);
-    setForm({ nombre: "", telefono: "", email: "", fecha: "", hora: "", personas: "", mesas: [], notas: "", estado: "tomada", tomadaPor: "" });
+    setForm({ nombre: "", telefono: "", email: "", fecha: "", hora: "", personas: "", mesas: [], notas: "", estado: "tomada", tomadaPor: "", prefijo: "+34" });
     setModalAbierto(true);
   };
 
@@ -170,7 +170,7 @@ export default function App() {
     if (!nombre) { setForm(f => ({ ...f, nombre: "" })); return; }
     const existente = reservas.find(r => r.nombre === nombre) || clientesArchivados.find(c => c.nombre === nombre);
     if (existente) {
-      setForm(f => ({ ...f, nombre: existente.nombre, telefono: existente.telefono || "", email: existente.email || "" }));
+      setForm(f => ({ ...f, nombre: existente.nombre, telefono: existente.telefono || "", email: existente.email || "", prefijo: existente.prefijo || "+34" }));
     } else {
       setForm(f => ({ ...f, nombre }));
     }
@@ -303,14 +303,17 @@ ${textoPegado}`
 
   const enviarWhatsApp = (r) => {
     const raw = String(r.telefono || "").trim();
+    const prefijo = String(r.prefijo || "").trim();
     let tel;
-    const digits = raw.replace(/\D/g, "");
-    if (raw.startsWith("+")) {
-      tel = digits;
-    } else if (digits.length > 9) {
-      tel = digits;
+    if (prefijo) {
+      const preDigits = prefijo.replace(/\D/g, "");
+      const numDigits = raw.replace(/\D/g, "");
+      tel = preDigits + numDigits;
     } else {
-      tel = "34" + digits;
+      const digits = raw.replace(/\D/g, "");
+      if (raw.startsWith("+")) tel = digits;
+      else if (digits.length > 9) tel = digits;
+      else tel = "34" + digits;
     }
     const fecha = new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
     const msg = `Hola ${r.nombre} 👋, le confirmamos su reserva para *${r.personas} personas* el *${fecha}* a las *${r.hora}* (Mesa ${r.mesas && r.mesas.length > 0 ? r.mesas.join("+") : r.mesa}). ¡Le esperamos! 🍽️`;
@@ -858,7 +861,7 @@ ${textoPegado}`
                     const val = e.target.value;
                     setForm(f => ({ ...f, nombre: val }));
                     const existente = reservas.find(r => r.nombre === val) || clientesArchivados.find(c => c.nombre === val);
-                    if (existente) setForm(f => ({ ...f, nombre: existente.nombre, telefono: existente.telefono || "", email: existente.email || "" }));
+                    if (existente) setForm(f => ({ ...f, nombre: existente.nombre, telefono: existente.telefono || "", email: existente.email || "", prefijo: existente.prefijo || "+34" }));
                   }}
                   placeholder="Escribe o busca un cliente..."
                   autoComplete="off"
@@ -870,7 +873,10 @@ ${textoPegado}`
 
               <div>
                 <label>Teléfono</label>
-                <input className="input-field" value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} autoComplete="off" />
+                <div style={{ display: "flex", gap: 6 }}>
+                  <input className="input-field" value={form.prefijo ?? "+34"} onChange={e => setForm(f => ({ ...f, prefijo: e.target.value }))} autoComplete="off" style={{ width: 72 }} placeholder="+34" />
+                  <input className="input-field" value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} autoComplete="off" />
+                </div>
               </div>
               <div>
                 <label>Email</label>
