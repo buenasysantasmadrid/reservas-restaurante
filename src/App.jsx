@@ -1488,7 +1488,7 @@ ${textoPegado}`
             if (clampToFirst) { mx = origMx; mw = origMw; }
           }
 
-          const R = 6;
+          const R = 8;
           const CHAIR = 9;
 
           const chairs = [];
@@ -1501,21 +1501,24 @@ ${textoPegado}`
           return (
             <g key={id} style={{ cursor: res ? "pointer" : "default" }}
               onClick={() => res && setPlanoModal({ reservaId: res.id, nombre: res.nombre, estado: res.estado })}>
-              <rect x={mx} y={my} width={mw} height={mh} rx={R} fill={fill} stroke={stroke} strokeWidth={1.5}/>
+              {/* Shadow */}
+              <rect x={mx+1} y={my+2} width={mw} height={mh} rx={R+1} fill="rgba(0,0,0,0.06)"/>
+              {/* Mesa body */}
+              <rect x={mx} y={my} width={mw} height={mh} rx={R} fill={fill} stroke={stroke} strokeWidth={ocupada ? 2 : 1.2}/>
               <text x={mx + mw/2} y={my + lineH} textAnchor="middle"
-                style={{ fontFamily: "'Jost', sans-serif", fontSize: barra ? 9 : 10, fontWeight: 600, fill: textC }}>
+                style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: barra ? 11 : 13, fontWeight: 700, fill: textC, letterSpacing: 0.5 }}>
                 {labelMesa}
               </text>
               {res && (
-                <text x={mx + mw/2} y={my + mh * (isMerged ? 0.48 : 0.57)} textAnchor="middle"
-                  style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fill: textC }}>
+                <text x={mx + mw/2} y={my + mh * (isMerged ? 0.5 : 0.6)} textAnchor="middle"
+                  style={{ fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 500, fill: textC, letterSpacing: 0.3 }}>
                   {res.nombre.split(" ")[0]}
                 </text>
               )}
               {res && (
-                <text x={mx + mw/2} y={my + mh * (isMerged ? 0.72 : 0.8)} textAnchor="middle"
-                  style={{ fontFamily: "'Jost', sans-serif", fontSize: 8, fill: textC, opacity: 0.85 }}>
-                  {res.personas} pax
+                <text x={mx + mw/2} y={my + mh * (isMerged ? 0.76 : 0.84)} textAnchor="middle"
+                  style={{ fontFamily: "'Jost', sans-serif", fontSize: 7.5, fill: textC, opacity: 0.75, letterSpacing: 0.5 }}>
+                  {res.personas}p
                 </text>
               )}
             </g>
@@ -1554,7 +1557,7 @@ ${textoPegado}`
               </div>
             </div>
 
-            <div className="card" style={{ padding: 24, overflowX: "auto" }}>
+            <div className="card" style={{ padding: 24, overflowX: "auto", background: "linear-gradient(135deg, #ffffff 0%, #f7fbf7 100%)", border: "1px solid #e0f0e0" }}>
               {/* Leyenda */}
               <div style={{ display: "flex", gap: 20, marginBottom: 20, flexWrap: "wrap" }}>
                 {[
@@ -1569,11 +1572,20 @@ ${textoPegado}`
                   </div>
                 ))}
               </div>
-              <svg viewBox={`0 0 ${VW} ${VH}`} style={{ width: "100%", maxWidth: 640, display: "block" }}>
-                {/* Floor background */}
-                <rect x={0} y={0} width={VW} height={VH} fill="#f9fdf9" rx={8}/>
+              <svg viewBox={`0 0 ${VW} ${VH}`} style={{ width: "100%", maxWidth: 640, display: "block", borderRadius: 12, boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
+                <defs>
+                  <filter id="mesaShadow" x="-15%" y="-15%" width="130%" height="130%">
+                    <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" floodColor="#1b5e20" floodOpacity="0.18"/>
+                  </filter>
+                  <pattern id="floorGrid" x="0" y="0" width={U*0.5} height={U*0.5} patternUnits="userSpaceOnUse">
+                    <path d={`M ${U*0.5} 0 L 0 0 0 ${U*0.5}`} fill="none" stroke="#e8f5e9" strokeWidth="0.5"/>
+                  </pattern>
+                </defs>
+                {/* Floor */}
+                <rect x={0} y={0} width={VW} height={VH} fill="#f4faf4" rx={12}/>
+                <rect x={0} y={0} width={VW} height={VH} fill="url(#floorGrid)" rx={12}/>
                 {/* Separator: horizontal between 40/41 row and main rows */}
-                <line x1={PAD + 0.2*U} y1={PAD + 1.15*U} x2={PAD + 6.5*U} y2={PAD + 1.15*U} stroke="#c8e6c9" strokeWidth={1} strokeDasharray="4 4"/>
+                <line x1={PAD + 0.2*U} y1={PAD + 1.15*U} x2={PAD + 6.5*U} y2={PAD + 1.15*U} stroke="#c8e6c9" strokeWidth={0.8} strokeDasharray="5 5" opacity="0.7"/>
                 {MESAS_POS.map(m => <MesaSVG key={m.id} mesa={m} />)}
               </svg>
               {!filtroFecha && (
