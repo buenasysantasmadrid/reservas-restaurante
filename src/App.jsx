@@ -46,6 +46,7 @@ export default function App() {
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [toast, setToast] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [planoModal, setPlanoModal] = useState(null); // { reservaId, mesaId, nombre }
   const [confirmarWA, setConfirmarWA] = useState(false);
   const [pendingSheetIdx, setPendingSheetIdx] = useState(null);
   const [textoPegado, setTextoPegado] = useState("");
@@ -527,6 +528,7 @@ ${textoPegado}`
         .badge-confirmada { background: #e8f5e9; color: #1b5e20; border: 1px solid #81c784; }
         .badge-tomada { background: #fff8e1; color: #f57f17; border: 1px solid #ffcc02; }
         .badge-cancelada { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+        .badge-llego { background: #f5f5f5; color: #bdbdbd; border: 1px solid #e0e0e0; }
         .row-hover { transition: background 0.15s; }
         .row-hover:hover { background: #f1f8f1; }
         .overlay { position: fixed; inset: 0; background: rgba(0,60,0,0.4); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
@@ -700,6 +702,7 @@ ${textoPegado}`
                 <option value="confirmada">Confirmadas</option>
                 <option value="tomada">Tomadas</option>
                 <option value="cancelada">Canceladas</option>
+                <option value="llego">Llegaron</option>
               </select>
               <button className="btn-outline" onClick={() => setFiltroFecha("")}>Ver todas las fechas</button>
               <div className="turnos-wrap" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -765,7 +768,7 @@ ${textoPegado}`
                       // Rows for this group
                       grupo.reservas.forEach((r, idx) => {
                       rows.push(
-                    <tr key={r.id} className="row-hover" style={{ borderBottom: "1px solid #c8e6c9", background: color.bg }}>
+                    <tr key={r.id} className="row-hover" style={{ borderBottom: "1px solid #c8e6c9", background: color.bg, opacity: r.estado === "llego" ? 0.35 : 1 }}>
                       <td style={{ padding: "16px 20px" }}>
                         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17 }}>{r.nombre}</p>
                         <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a", marginTop: 2 }}>{(() => {
@@ -822,6 +825,7 @@ ${textoPegado}`
                           <option value="tomada">Tomada</option>
                           <option value="confirmada">Confirmada</option>
                           <option value="cancelada">Cancelada</option>
+                          <option value="llego">Llegó</option>
                         </select>
                       </td>
                       <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>
@@ -913,7 +917,7 @@ ${textoPegado}`
                         {color.label}
                       </div>
                       {grupo.reservas.map(r => (
-                        <div key={r.id} style={{ background: color.bg, border: "1px solid #c8e6c9", borderRadius: 8, padding: 16, marginBottom: 10 }}>
+                        <div key={r.id} style={{ background: color.bg, border: "1px solid #c8e6c9", borderRadius: 8, padding: 16, marginBottom: 10, opacity: r.estado === "llego" ? 0.35 : 1 }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                             <div>
                               <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, color: "#1a2e1a" }}>{r.nombre}</p>
@@ -925,6 +929,7 @@ ${textoPegado}`
                               <option value="tomada">Tomada</option>
                               <option value="confirmada">Confirmada</option>
                               <option value="cancelada">Cancelada</option>
+                              <option value="llego">Llegó</option>
                             </select>
                           </div>
                           <div style={{ display: "flex", gap: 12, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
@@ -1267,6 +1272,7 @@ ${textoPegado}`
                   <option value="tomada">Tomada</option>
                   <option value="confirmada">Confirmada</option>
                   <option value="cancelada">Cancelada</option>
+                  <option value="llego">Llegó</option>
                 </select>
               </div>
               <div>
@@ -1357,22 +1363,22 @@ ${textoPegado}`
           { id: 4,  cx: 4.5, cy: 3.0, w: 0.8, h: 0.8 },
           { id: 15, cx: 5.8, cy: 3.0, w: 0.8, h: 0.8 },
           // Fila 3: 18, 17, 16
-          { id: 18, cx: 3.2, cy: 4.3, w: 0.8, h: 0.8 },
-          { id: 17, cx: 4.5, cy: 4.3, w: 0.8, h: 0.8 },
-          { id: 16, cx: 5.8, cy: 4.3, w: 0.8, h: 0.8 },
+          { id: 18, cx: 3.2, cy: 4.8, w: 0.8, h: 0.8 },
+          { id: 17, cx: 4.5, cy: 4.8, w: 0.8, h: 0.8 },
+          { id: 16, cx: 5.8, cy: 4.8, w: 0.8, h: 0.8 },
           // Fila 4: 11, 10, 8, 7, 6
-          { id: 11, cx: 1,    cy: 5.5, w: 0.8, h: 0.8 },
-          { id: 10, cx: 1.85, cy: 5.5, w: 0.8, h: 0.8 },
-          { id: 8,  cx: 3.2, cy: 5.5, w: 0.8, h: 0.8 },
-          { id: 7,  cx: 4.5, cy: 5.5, w: 0.8, h: 0.8 },
-          { id: 6,  cx: 5.8, cy: 5.5, w: 0.8, h: 0.8 },
+          { id: 11, cx: 0.6,  cy: 6.0, w: 0.8, h: 0.8 },
+          { id: 10, cx: 1.85, cy: 6.0, w: 0.8, h: 0.8 },
+          { id: 8,  cx: 3.2,  cy: 6.0, w: 0.8, h: 0.8 },
+          { id: 7,  cx: 4.5,  cy: 6.0, w: 0.8, h: 0.8 },
+          { id: 6,  cx: 5.8,  cy: 6.0, w: 0.8, h: 0.8 },
           // Barra
-          { id: 30, cx: 1.25, cy: 6.7, w: 0.9, h: 0.9, barra: true },
-          { id: 31, cx: 2.35, cy: 6.7, w: 0.9, h: 0.9, barra: true },
+          { id: 30, cx: 1.25, cy: 7.2, w: 0.9, h: 0.9, barra: true },
+          { id: 31, cx: 2.35, cy: 7.2, w: 0.9, h: 0.9, barra: true },
         ];
 
         const SVG_COLS = 6.6;
-        const SVG_ROWS = 7.7;
+        const SVG_ROWS = 8.2;
         const VW = SVG_COLS * U + PAD * 2;
         const VH = SVG_ROWS * U + PAD * 2;
 
@@ -1399,10 +1405,11 @@ ${textoPegado}`
           const res = mesaReserva[id];
           const ocupada = !!res;
           const sinConfirmar = res && res.estado === "tomada";
+          const llego = res && res.estado === "llego";
 
-          const fill   = barra ? "#8d6e63" : ocupada ? (sinConfirmar ? "#fff8e1" : "#2e7d32") : "#e8f5e9";
-          const stroke = barra ? "#6d4c41" : ocupada ? (sinConfirmar ? "#f9a825" : "#1b5e20") : "#81c784";
-          const textC  = barra ? "#fff" : ocupada ? (sinConfirmar ? "#e65100" : "#fff") : "#2e7d32";
+          const fill   = barra ? "#8d6e63" : llego ? "#f5f5f5" : ocupada ? (sinConfirmar ? "#fff8e1" : "#2e7d32") : "#e8f5e9";
+          const stroke = barra ? "#6d4c41" : llego ? "#e0e0e0" : ocupada ? (sinConfirmar ? "#f9a825" : "#1b5e20") : "#81c784";
+          const textC  = barra ? "#fff"    : llego ? "#bdbdbd" : ocupada ? (sinConfirmar ? "#e65100" : "#fff")    : "#2e7d32";
 
           // Chairs: top, bottom, left, right sides
           const chairs = [];
@@ -1429,7 +1436,7 @@ ${textoPegado}`
           const fontSize = barra ? 9 : 10;
 
           return (
-            <g key={id} style={{ cursor: "default" }}>
+            <g key={id} style={{ cursor: res ? "pointer" : "default" }} onClick={() => res && setPlanoModal({ reservaId: res.id, nombre: res.nombre, estado: res.estado })}>
               {chairs}
               <rect x={x} y={y} width={mw} height={mh} rx={barra ? 4 : R} fill={fill} stroke={stroke} strokeWidth={1.5}/>
               {/* Mesa number */}
@@ -1495,6 +1502,7 @@ ${textoPegado}`
                   { fill: "#e8f5e9", stroke: "#81c784", label: "Libre" },
                   { fill: "#2e7d32", stroke: "#1b5e20", label: "Confirmada" },
                   { fill: "#fff8e1", stroke: "#f9a825", label: "Sin confirmar" },
+                  { fill: "#f5f5f5", stroke: "#e0e0e0", label: "Llegó" },
                 ].map(l => (
                   <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <div style={{ width: 16, height: 16, background: l.fill, border: `2px solid ${l.stroke}`, borderRadius: 3 }}/>
@@ -1518,6 +1526,43 @@ ${textoPegado}`
           </div>
         );
       })()}
+
+
+      {/* ── PLANO ESTADO MODAL ── */}
+      {planoModal && (
+        <div className="overlay" style={{ zIndex: 60 }} onClick={e => e.target === e.currentTarget && setPlanoModal(null)}>
+          <div className="modal" style={{ maxWidth: 340, padding: "36px 32px", textAlign: "center" }}>
+            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", marginBottom: 8 }}>Cambiar estado</p>
+            <h2 style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", marginBottom: 24 }}>{planoModal.nombre}</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {[
+                { value: "tomada",     label: "Tomada",     bg: "#fff8e1", color: "#f57f17", border: "#ffcc02" },
+                { value: "confirmada", label: "Confirmada", bg: "#e8f5e9", color: "#1b5e20", border: "#81c784" },
+                { value: "llego",      label: "Llegó",      bg: "#f5f5f5", color: "#9e9e9e", border: "#e0e0e0" },
+                { value: "cancelada",  label: "Cancelada",  bg: "#ffebee", color: "#c62828", border: "#ef9a9a" },
+              ].map(op => (
+                <button key={op.value}
+                  onClick={() => {
+                    setReservas(rs => rs.map(r => r.id === planoModal.reservaId ? { ...r, estado: op.value } : r));
+                    setPlanoModal(null);
+                    showToast(`${planoModal.nombre} → ${op.label} ✓`);
+                  }}
+                  style={{
+                    padding: "12px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12,
+                    letterSpacing: 1, textTransform: "uppercase", cursor: "pointer",
+                    background: planoModal.estado === op.value ? op.bg : "#fff",
+                    color: op.color, border: `1.5px solid ${op.border}`, borderRadius: 6,
+                    fontWeight: planoModal.estado === op.value ? 700 : 400,
+                    transition: "all 0.15s"
+                  }}>
+                  {planoModal.estado === op.value ? "✓ " : ""}{op.label}
+                </button>
+              ))}
+            </div>
+            <button className="btn-outline" style={{ marginTop: 20, width: "100%" }} onClick={() => setPlanoModal(null)}>Cancelar</button>
+          </div>
+        </div>
+      )}
 
       {toast && <div className={`toast toast-${toast.tipo}`}>{toast.msg}</div>}
     </div>
