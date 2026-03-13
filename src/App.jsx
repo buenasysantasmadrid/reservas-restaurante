@@ -184,6 +184,76 @@ export default function App() {
   };
 
 
+
+  const MESA_CONFIG = {
+    8: [{internas:[5,15,6,16]}, {internas:[3,4,7,17]}, {internas:[1,2,8,18]}, {internas:[10,11,12,13]}],
+    7: [{internas:[7,17,4]}, {internas:[6,16,15]}, {internas:[8,18,2]}, {internas:[11,12,13]}],
+    6: [{internas:[6,16,15]}, {internas:[7,17,4]}, {internas:[8,18,2]}, {internas:[11,12,13]}],
+    5: [{internas:[1,2]}, {internas:[7,17]}, {internas:[12,13]}, {internas:[8,18]}, {internas:[3,4]}],
+    4: [{internas:[12,13]}, {internas:[5,15]}, {internas:[6,16]}, {internas:[7,17]}, {internas:[1,2]}, {internas:[8,18]}, {internas:[3,4]}, {internas:[10,11]}],
+    3: [{internas:[12,13]}, {internas:[5,15]}, {internas:[6,16]}, {internas:[7,17]}, {internas:[1,2]}, {internas:[8,18]}, {internas:[3,4]}, {internas:[10,11]}],
+    2: [{internas:[3]}, {internas:[10]}, {internas:[11]}, {internas:[4]}, {internas:[5]}, {internas:[15]}, {internas:[7]}, {internas:[17]}, {internas:[8]}, {internas:[18]}, {internas:[1]}, {internas:[2]}, {internas:[6]}, {internas:[16]}],
+    1: [{internas:[3]}, {internas:[10]}, {internas:[11]}, {internas:[4]}, {internas:[5]}, {internas:[15]}, {internas:[7]}, {internas:[17]}, {internas:[8]}, {internas:[18]}, {internas:[1]}, {internas:[2]}, {internas:[6]}, {internas:[16]}],
+  };
+
+  const asignarMesasTurno = (fecha, turno) => {
+    // Get all reservas for this fecha+turno, excluding canceladas
+    const reservasTurno = reservas.filter(r => r.fecha === fecha && getTurno(r.hora) === turno && r.estado !== "cancelada");
+    if (reservasTurno.length === 0) return;
+
+    // Sort by personas desc, then hora asc
+    const porAsignar = [...reservasTurno].sort((a, b) => { const pd = (b.personas || 0) - (a.personas || 0); return pd !== 0 ? pd : (a.hora || "").localeCompare(b.hora || ""); });
+    const asignaciones = {}; // id -> mesas[]
+    const mesasUsadas = new Set();
+    const sinMesa = [];
+
+    // First pass: lock in already-assigned mesas
+    for (const r of porAsignar) {
+      const curr = r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : [];
+      if (curr.length > 0) {
+        asignaciones[r.id] = curr;
+        curr.forEach(m => mesasUsadas.add(m));
+      }
+    }
+
+    // Second pass: assign unassigned reservas
+    for (const r of porAsignar) {
+      if (asignaciones[r.id]) continue; // already assigned
+      const pax = Math.min(r.personas || 1, 8);
+      const opciones = MESA_CONFIG[pax] || MESA_CONFIG[1];
+      let asignada = null;
+      for (const op of opciones) {
+        if (op.internas.every(m => !mesasUsadas.has(m))) {
+          asignada = op.internas;
+          break;
+        }
+      }
+      if (asignada) {
+        asignaciones[r.id] = asignada;
+        asignada.forEach(m => mesasUsadas.add(m));
+      } else {
+        sinMesa.push(r.nombre);
+      }
+    }
+
+    setReservas(rs => rs.map(r => {
+      if (asignaciones[r.id]) return { ...r, mesas: asignaciones[r.id] };
+      return r;
+    }));
+
+    if (sinMesa.length > 0) {
+      showToast(`Sin mesa disponible: ${sinMesa.join(", ")}`, "error");
+    } else {
+      showToast("Mesas asignadas ✓");
+    }
+  };
+
+  const borrarMesasTurno = (fecha, turno) => {
+    const ids = reservas.filter(r => r.fecha === fecha && getTurno(r.hora) === turno && r.estado !== "cancelada").map(r => r.id);
+    setReservas(rs => rs.map(r => ids.includes(r.id) ? { ...r, mesas: [], mesa: "" } : r));
+    showToast("Mesas borradas", "error");
+  };
+
   const eliminarReserva = (id) => {
     setReservas(rs => rs.filter(r => r.id !== id));
     showToast("Reserva eliminada", "error");
@@ -749,11 +819,31 @@ ${textoPegado}`
                         rows.push(
                           <tr key={"footer_"+turnoKey}>
                             <td colSpan={10} style={{ padding: "8px 20px 12px", background: color.bg, borderBottom: "1px solid #c8e6c9" }}>
-                              <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 1, color: "#4a7a4a", textTransform: "uppercase" }}>
-                                Mesas libres: {mesasLibres.length === 0 ? <span style={{ color: "#c62828" }}>ninguna</span> : mesasLibres.map(m => (
-                                  <span key={m} style={{ display: "inline-block", background: "#fff", border: "1px solid #a5d6a7", borderRadius: 4, padding: "1px 7px", marginRight: 4, fontSize: 11, color: "#2e7d32" }}>{getMesaNombre(m)}</span>
-                                ))}
-                              </span>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 1, color: "#4a7a4a", textTransform: "uppercase" }}>
+                                  Mesas libres: {mesasLibres.length === 0 ? <span style={{ color: "#c62828" }}>ninguna</span> : mesasLibres.map(m => (
+                                    <span key={m} style={{ display: "inline-block", background: "#fff", border: "1px solid #a5d6a7", borderRadius: 4, padding: "1px 7px", marginRight: 4, fontSize: 11, color: "#2e7d32" }}>{getMesaNombre(m)}</span>
+                                  ))}
+                                </span>
+                                <div style={{ display: "flex", gap: 8 }}>
+                                  <button
+                                    onClick={() => asignarMesasTurno(fecha, turno)}
+                                    style={{ padding: "4px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "#2e7d32", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer", fontWeight: 500 }}
+                                    onMouseEnter={e => e.currentTarget.style.background="#1b5e20"}
+                                    onMouseLeave={e => e.currentTarget.style.background="#2e7d32"}
+                                  >
+                                    ✦ Asignar mesas
+                                  </button>
+                                  <button
+                                    onClick={() => borrarMesasTurno(fecha, turno)}
+                                    style={{ padding: "4px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "none", color: "#b71c1c", border: "1px solid #ef9a9a", borderRadius: 4, cursor: "pointer", fontWeight: 500 }}
+                                    onMouseEnter={e => { e.currentTarget.style.background="#ffebee"; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background="none"; }}
+                                  >
+                                    ✕ Borrar mesas
+                                  </button>
+                                </div>
+                              </div>
                             </td>
                           </tr>
                         );
