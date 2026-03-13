@@ -586,6 +586,7 @@ ${textoPegado}`
           <button className="nav-btn" onClick={abrirNueva}>+ Nueva</button>
           <button className={`nav-btn ${vista === "pegar" ? "active" : ""}`} onClick={() => setVista("pegar")}>📋 Pegar WhatsApp</button>
           <button className={`nav-btn ${vista === "sheet" ? "active" : ""}`} onClick={() => setVista("sheet")}>📲 Nueva WhatsApp</button>
+          <button className={`nav-btn ${vista === "plano" ? "active" : ""}`} onClick={() => setVista("plano")}>🗺 Plano</button>
         </nav>
         {/* Hamburger */}
         <button className="hamburger" onClick={() => setMenuOpen(o => !o)} aria-label="Menú">
@@ -601,6 +602,7 @@ ${textoPegado}`
           <button className="nav-btn" onClick={() => { abrirNueva(); setMenuOpen(false); }}>+ Nueva reserva</button>
           <button className={`nav-btn ${vista === "pegar" ? "active" : ""}`} onClick={() => { setVista("pegar"); setMenuOpen(false); }}>📋 Pegar WhatsApp</button>
           <button className={`nav-btn ${vista === "sheet" ? "active" : ""}`} onClick={() => { setVista("sheet"); setMenuOpen(false); }}>📲 Nueva WhatsApp</button>
+          <button className={`nav-btn ${vista === "plano" ? "active" : ""}`} onClick={() => { setVista("plano"); setMenuOpen(false); }}>🗺 Plano</button>
         </nav>
       )}
 
@@ -1321,6 +1323,201 @@ ${textoPegado}`
           </div>
         </div>
       )}
+
+
+      {/* ── PLANO ── */}
+      {vista === "plano" && (() => {
+        // Plano fiel al PDF:
+        // Fila 1: 40 41 | 12 1 3 5
+        // Fila 2:        | 13 2 4 15
+        // Fila 3:        |    18 17 16
+        // Fila 4:        | 11 10 8 7 6
+        // Barra:  Barra1 Barra2
+
+        // U = unidad base px dentro del SVG viewBox
+        const U = 60; // cell size
+        const PAD = 10;
+        const CHAIR = 9;
+        const R = 6; // corner radius for table rect
+
+        // Mesa position: { id, col, row, w, h } in grid units
+        // Grid origin top-left. w/h in grid units.
+        const MESAS_POS = [
+          // 40 arriba de la 1, 41 arriba de la 3, separadas por fila en blanco
+          { id: 40, cx: 3.2, cy:  0.5, w: 0.8, h: 0.8 },
+          { id: 41, cx: 4.5, cy:  0.5, w: 0.8, h: 0.8 },
+          // Fila 1 (gap de 1 fila bajo 40/41): 12, 1, 3, 5
+          { id: 12, cx: 1,   cy: 1.7, w: 0.8, h: 0.8 },
+          { id: 1,  cx: 3.2, cy: 1.7, w: 0.8, h: 0.8 },
+          { id: 3,  cx: 4.5, cy: 1.7, w: 0.8, h: 0.8 },
+          { id: 5,  cx: 5.8, cy: 1.7, w: 0.8, h: 0.8 },
+          // Fila 2: 13, 2, 4, 15
+          { id: 13, cx: 1,   cy: 3.0, w: 0.8, h: 0.8 },
+          { id: 2,  cx: 3.2, cy: 3.0, w: 0.8, h: 0.8 },
+          { id: 4,  cx: 4.5, cy: 3.0, w: 0.8, h: 0.8 },
+          { id: 15, cx: 5.8, cy: 3.0, w: 0.8, h: 0.8 },
+          // Fila 3: 18, 17, 16
+          { id: 18, cx: 3.2, cy: 4.3, w: 0.8, h: 0.8 },
+          { id: 17, cx: 4.5, cy: 4.3, w: 0.8, h: 0.8 },
+          { id: 16, cx: 5.8, cy: 4.3, w: 0.8, h: 0.8 },
+          // Fila 4: 11, 10, 8, 7, 6
+          { id: 11, cx: 1,    cy: 5.5, w: 0.8, h: 0.8 },
+          { id: 10, cx: 1.85, cy: 5.5, w: 0.8, h: 0.8 },
+          { id: 8,  cx: 3.2, cy: 5.5, w: 0.8, h: 0.8 },
+          { id: 7,  cx: 4.5, cy: 5.5, w: 0.8, h: 0.8 },
+          { id: 6,  cx: 5.8, cy: 5.5, w: 0.8, h: 0.8 },
+          // Barra
+          { id: 30, cx: 1.25, cy: 6.7, w: 0.9, h: 0.9, barra: true },
+          { id: 31, cx: 2.35, cy: 6.7, w: 0.9, h: 0.9, barra: true },
+        ];
+
+        const SVG_COLS = 6.6;
+        const SVG_ROWS = 7.7;
+        const VW = SVG_COLS * U + PAD * 2;
+        const VH = SVG_ROWS * U + PAD * 2;
+
+        // Get reservas for selected fecha+turno
+        const reservasTurno = reservas.filter(r => {
+          if (!filtroFecha || r.fecha !== filtroFecha) return false;
+          if (filtroTurno === "todos") return r.estado !== "cancelada";
+          return getTurno(r.hora) === filtroTurno && r.estado !== "cancelada";
+        });
+
+        // Map mesa -> reserva
+        const mesaReserva = {};
+        reservasTurno.forEach(r => {
+          const ms = r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : [];
+          ms.forEach(m => { mesaReserva[m] = r; });
+        });
+
+        const MesaSVG = ({ mesa }) => {
+          const { id, cx, cy, w, h, barra } = mesa;
+          const x = PAD + cx * U - (w * U) / 2;
+          const y = PAD + cy * U - (h * U) / 2;
+          const mw = w * U;
+          const mh = h * U;
+          const res = mesaReserva[id];
+          const ocupada = !!res;
+          const sinConfirmar = res && res.estado === "tomada";
+
+          const fill   = barra ? "#8d6e63" : ocupada ? (sinConfirmar ? "#fff8e1" : "#2e7d32") : "#e8f5e9";
+          const stroke = barra ? "#6d4c41" : ocupada ? (sinConfirmar ? "#f9a825" : "#1b5e20") : "#81c784";
+          const textC  = barra ? "#fff" : ocupada ? (sinConfirmar ? "#e65100" : "#fff") : "#2e7d32";
+
+          // Chairs: top, bottom, left, right sides
+          const chairs = [];
+          if (!barra) {
+            const numH = Math.round(mw / (CHAIR * 2.6)); // chairs along horizontal
+            const numV = Math.round(mh / (CHAIR * 2.6)); // chairs along vertical
+            const spacingH = mw / (numH + 1);
+            const spacingV = mh / (numV + 1);
+            // Top & bottom
+            for (let i = 1; i <= numH; i++) {
+              const cx2 = x + spacingH * i;
+              chairs.push(<ellipse key={"t"+i} cx={cx2} cy={y - CHAIR * 0.6} rx={CHAIR * 0.65} ry={CHAIR * 0.45} fill={stroke} opacity="0.7"/>);
+              chairs.push(<ellipse key={"b"+i} cx={cx2} cy={y + mh + CHAIR * 0.6} rx={CHAIR * 0.65} ry={CHAIR * 0.45} fill={stroke} opacity="0.7"/>);
+            }
+            // Left & right
+            for (let i = 1; i <= numV; i++) {
+              const cy2 = y + spacingV * i;
+              chairs.push(<ellipse key={"l"+i} cx={x - CHAIR * 0.6} cy={cy2} rx={CHAIR * 0.45} ry={CHAIR * 0.65} fill={stroke} opacity="0.7"/>);
+              chairs.push(<ellipse key={"r"+i} cx={x + mw + CHAIR * 0.6} cy={cy2} rx={CHAIR * 0.45} ry={CHAIR * 0.65} fill={stroke} opacity="0.7"/>);
+            }
+          }
+
+          const labelMesa = MESA_NOMBRE[id] || String(id);
+          const fontSize = barra ? 9 : 10;
+
+          return (
+            <g key={id} style={{ cursor: "default" }}>
+              {chairs}
+              <rect x={x} y={y} width={mw} height={mh} rx={barra ? 4 : R} fill={fill} stroke={stroke} strokeWidth={1.5}/>
+              {/* Mesa number */}
+              <text x={x + mw/2} y={y + (res ? mh*0.32 : mh/2 + 4)} textAnchor="middle"
+                style={{ fontFamily: "'Jost', sans-serif", fontSize, fontWeight: 600, fill: textC }}>
+                {labelMesa}
+              </text>
+              {/* Client name */}
+              {res && (
+                <text x={x + mw/2} y={y + mh*0.57} textAnchor="middle"
+                  style={{ fontFamily: "'Jost', sans-serif", fontSize: barra ? 7 : 8, fill: textC }}>
+                  {res.nombre.split(" ")[0]}
+                </text>
+              )}
+              {/* Pax */}
+              {res && (
+                <text x={x + mw/2} y={y + mh*0.8} textAnchor="middle"
+                  style={{ fontFamily: "'Jost', sans-serif", fontSize: barra ? 7 : 8, fill: textC, opacity: 0.85 }}>
+                  {res.personas} pax
+                </text>
+              )}
+            </g>
+          );
+        };
+
+        return (
+          <div style={{ padding: "40px", maxWidth: 1000, margin: "0 auto", position: "relative", zIndex: 1 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24 }}>
+              <div>
+                <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 3, color: "#4a7a4a", textTransform: "uppercase", marginBottom: 8 }}>Vista sala</p>
+                <h1 className="page-title" style={{ fontFamily: "'Lora', serif", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Plano</h1>
+              </div>
+            </div>
+
+            {/* Filtros */}
+            <div style={{ display: "flex", gap: 12, marginBottom: 28, flexWrap: "wrap", alignItems: "center" }}>
+              <input type="date" className="input-field" style={{ width: 180 }}
+                value={filtroFecha} onChange={e => setFiltroFecha(e.target.value)} />
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {[
+                  { key: "todos", label: "Todo el día" },
+                  { key: "t1",    label: "1º Turno" },
+                  { key: "t2",    label: "2º Turno" },
+                  { key: "noche", label: "Noche" },
+                ].map(t => (
+                  <button key={t.key} onClick={() => setFiltroTurno(t.key)}
+                    style={{ padding: "8px 14px", fontSize: 11, cursor: "pointer", fontFamily: "'Jost', sans-serif",
+                      letterSpacing: 1, textTransform: "uppercase",
+                      border: `1px solid ${filtroTurno === t.key ? "#1b5e20" : "#81c784"}`,
+                      background: filtroTurno === t.key ? "#1b5e20" : "none",
+                      color: filtroTurno === t.key ? "#fff" : "#2e7d32",
+                      borderRadius: 4, transition: "all 0.2s" }}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="card" style={{ padding: 24, overflowX: "auto" }}>
+              {/* Leyenda */}
+              <div style={{ display: "flex", gap: 20, marginBottom: 20, flexWrap: "wrap" }}>
+                {[
+                  { fill: "#e8f5e9", stroke: "#81c784", label: "Libre" },
+                  { fill: "#2e7d32", stroke: "#1b5e20", label: "Confirmada" },
+                  { fill: "#fff8e1", stroke: "#f9a825", label: "Sin confirmar" },
+                ].map(l => (
+                  <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ width: 16, height: 16, background: l.fill, border: `2px solid ${l.stroke}`, borderRadius: 3 }}/>
+                    <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a", textTransform: "uppercase", letterSpacing: 1 }}>{l.label}</span>
+                  </div>
+                ))}
+              </div>
+              <svg viewBox={`0 0 ${VW} ${VH}`} style={{ width: "100%", maxWidth: 640, display: "block" }}>
+                {/* Floor background */}
+                <rect x={0} y={0} width={VW} height={VH} fill="#f9fdf9" rx={8}/>
+                {/* Zone separator line */}
+                <line x1={PAD + 2.35*U} y1={PAD + 0.5*U} x2={PAD + 2.35*U} y2={PAD + 5.6*U} stroke="#c8e6c9" strokeWidth={1} strokeDasharray="4 4"/>
+                {MESAS_POS.map(m => <MesaSVG key={m.id} mesa={m} />)}
+              </svg>
+              {!filtroFecha && (
+                <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#9e9e9e", marginTop: 12 }}>
+                  Selecciona una fecha para ver la ocupación.
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {toast && <div className={`toast toast-${toast.tipo}`}>{toast.msg}</div>}
     </div>
