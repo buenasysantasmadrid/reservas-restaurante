@@ -925,15 +925,46 @@ ${textoPegado}`
                               <option value="cancelada">Cancelada</option>
                             </select>
                           </div>
-                          <div style={{ display: "flex", gap: 16, marginBottom: 10, flexWrap: "wrap" }}>
+                          <div style={{ display: "flex", gap: 12, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
                             <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, color: "#1b5e20", fontWeight: 600 }}>{r.hora}</span>
                             <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{r.personas} pax</span>
-                            <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>
-                              {(r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []).map(getMesaNombre).join(" + ") || "Sin mesa"}
-                            </span>
                             <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>
                               {new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}
                             </span>
+                          </div>
+                          {/* Mesa selector mobile */}
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10, alignItems: "center" }}>
+                            {(r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []).map(m => (
+                              <span key={m} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#2e7d32", color: "#fff", borderRadius: 4, padding: "3px 10px", fontSize: 13, fontFamily: "'Jost', sans-serif" }}>
+                                {getMesaNombre(m)}
+                                <button type="button" onClick={() => setReservas(rs => rs.map(x => x.id === r.id ? { ...x, mesas: (x.mesas || (x.mesa ? [x.mesa] : [])).filter(v => v !== m) } : x))}
+                                  style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 15, padding: 0, lineHeight: 1 }}>×</button>
+                              </span>
+                            ))}
+                            <select
+                              style={{ fontSize: 13, padding: "4px 8px", border: "1px solid #a5d6a7", borderRadius: 4, background: "#fff", color: "#2e7d32", fontFamily: "'Jost', sans-serif", cursor: "pointer" }}
+                              value=""
+                              onChange={e => {
+                                const val = parseInt(e.target.value);
+                                if (!val) return;
+                                setReservas(rs => rs.map(x => {
+                                  if (x.id !== r.id) return x;
+                                  const curr = x.mesas || (x.mesa ? [x.mesa] : []);
+                                  if (curr.includes(val) || curr.length >= 8) return x;
+                                  return { ...x, mesas: [...curr, val] };
+                                }));
+                              }}
+                            >
+                              <option value="">+ mesa</option>
+                              {(() => {
+                                const turnoR = getTurno(r.hora);
+                                const ocupadas = reservas.filter(x => x.id !== r.id && getTurno(x.hora) === turnoR && x.fecha === r.fecha && x.estado !== "cancelada").flatMap(x => x.mesas || (x.mesa ? [x.mesa] : []));
+                                const actuales = r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : [];
+                                return MESAS.filter(m => !actuales.includes(m) && !ocupadas.includes(m)).map(m => (
+                                  <option key={m} value={m}>{getMesaNombre(m)}</option>
+                                ));
+                              })()}
+                            </select>
                           </div>
                           {r.notas ? <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#6a9a6a", marginBottom: 10, fontStyle: "italic" }}>{r.notas}</p> : null}
                           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
