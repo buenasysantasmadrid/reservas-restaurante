@@ -1363,22 +1363,22 @@ ${textoPegado}`
           { id: 4,  cx: 4.5, cy: 3.0, w: 0.8, h: 0.8 },
           { id: 15, cx: 5.8, cy: 3.0, w: 0.8, h: 0.8 },
           // Fila 3: 18, 17, 16
-          { id: 18, cx: 3.2, cy: 4.8, w: 0.8, h: 0.8 },
-          { id: 17, cx: 4.5, cy: 4.8, w: 0.8, h: 0.8 },
-          { id: 16, cx: 5.8, cy: 4.8, w: 0.8, h: 0.8 },
+          { id: 18, cx: 3.2, cy: 4.5, w: 0.8, h: 0.8 },
+          { id: 17, cx: 4.5, cy: 4.5, w: 0.8, h: 0.8 },
+          { id: 16, cx: 5.8, cy: 4.5, w: 0.8, h: 0.8 },
           // Fila 4: 11, 10, 8, 7, 6
-          { id: 11, cx: 0.6,  cy: 6.0, w: 0.8, h: 0.8 },
-          { id: 10, cx: 1.85, cy: 6.0, w: 0.8, h: 0.8 },
-          { id: 8,  cx: 3.2,  cy: 6.0, w: 0.8, h: 0.8 },
-          { id: 7,  cx: 4.5,  cy: 6.0, w: 0.8, h: 0.8 },
-          { id: 6,  cx: 5.8,  cy: 6.0, w: 0.8, h: 0.8 },
+          { id: 11, cx: 0.6,  cy: 5.8, w: 0.8, h: 0.8 },
+          { id: 10, cx: 1.85, cy: 5.8, w: 0.8, h: 0.8 },
+          { id: 8,  cx: 3.2,  cy: 5.8, w: 0.8, h: 0.8 },
+          { id: 7,  cx: 4.5,  cy: 5.8, w: 0.8, h: 0.8 },
+          { id: 6,  cx: 5.8,  cy: 5.8, w: 0.8, h: 0.8 },
           // Barra
-          { id: 30, cx: 1.25, cy: 7.2, w: 0.9, h: 0.9, barra: true },
-          { id: 31, cx: 2.35, cy: 7.2, w: 0.9, h: 0.9, barra: true },
+          { id: 30, cx: 3.2,  cy: 7.0, w: 0.8, h: 0.8, barra: true },
+          { id: 31, cx: 4.5,  cy: 7.0, w: 0.8, h: 0.8, barra: true },
         ];
 
-        const SVG_COLS = 6.6;
-        const SVG_ROWS = 8.2;
+        const SVG_COLS = 6.1;
+        const SVG_ROWS = 7.8;
         const VW = SVG_COLS * U + PAD * 2;
         const VH = SVG_ROWS * U + PAD * 2;
 
@@ -1396,31 +1396,47 @@ ${textoPegado}`
           ms.forEach(m => { mesaReserva[m] = r; });
         });
 
-        // Pairs that merge vertically when assigned to same reserva
-        const MERGE_PAIRS = [
+        // All valid merge groups ordered by size desc (largest first for matching)
+        // primary = first element, rest = secondaries (hidden)
+        const MERGE_GROUPS = [
+          // 4-mesa groups
+          [1, 2, 8, 18],
+          [3, 4, 17, 7],
+          [5, 15, 16, 6],
+          [12, 13, 11, 10],
+          // 3-mesa groups
+          [5, 15, 16],
+          [6, 16, 15],
+          [3, 4, 17],
+          [7, 17, 4, 3],
+          [1, 2, 18],
+          [8, 18, 2],
+          [12, 13, 11],
+          // 2-mesa groups
           [1, 2], [3, 4], [5, 15], [12, 13],
           [8, 18], [7, 17], [6, 16],
+          [11, 10], // horizontal pair — 11 is primary (leftmost)
         ];
 
-        // Build merged groups for this reserva set
-        // For each reserva, check if its mesas form a known merge pair
-        const getMergeGroup = (reservaId) => {
-          const res = reservasTurno.find(r => r.id === reservaId);
-          if (!res) return null;
-          const ms = new Set(res.mesas && res.mesas.length > 0 ? res.mesas : res.mesa ? [res.mesa] : []);
-          for (const [a, b] of MERGE_PAIRS) {
-            if (ms.has(a) && ms.has(b)) return [a, b];
-          }
-          return null;
-        };
-
-        // Track which mesas are "secondary" (bottom of a merged pair — render nothing)
-        const secondaryMesas = new Set();
+        // For each reserva, find the best (largest) matching group
+        const reservaMergeGroup = {};
         reservasTurno.forEach(r => {
           const ms = new Set(r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []);
-          for (const [a, b] of MERGE_PAIRS) {
-            if (ms.has(a) && ms.has(b)) secondaryMesas.add(b);
+          if (ms.size < 2) return;
+          // Find largest group where all members are in ms
+          for (const grp of MERGE_GROUPS) {
+            const unique = [...new Set(grp)]; // dedupe aliases
+            if (unique.every(m => ms.has(m))) {
+              reservaMergeGroup[r.id] = unique;
+              break;
+            }
           }
+        });
+
+        // Track secondaries: all mesas in a group except the primary (first)
+        const secondaryMesas = new Set();
+        Object.values(reservaMergeGroup).forEach(grp => {
+          grp.slice(1).forEach(m => secondaryMesas.add(m));
         });
 
         const MesaSVG = ({ mesa }) => {
@@ -1434,84 +1450,61 @@ ${textoPegado}`
           const sinConfirmar = res && res.estado === "tomada";
           const llego = res && res.estado === "llego";
 
-          const fill   = barra ? "#8d6e63" : llego ? "#f5f5f5" : ocupada ? (sinConfirmar ? "#fff8e1" : "#2e7d32") : "#e8f5e9";
-          const stroke = barra ? "#6d4c41" : llego ? "#e0e0e0" : ocupada ? (sinConfirmar ? "#f9a825" : "#1b5e20") : "#81c784";
-          const textC  = barra ? "#fff"    : llego ? "#bdbdbd" : ocupada ? (sinConfirmar ? "#e65100" : "#fff")    : "#2e7d32";
+          const fill   = barra ? "#d7ccc8" : llego ? "#f5f5f5" : ocupada ? (sinConfirmar ? "#fff8e1" : "#2e7d32") : "#e8f5e9";
+          const stroke = barra ? "#bcaaa4" : llego ? "#e0e0e0" : ocupada ? (sinConfirmar ? "#f9a825" : "#1b5e20") : "#81c784";
+          const textC  = barra ? "#5d4037"    : llego ? "#bdbdbd" : ocupada ? (sinConfirmar ? "#e65100" : "#fff")    : "#2e7d32";
 
-          // Check if this mesa is primary of a merge pair
-          let mergedWith = null;
-          if (!barra && res) {
-            const ms = new Set(res.mesas && res.mesas.length > 0 ? res.mesas : res.mesa ? [res.mesa] : []);
-            for (const [a, b] of MERGE_PAIRS) {
-              if (id === a && ms.has(b)) { mergedWith = b; break; }
-            }
-          }
+          // Check if this mesa is primary of a merge group
+          const mergeGroup = res ? reservaMergeGroup[res.id] : null;
+          const isMerged = mergeGroup && mergeGroup[0] === id;
 
-          // Get position of secondary mesa to compute merged rect
+          // Compute bounding rect over all mesas in the group
           let mw = w * U;
           let mh = h * U;
           let mx = PAD + cx * U - (w * U) / 2;
           let my = PAD + cy * U - (h * U) / 2;
 
-          if (mergedWith !== null) {
-            const secondary = MESAS_POS.find(p => p.id === mergedWith);
-            if (secondary) {
-              const sx = PAD + secondary.cx * U - (secondary.w * U) / 2;
-              const sy = PAD + secondary.cy * U - (secondary.h * U) / 2;
-              // Extend rect to encompass both
-              const x2 = Math.max(mx + mw, sx + secondary.w * U);
-              const y2 = Math.max(my + mh, sy + secondary.h * U);
+          if (isMerged && mergeGroup.length > 1) {
+            mergeGroup.slice(1).forEach(secId => {
+              const sec = MESAS_POS.find(p => p.id === secId);
+              if (!sec) return;
+              const sx = PAD + sec.cx * U - (sec.w * U) / 2;
+              const sy = PAD + sec.cy * U - (sec.h * U) / 2;
+              const x2 = Math.max(mx + mw, sx + sec.w * U);
+              const y2 = Math.max(my + mh, sy + sec.h * U);
               mx = Math.min(mx, sx);
               my = Math.min(my, sy);
               mw = x2 - mx;
               mh = y2 - my;
-            }
+            });
           }
 
           const R = 6;
           const CHAIR = 9;
 
-          // Chairs
           const chairs = [];
-          if (!barra) {
-            const numH = Math.max(1, Math.round(mw / (CHAIR * 2.6)));
-            const numV = Math.max(1, Math.round(mh / (CHAIR * 2.6)));
-            const spacingH = mw / (numH + 1);
-            const spacingV = mh / (numV + 1);
-            for (let i = 1; i <= numH; i++) {
-              chairs.push(<ellipse key={"t"+i} cx={mx + spacingH * i} cy={my - CHAIR * 0.6} rx={CHAIR * 0.65} ry={CHAIR * 0.45} fill={stroke} opacity="0.7"/>);
-              chairs.push(<ellipse key={"b"+i} cx={mx + spacingH * i} cy={my + mh + CHAIR * 0.6} rx={CHAIR * 0.65} ry={CHAIR * 0.45} fill={stroke} opacity="0.7"/>);
-            }
-            for (let i = 1; i <= numV; i++) {
-              chairs.push(<ellipse key={"l"+i} cx={mx - CHAIR * 0.6} cy={my + spacingV * i} rx={CHAIR * 0.45} ry={CHAIR * 0.65} fill={stroke} opacity="0.7"/>);
-              chairs.push(<ellipse key={"r"+i} cx={mx + mw + CHAIR * 0.6} cy={my + spacingV * i} rx={CHAIR * 0.45} ry={CHAIR * 0.65} fill={stroke} opacity="0.7"/>);
-            }
-          }
 
           // Labels
-          const labelMesa = mergedWith
-            ? `${MESA_NOMBRE[id] || id}`
-            : (MESA_NOMBRE[id] || String(id));
+          const labelMesa = MESA_NOMBRE[id] || String(id);
 
-          const lineH = mergedWith ? mh * 0.22 : (res ? mh * 0.28 : mh / 2 + 4);
+          const lineH = isMerged ? mh * 0.22 : (res ? mh * 0.28 : mh / 2 + 4);
 
           return (
             <g key={id} style={{ cursor: res ? "pointer" : "default" }}
               onClick={() => res && setPlanoModal({ reservaId: res.id, nombre: res.nombre, estado: res.estado })}>
-              {chairs}
               <rect x={mx} y={my} width={mw} height={mh} rx={barra ? 4 : R} fill={fill} stroke={stroke} strokeWidth={1.5}/>
               <text x={mx + mw/2} y={my + lineH} textAnchor="middle"
                 style={{ fontFamily: "'Jost', sans-serif", fontSize: barra ? 9 : 10, fontWeight: 600, fill: textC }}>
                 {labelMesa}
               </text>
               {res && (
-                <text x={mx + mw/2} y={my + mh * (mergedWith ? 0.48 : 0.57)} textAnchor="middle"
+                <text x={mx + mw/2} y={my + mh * (isMerged ? 0.48 : 0.57)} textAnchor="middle"
                   style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fill: textC }}>
                   {res.nombre.split(" ")[0]}
                 </text>
               )}
               {res && (
-                <text x={mx + mw/2} y={my + mh * (mergedWith ? 0.72 : 0.8)} textAnchor="middle"
+                <text x={mx + mw/2} y={my + mh * (isMerged ? 0.72 : 0.8)} textAnchor="middle"
                   style={{ fontFamily: "'Jost', sans-serif", fontSize: 8, fill: textC, opacity: 0.85 }}>
                   {res.personas} pax
                 </text>
@@ -1535,7 +1528,6 @@ ${textoPegado}`
                 value={filtroFecha} onChange={e => setFiltroFecha(e.target.value)} />
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {[
-                  { key: "todos", label: "Todo el día" },
                   { key: "t1",    label: "1º Turno" },
                   { key: "t2",    label: "2º Turno" },
                   { key: "noche", label: "Noche" },
@@ -1571,8 +1563,8 @@ ${textoPegado}`
               <svg viewBox={`0 0 ${VW} ${VH}`} style={{ width: "100%", maxWidth: 640, display: "block" }}>
                 {/* Floor background */}
                 <rect x={0} y={0} width={VW} height={VH} fill="#f9fdf9" rx={8}/>
-                {/* Zone separator line */}
-                <line x1={PAD + 2.35*U} y1={PAD + 0.5*U} x2={PAD + 2.35*U} y2={PAD + 5.6*U} stroke="#c8e6c9" strokeWidth={1} strokeDasharray="4 4"/>
+                {/* Separator: horizontal between 40/41 row and main rows */}
+                <line x1={PAD + 0.2*U} y1={PAD + 1.15*U} x2={PAD + 6.5*U} y2={PAD + 1.15*U} stroke="#c8e6c9" strokeWidth={1} strokeDasharray="4 4"/>
                 {MESAS_POS.map(m => <MesaSVG key={m.id} mesa={m} />)}
               </svg>
               {!filtroFecha && (
