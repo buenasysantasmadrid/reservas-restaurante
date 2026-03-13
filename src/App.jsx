@@ -268,9 +268,22 @@ export default function App() {
       }
     }
 
+    // Detect prefix from phone number
+    let prefijo = "+34";
+    const telDigits = telefono.replace(/\D/g, "");
+    if (telefono.trim().startsWith("+")) {
+      const mp = telefono.trim().match(/^(\+\d{1,3})/);
+      if (mp) prefijo = mp[1];
+    } else if (telDigits.length > 9) {
+      const known = [["54",2],["55",2],["44",2],["33",2],["49",2],["39",2],["34",2],["1",1]];
+      const found = known.find(([p]) => telDigits.startsWith(p));
+      if (found) prefijo = "+" + found[0];
+    }
+
     return {
       nombre,
       telefono,
+      prefijo,
       email,
       fecha: fechaFmt,
       hora: horaFmt,
