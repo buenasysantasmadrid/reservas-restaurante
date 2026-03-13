@@ -268,21 +268,22 @@ export default function App() {
       }
     }
 
-    // Detect prefix from phone number
+    // Detect prefix and strip it from the number
     let prefijo = "+34";
+    let telefonoLimpio = telefono.trim();
     const telDigits = telefono.replace(/\D/g, "");
-    if (telefono.trim().startsWith("+")) {
-      const mp = telefono.trim().match(/^(\+\d{1,3})/);
-      if (mp) prefijo = mp[1];
+    if (telefonoLimpio.startsWith("+")) {
+      const mp = telefonoLimpio.match(/^(\+\d{1,3})\s*(.*)/);
+      if (mp) { prefijo = mp[1]; telefonoLimpio = mp[2].trim(); }
     } else if (telDigits.length > 9) {
       const known = [["54",2],["55",2],["44",2],["33",2],["49",2],["39",2],["34",2],["1",1]];
       const found = known.find(([p]) => telDigits.startsWith(p));
-      if (found) prefijo = "+" + found[0];
+      if (found) { prefijo = "+" + found[0]; telefonoLimpio = telDigits.slice(found[0].length); }
     }
 
     return {
       nombre,
-      telefono,
+      telefono: telefonoLimpio,
       prefijo,
       email,
       fecha: fechaFmt,
