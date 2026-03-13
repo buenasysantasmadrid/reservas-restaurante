@@ -1370,7 +1370,7 @@ ${textoPegado}`
           { id: 17, cx: 4.5, cy: 3.9, w: 0.8, h: 0.8 },
           { id: 16, cx: 5.8, cy: 3.9, w: 0.8, h: 0.8 },
           // Fila 4: 11, 10, 8, 7, 6
-          { id: 11, cx: 0.4,  cy: 4.8, w: 0.8, h: 0.8 },
+          { id: 11, cx: 1,    cy: 3.4, w: 0.8, h: 0.8 },
           { id: 10, cx: 1.6,  cy: 4.8, w: 0.8, h: 0.8 },
           { id: 8,  cx: 3.2,  cy: 4.8, w: 0.8, h: 0.8 },
           { id: 7,  cx: 4.5,  cy: 4.8, w: 0.8, h: 0.8 },
@@ -1471,7 +1471,7 @@ ${textoPegado}`
           let my = PAD + cy * U - (h * U) / 2;
 
           if (isMerged && mergeIds.length > 1) {
-            const origMx = mx, origMw = mw;
+            const origMx = mx, origMw = mw, origMy = my, origMh = mh;
             mergeIds.slice(1).forEach(secId => {
               const sec = MESAS_POS.find(p => p.id === secId);
               if (!sec) return;
@@ -1484,8 +1484,22 @@ ${textoPegado}`
               mw = x2 - mx;
               mh = y2 - my;
             });
-            // Clamp width to first mesa's column width
-            if (clampToFirst) { mx = origMx; mw = origMw; }
+            if (clampToFirst) {
+              // Restore x/width; only extend height for mesas in the same column (cx matches first)
+              mx = origMx; mw = origMw;
+              mh = origMh;
+              mergeIds.slice(1).forEach(secId => {
+                const sec = MESAS_POS.find(p => p.id === secId);
+                if (!sec) return;
+                if (Math.abs(sec.cx - cx) < 0.2) {
+                  // same column — extend height
+                  const sy = PAD + sec.cy * U - (sec.h * U) / 2;
+                  const y2 = Math.max(my + mh, sy + sec.h * U);
+                  my = Math.min(my, sy);
+                  mh = y2 - my;
+                }
+              });
+            }
           }
 
           const R = 8;
