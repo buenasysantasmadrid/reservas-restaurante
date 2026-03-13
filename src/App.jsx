@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 
 const MESAS = [1, 2, 3, 4, 5, 15, 6, 16, 7, 17, 8, 18, 10, 11, 12, 13, 40, 41, 30, 31];
+const MESA_NOMBRE = { 30: "Barra 1", 31: "Barra 2" };
+const getMesaNombre = (m) => MESA_NOMBRE[m] || `Mesa ${m}`;
 // Horarios: 13:30-16:00 cada 15 min, 20:30-23:30 cada 15 min
 const HORARIOS = (() => {
   const slots = [];
@@ -356,7 +358,7 @@ ${textoPegado}`
       else tel = "34" + digits;
     }
     const fecha = new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
-    const msg = `Hola ${r.nombre} 👋, le confirmamos su reserva para *${r.personas} personas* el *${fecha}* a las *${r.hora}* (Mesa ${r.mesas && r.mesas.length > 0 ? r.mesas.join("+") : r.mesa}). ¡Le esperamos! 🍽️`;
+    const msg = `Hola ${r.nombre} 👋, le confirmamos su reserva para *${r.personas} personas* el *${fecha}* a las *${r.hora}* (${r.mesas && r.mesas.length > 0 ? r.mesas.map(getMesaNombre).join("+") : getMesaNombre(r.mesa)}). ¡Le esperamos! 🍽️`;
     window.open(`https://wa.me/+${tel}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
@@ -537,7 +539,7 @@ ${textoPegado}`
                     <div key={r.id} style={{ borderBottom: "1px solid #c8e6c9", padding: "14px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <div>
                         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18 }}>{r.nombre}</p>
-                        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", marginTop: 2 }}>{r.hora} · {r.personas} personas · {r.mesas && r.mesas.length > 0 ? "Mesa "+r.mesas.join("+") : r.mesa ? "Mesa "+r.mesa : ""}</p>
+                        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", marginTop: 2 }}>{r.hora} · {r.personas} personas · {r.mesas && r.mesas.length > 0 ? r.mesas.map(getMesaNombre).join("+") : r.mesa ? getMesaNombre(r.mesa) : ""}</p>
                         <div style={{ marginTop: 8 }}>
                           <BtnWhatsApp reserva={r} style={{ padding: "4px 10px", fontSize: 10 }} />
                         </div>
@@ -659,7 +661,7 @@ ${textoPegado}`
                         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                           {(r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []).map(m => (
                             <span key={m} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#2e7d32", color: "#fff", borderRadius: 4, padding: "2px 8px", fontSize: 12, fontFamily: "'Jost', sans-serif", width: "fit-content" }}>
-                              {m}
+                              {getMesaNombre(m)}
                               <button type="button" onClick={() => setReservas(rs => rs.map(x => x.id === r.id ? { ...x, mesas: (x.mesas||[x.mesa]||[]).filter(v => v !== m) } : x))}
                                 style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 13, padding: 0, lineHeight: 1 }}>×</button>
                             </span>
@@ -687,7 +689,7 @@ ${textoPegado}`
                               const mesasActuales = r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : [];
                               return MESAS
                                 .filter(m => !mesasActuales.includes(m) && !mesasOcupadasEnTurno.includes(m))
-                                .map(m => <option key={m} value={m}>Mesa {m}</option>);
+                                .map(m => <option key={m} value={m}>{getMesaNombre(m)}</option>);
                             })()}
                           </select>
                         </div>
@@ -785,7 +787,7 @@ ${textoPegado}`
                 <div key={r.id} style={{ padding: "20px 28px", borderBottom: "1px solid #c8e6c9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
                     <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18 }}>{new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
-                    <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", marginTop: 4 }}>{r.hora} · {r.personas} personas · {r.mesas && r.mesas.length > 0 ? "Mesa "+r.mesas.join("+") : r.mesa ? "Mesa "+r.mesa : ""}{r.notas ? ` · ${r.notas}` : ""}</p>
+                    <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", marginTop: 4 }}>{r.hora} · {r.personas} personas · {r.mesas && r.mesas.length > 0 ? r.mesas.map(getMesaNombre).join("+") : r.mesa ? getMesaNombre(r.mesa) : ""}{r.notas ? ` · ${r.notas}` : ""}</p>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <BtnWhatsApp reserva={r} style={{ padding: "4px 10px", fontSize: 10 }} />
