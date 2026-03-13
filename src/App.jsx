@@ -16,10 +16,14 @@ const HORARIOS = (() => {
 })();
 
 const initialReservas = [
-  { id: 1, nombre: "María García", telefono: "611 234 567", email: "maria@email.com", fecha: "2026-03-10", hora: "14:00", personas: 4, mesa: 3, notas: "Cumpleaños", estado: "confirmada" },
-  { id: 2, nombre: "Carlos López", telefono: "622 345 678", email: "carlos@email.com", fecha: "2026-03-10", hora: "21:00", personas: 2, mesa: 1, notas: "", estado: "confirmada" },
-  { id: 3, nombre: "Ana Martínez", telefono: "633 456 789", email: "ana@email.com", fecha: "2026-03-11", hora: "13:30", personas: 6, mesa: 5, notas: "Alergia al gluten", estado: "tomada" },
-  { id: 4, nombre: "Pedro Sánchez", telefono: "644 567 890", email: "pedro@email.com", fecha: "2026-03-09", hora: "20:30", personas: 3, mesa: 2, notas: "", estado: "cancelada" },
+  { id: 1, nombre: "María García",   telefono: "611 234 567", email: "maria@email.com",   fecha: "2026-03-22", hora: "13:30", personas: 4,  mesas: [3],    notas: "Cumpleaños",        estado: "confirmada", tomadaPor: "RAMIRO",  cuando: "20/03/2026 10:15" },
+  { id: 2, nombre: "Carlos López",   telefono: "622 345 678", email: "carlos@email.com",  fecha: "2026-03-22", hora: "14:00", personas: 2,  mesas: [1],    notas: "",                  estado: "confirmada", tomadaPor: "YAMILA",  cuando: "20/03/2026 11:30" },
+  { id: 3, nombre: "Ana Martínez",   telefono: "633 456 789", email: "ana@email.com",     fecha: "2026-03-22", hora: "15:00", personas: 6,  mesas: [5],    notas: "Alergia al gluten", estado: "tomada",     tomadaPor: "LUCIANA", cuando: "21/03/2026 09:00" },
+  { id: 4, nombre: "Pedro Sánchez",  telefono: "644 567 890", email: "pedro@email.com",   fecha: "2026-03-22", hora: "21:00", personas: 3,  mesas: [2],    notas: "",                  estado: "cancelada",  tomadaPor: "JESSICA", cuando: "21/03/2026 12:00" },
+  { id: 5, nombre: "Laura Fernández",telefono: "655 111 222", email: "laura@email.com",   fecha: "2026-03-22", hora: "13:45", personas: 2,  mesas: [4],    notas: "",                  estado: "confirmada", tomadaPor: "RAMIRO",  cuando: "19/03/2026 18:00" },
+  { id: 6, nombre: "Jorge Ruiz",     telefono: "666 333 444", email: "jorge@email.com",   fecha: "2026-03-22", hora: "14:45", personas: 5,  mesas: [6],    notas: "Mesa junto ventana",estado: "tomada",     tomadaPor: "JULIO",   cuando: "21/03/2026 16:45" },
+  { id: 7, nombre: "Sofía Blanco",   telefono: "677 555 666", email: "sofia@email.com",   fecha: "2026-03-22", hora: "21:30", personas: 4,  mesas: [7,17], notas: "",                  estado: "confirmada", tomadaPor: "SHENAY",  cuando: "20/03/2026 14:00" },
+  { id: 8, nombre: "Miguel Torres",  telefono: "688 777 888", email: "miguel@email.com",  fecha: "2026-03-22", hora: "22:00", personas: 8,  mesas: [10,11],notas: "Cena de empresa",   estado: "confirmada", tomadaPor: "JENNIFER",cuando: "18/03/2026 10:00" },
 ];
 
 function getTodayStr() {
@@ -30,8 +34,9 @@ export default function App() {
   const [vista, setVista] = useState("reservas");
   const [reservas, setReservas] = useState(initialReservas);
   const [clientesArchivados, setClientesArchivados] = useState([]);
-  const [filtroFecha, setFiltroFecha] = useState(getTodayStr());
+  const [filtroFecha, setFiltroFecha] = useState("2026-03-22");
   const [filtroEstado, setFiltroEstado] = useState("todas");
+  const [filtroTurno, setFiltroTurno] = useState("todos");
   const [busqueda, setBusqueda] = useState("");
   const [modalAbierto, setModalAbierto] = useState(false);
   const [reservaEditando, setReservaEditando] = useState(null);
@@ -53,11 +58,31 @@ export default function App() {
     setTimeout(() => setToast(null), 2800);
   };
 
+  const getTurno = (hora) => {
+    if (!hora) return "noche";
+    const [h, m] = hora.split(":").map(Number);
+    const mins = h * 60 + m;
+    if (mins >= 13*60+30 && mins <= 14*60+30) return "t1";
+    if (mins > 14*60+30 && mins < 20*60) return "t2";
+    return "noche";
+  };
+
+  const TURNO_COLORES = {
+    t1:    { bg: "#f4faf4", label: "1º Turno Mediodía" },
+    t2:    { bg: "#e8f5e8", label: "2º Turno Mediodía" },
+    noche: { bg: "#d0e8d0", label: "Noche" },
+  };
+
   const reservasFiltradas = reservas.filter(r => {
     const matchFecha = filtroFecha ? r.fecha === filtroFecha : true;
     const matchEstado = filtroEstado === "todas" ? true : r.estado === filtroEstado;
     const matchBusqueda = r.nombre.toLowerCase().includes(busqueda.toLowerCase()) || r.telefono.includes(busqueda);
-    return matchFecha && matchEstado && matchBusqueda;
+    const turno = getTurno(r.hora);
+    const matchTurno = filtroTurno === "todos" ? true
+      : filtroTurno === "mediodia" ? (turno === "t1" || turno === "t2")
+      : filtroTurno === turno;
+    const hideCancelada = filtroTurno !== "todos" && r.estado === "cancelada";
+    return matchFecha && matchEstado && matchBusqueda && matchTurno && !hideCancelada;
   });
 
   // Lista de nombres únicos para el desplegable de clientes
@@ -155,6 +180,7 @@ export default function App() {
       showToast("Error al archivar en Google Sheets", "error");
     }
   };
+
 
   const eliminarReserva = (id) => {
     setReservas(rs => rs.filter(r => r.id !== id));
@@ -553,6 +579,28 @@ ${textoPegado}`
                 <option value="cancelada">Canceladas</option>
               </select>
               <button className="btn-outline" onClick={() => setFiltroFecha("")}>Ver todas las fechas</button>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {[
+                  { key: "todos", label: "Todos los turnos" },
+                  { key: "t1",    label: "1º Turno" },
+                  { key: "t2",    label: "2º Turno" },
+                  { key: "mediodia", label: "Mediodía completo" },
+                  { key: "noche", label: "Noche" },
+                ].map(t => (
+                  <button key={t.key}
+                    onClick={() => setFiltroTurno(t.key)}
+                    style={{
+                      padding: "8px 14px", fontSize: 11, cursor: "pointer",
+                      fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase",
+                      border: `1px solid ${filtroTurno === t.key ? "#1b5e20" : "#81c784"}`,
+                      background: filtroTurno === t.key ? "#1b5e20" : "none",
+                      color: filtroTurno === t.key ? "#fff" : "#2e7d32",
+                      borderRadius: 4, transition: "all 0.2s"
+                    }}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Tabla */}
@@ -567,9 +615,23 @@ ${textoPegado}`
                 </thead>
                 <tbody>
                   {reservasFiltradas.length === 0 ? (
-                    <tr><td colSpan={7} style={{ padding: 40, textAlign: "center", color: "#4a7a4a", fontFamily: "'Jost', sans-serif", fontSize: 14 }}>No hay reservas con estos filtros.</td></tr>
-                  ) : reservasFiltradas.sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora)).map(r => (
-                    <tr key={r.id} className="row-hover" style={{ borderBottom: "1px solid #c8e6c9" }}>
+                    <tr><td colSpan={10} style={{ padding: 40, textAlign: "center", color: "#4a7a4a", fontFamily: "'Jost', sans-serif", fontSize: 14 }}>No hay reservas con estos filtros.</td></tr>
+                  ) : (() => {
+                    const sorted = [...reservasFiltradas].sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
+                    const rows = [];
+                    let lastTurnoKey = null;
+                    let lastFecha = null;
+                    sorted.forEach((r, idx) => {
+                      const turno = getTurno(r.hora);
+                      const turnoKey = r.fecha + "_" + turno;
+                      const showSep = lastTurnoKey !== null && turnoKey !== lastTurnoKey;
+                      const color = TURNO_COLORES[turno];
+                      if (showSep) {
+                        rows.push(<tr key={"sep_"+idx}><td colSpan={10} style={{ padding: 0, height: 28, background: "transparent", border: "none" }} /></tr>);
+                      }
+                      lastTurnoKey = turnoKey;
+                      rows.push(
+                    <tr key={r.id} className="row-hover" style={{ borderBottom: "1px solid #c8e6c9", background: color.bg }}>
                       <td style={{ padding: "16px 20px" }}>
                         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17 }}>{r.nombre}</p>
                         <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a", marginTop: 2 }}>{(() => {
@@ -643,7 +705,10 @@ ${textoPegado}`
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  );
+                    });
+                    return rows;
+                  })()}
                 </tbody>
               </table>
             </div>
