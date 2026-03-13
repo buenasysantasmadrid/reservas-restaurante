@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 
 const MESAS = [1, 2, 3, 4, 5, 15, 6, 16, 7, 17, 8, 18, 10, 11, 12, 13, 40, 41, 30, 31];
 const MESA_NOMBRE = { 30: "Barra 1", 31: "Barra 2" };
-const getMesaNombre = (m) => MESA_NOMBRE[m] || `Mesa ${m}`;
+const getMesaNombre = (m) => MESA_NOMBRE[m] || `${m}`;
 // Horarios: 13:30-16:00 cada 15 min, 20:30-23:30 cada 15 min
 const HORARIOS = (() => {
   const slots = [];
@@ -636,16 +636,27 @@ ${textoPegado}`
                     const sorted = [...reservasFiltradas].sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
                     const rows = [];
                     let lastTurnoKey = null;
-                    let lastFecha = null;
-                    sorted.forEach((r, idx) => {
+                    // Track which turnoKeys we've already rendered, to emit footer after last row of each group
+                    // We'll collect groups first
+                    const grupos = [];
+                    sorted.forEach((r) => {
                       const turno = getTurno(r.hora);
                       const turnoKey = r.fecha + "_" + turno;
-                      const showSep = lastTurnoKey !== null && turnoKey !== lastTurnoKey;
-                      const color = TURNO_COLORES[turno];
-                      if (showSep) {
-                        rows.push(<tr key={"sep_"+idx}><td colSpan={10} style={{ padding: 0, height: 28, background: "transparent", border: "none" }} /></tr>);
+                      if (!grupos.length || grupos[grupos.length-1].turnoKey !== turnoKey) {
+                        grupos.push({ turnoKey, turno, fecha: r.fecha, reservas: [] });
                       }
-                      lastTurnoKey = turnoKey;
+                      grupos[grupos.length-1].reservas.push(r);
+                    });
+
+                    grupos.forEach((grupo, gi) => {
+                      const { turno, fecha, turnoKey } = grupo;
+                      const color = TURNO_COLORES[turno];
+                      // Separator between groups (not before first)
+                      if (gi > 0) {
+                        rows.push(<tr key={"sep_"+gi}><td colSpan={10} style={{ padding: 0, height: 28, background: "transparent", border: "none" }} /></tr>);
+                      }
+                      // Rows for this group
+                      grupo.reservas.forEach((r, idx) => {
                       rows.push(
                     <tr key={r.id} className="row-hover" style={{ borderBottom: "1px solid #c8e6c9", background: color.bg }}>
                       <td style={{ padding: "16px 20px" }}>
@@ -724,7 +735,30 @@ ${textoPegado}`
                       </td>
                     </tr>
                   );
-                    });
+                      }); // end grupo.reservas.forEach
+
+                      // Footer row: free mesas for this turno (only when a specific date is selected)
+                      if (filtroFecha) {
+                        const mesasOcupadas = grupo.reservas
+                          .filter(x => x.estado !== "cancelada")
+                          .flatMap(x => x.mesas && x.mesas.length > 0 ? x.mesas : x.mesa ? [x.mesa] : []);
+                        // Also check other reservas not in filtered list (same fecha+turno)
+                        const todasReservasTurno = reservas.filter(x => x.fecha === fecha && getTurno(x.hora) === turno && x.estado !== "cancelada");
+                        const todasOcupadas = todasReservasTurno.flatMap(x => x.mesas && x.mesas.length > 0 ? x.mesas : x.mesa ? [x.mesa] : []);
+                        const mesasLibres = MESAS.filter(m => !todasOcupadas.includes(m));
+                        rows.push(
+                          <tr key={"footer_"+turnoKey}>
+                            <td colSpan={10} style={{ padding: "8px 20px 12px", background: color.bg, borderBottom: "1px solid #c8e6c9" }}>
+                              <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 1, color: "#4a7a4a", textTransform: "uppercase" }}>
+                                Mesas libres: {mesasLibres.length === 0 ? <span style={{ color: "#c62828" }}>ninguna</span> : mesasLibres.map(m => (
+                                  <span key={m} style={{ display: "inline-block", background: "#fff", border: "1px solid #a5d6a7", borderRadius: 4, padding: "1px 7px", marginRight: 4, fontSize: 11, color: "#2e7d32" }}>{getMesaNombre(m)}</span>
+                                ))}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      }
+                    }); // end grupos.forEach
                     return rows;
                   })()}
                 </tbody>
