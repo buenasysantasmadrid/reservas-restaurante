@@ -478,7 +478,7 @@ ${textoPegado}`
       `}</style>
 
       {/* HEADER */}
-      <header style={{ borderBottom: "1px solid #a5d6a7", background: "#ffffff", padding: "0 40px", position: "relative", zIndex: 1, display: "flex", alignItems: "center", justifyContent: "space-between", height: 72 }}>
+      <header style={{ borderBottom: "1px solid #a5d6a7", background: "#ffffff", padding: "0 40px", position: "sticky", top: 0, zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between", height: 72, boxShadow: "0 2px 8px rgba(46,125,50,0.10)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
           <div style={{ lineHeight: 1.1 }}>
             <div style={{ fontFamily: "'Lora', serif", fontSize: 26, fontWeight: 700, color: "#1a1a1a", fontStyle: "italic" }}>
@@ -679,9 +679,16 @@ ${textoPegado}`
                             }}
                           >
                             <option value="">+ mesa</option>
-                            {MESAS.filter(m => !(r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []).includes(m)).map(m => (
-                              <option key={m} value={m}>Mesa {m}</option>
-                            ))}
+                            {(() => {
+                              const turnoR = getTurno(r.hora);
+                              const mesasOcupadasEnTurno = reservas
+                                .filter(x => x.id !== r.id && getTurno(x.hora) === turnoR && x.fecha === r.fecha && x.estado !== "cancelada")
+                                .flatMap(x => x.mesas || (x.mesa ? [x.mesa] : []));
+                              const mesasActuales = r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : [];
+                              return MESAS
+                                .filter(m => !mesasActuales.includes(m) && !mesasOcupadasEnTurno.includes(m))
+                                .map(m => <option key={m} value={m}>Mesa {m}</option>);
+                            })()}
                           </select>
                         </div>
                       </td>
