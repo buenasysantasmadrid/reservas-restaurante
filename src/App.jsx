@@ -648,19 +648,7 @@ ${textoPegado}`
                       <td style={{ padding: "16px 20px" }}>
                         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17 }}>{r.nombre}</p>
                         <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a", marginTop: 2 }}>{(() => {
-                          const raw = String(r.telefono || "").trim();
-                          if (!raw) return "";
-                          // Already has + prefix: ensure space after country code (+34, +54, etc.)
-                          const mPrefix = raw.match(/^(\+\d{1,3})\s*(\d.*)$/);
-                          if (mPrefix) return `${mPrefix[1]} ${mPrefix[2]}`;
-                          const digits = raw.replace(/\D/g, "");
-                          if (digits.length > 9) {
-                            // Try known prefixes to add space
-                            const known = ["54","55","44","33","49","39","34","1"];
-                            const found = known.find(p => digits.startsWith(p));
-                            return found ? `+${found} ${digits.slice(found.length)}` : `+${digits}`;
-                          }
-                          return "+34 " + raw;
+                          return String(r.telefono || "").trim();
                         })()}</p>
                       </td>
                       <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</td>
