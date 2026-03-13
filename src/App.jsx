@@ -528,7 +528,7 @@ ${textoPegado}`
         .badge-confirmada { background: #e8f5e9; color: #1b5e20; border: 1px solid #81c784; }
         .badge-tomada { background: #fff8e1; color: #f57f17; border: 1px solid #ffcc02; }
         .badge-cancelada { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
-        .badge-llego { background: #f5f5f5; color: #bdbdbd; border: 1px solid #e0e0e0; }
+        .badge-llego { background: #f3e5f5; color: #6a1b9a; border: 1px solid #ce93d8; }
         .row-hover { transition: background 0.15s; }
         .row-hover:hover { background: #f1f8f1; }
         .overlay { position: fixed; inset: 0; background: rgba(0,60,0,0.4); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
@@ -768,7 +768,7 @@ ${textoPegado}`
                       // Rows for this group
                       grupo.reservas.forEach((r, idx) => {
                       rows.push(
-                    <tr key={r.id} className="row-hover" style={{ borderBottom: "1px solid #c8e6c9", background: color.bg, opacity: r.estado === "llego" ? 0.35 : 1 }}>
+                    <tr key={r.id} className="row-hover" style={{ borderBottom: "1px solid #c8e6c9", background: color.bg, opacity: r.estado === "llego" ? 0.22 : 1 }}>
                       <td style={{ padding: "16px 20px" }}>
                         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17 }}>{r.nombre}</p>
                         <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a", marginTop: 2 }}>{(() => {
@@ -917,7 +917,7 @@ ${textoPegado}`
                         {color.label}
                       </div>
                       {grupo.reservas.map(r => (
-                        <div key={r.id} style={{ background: color.bg, border: "1px solid #c8e6c9", borderRadius: 8, padding: 16, marginBottom: 10, opacity: r.estado === "llego" ? 0.35 : 1 }}>
+                        <div key={r.id} style={{ background: color.bg, border: "1px solid #c8e6c9", borderRadius: 8, padding: 16, marginBottom: 10, opacity: r.estado === "llego" ? 0.22 : 1 }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                             <div>
                               <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, color: "#1a2e1a" }}>{r.nombre}</p>
@@ -1358,23 +1358,23 @@ ${textoPegado}`
           { id: 3,  cx: 4.5, cy: 1.7, w: 0.8, h: 0.8 },
           { id: 5,  cx: 5.8, cy: 1.7, w: 0.8, h: 0.8 },
           // Fila 2: 13, 2, 4, 15
-          { id: 13, cx: 1,   cy: 3.0, w: 0.8, h: 0.8 },
-          { id: 2,  cx: 3.2, cy: 3.0, w: 0.8, h: 0.8 },
-          { id: 4,  cx: 4.5, cy: 3.0, w: 0.8, h: 0.8 },
-          { id: 15, cx: 5.8, cy: 3.0, w: 0.8, h: 0.8 },
+          { id: 13, cx: 1,   cy: 2.6, w: 0.8, h: 0.8 },
+          { id: 2,  cx: 3.2, cy: 2.6, w: 0.8, h: 0.8 },
+          { id: 4,  cx: 4.5, cy: 2.6, w: 0.8, h: 0.8 },
+          { id: 15, cx: 5.8, cy: 2.6, w: 0.8, h: 0.8 },
           // Fila 3: 18, 17, 16
-          { id: 18, cx: 3.2, cy: 4.5, w: 0.8, h: 0.8 },
-          { id: 17, cx: 4.5, cy: 4.5, w: 0.8, h: 0.8 },
-          { id: 16, cx: 5.8, cy: 4.5, w: 0.8, h: 0.8 },
+          { id: 18, cx: 3.2, cy: 3.9, w: 0.8, h: 0.8 },
+          { id: 17, cx: 4.5, cy: 3.9, w: 0.8, h: 0.8 },
+          { id: 16, cx: 5.8, cy: 3.9, w: 0.8, h: 0.8 },
           // Fila 4: 11, 10, 8, 7, 6
-          { id: 11, cx: 0.6,  cy: 5.8, w: 0.8, h: 0.8 },
-          { id: 10, cx: 1.85, cy: 5.8, w: 0.8, h: 0.8 },
-          { id: 8,  cx: 3.2,  cy: 5.8, w: 0.8, h: 0.8 },
-          { id: 7,  cx: 4.5,  cy: 5.8, w: 0.8, h: 0.8 },
-          { id: 6,  cx: 5.8,  cy: 5.8, w: 0.8, h: 0.8 },
+          { id: 11, cx: 0.4,  cy: 4.8, w: 0.8, h: 0.8 },
+          { id: 10, cx: 1.6,  cy: 4.8, w: 0.8, h: 0.8 },
+          { id: 8,  cx: 3.2,  cy: 4.8, w: 0.8, h: 0.8 },
+          { id: 7,  cx: 4.5,  cy: 4.8, w: 0.8, h: 0.8 },
+          { id: 6,  cx: 5.8,  cy: 4.8, w: 0.8, h: 0.8 },
           // Barra
-          { id: 30, cx: 3.2,  cy: 7.0, w: 0.8, h: 0.8, barra: true },
-          { id: 31, cx: 4.5,  cy: 7.0, w: 0.8, h: 0.8, barra: true },
+          { id: 30, cx: 3.2,  cy: 6.0, w: 0.8, h: 0.8, barra: true },
+          { id: 31, cx: 4.5,  cy: 6.0, w: 0.8, h: 0.8, barra: true },
         ];
 
         const SVG_COLS = 6.1;
@@ -1383,10 +1383,11 @@ ${textoPegado}`
         const VH = SVG_ROWS * U + PAD * 2;
 
         // Get reservas for selected fecha+turno
+        // In plano: if filtroTurno is "todos" or "mediodia", default to t1; else use selected turno
+        const planoTurno = (filtroTurno === "todos" || filtroTurno === "mediodia") ? "t1" : filtroTurno;
         const reservasTurno = reservas.filter(r => {
           if (!filtroFecha || r.fecha !== filtroFecha) return false;
-          if (filtroTurno === "todos") return r.estado !== "cancelada";
-          return getTurno(r.hora) === filtroTurno && r.estado !== "cancelada";
+          return getTurno(r.hora) === planoTurno && r.estado !== "cancelada";
         });
 
         // Map mesa -> reserva
@@ -1403,7 +1404,7 @@ ${textoPegado}`
           [1, 2, 8, 18],
           [3, 4, 17, 7],
           [5, 15, 16, 6],
-          [12, 13, 11, 10],
+          { ids: [12, 13, 11, 10], clampToFirst: true },
           // 3-mesa groups
           [5, 15, 16],
           [6, 16, 15],
@@ -1411,11 +1412,13 @@ ${textoPegado}`
           [7, 17, 4, 3],
           [1, 2, 18],
           [8, 18, 2],
-          [12, 13, 11],
+          { ids: [12, 13, 11], clampToFirst: true },
           // 2-mesa groups
           [1, 2], [3, 4], [5, 15], [12, 13],
           [8, 18], [7, 17], [6, 16],
           [11, 10], // horizontal pair — 11 is primary (leftmost)
+          [40, 41], // horizontal pair — 40 is primary
+          [30, 31], // barra pair — 30 is primary
         ];
 
         // For each reserva, find the best (largest) matching group
@@ -1423,20 +1426,20 @@ ${textoPegado}`
         reservasTurno.forEach(r => {
           const ms = new Set(r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []);
           if (ms.size < 2) return;
-          // Find largest group where all members are in ms
           for (const grp of MERGE_GROUPS) {
-            const unique = [...new Set(grp)]; // dedupe aliases
+            const ids = Array.isArray(grp) ? grp : grp.ids;
+            const unique = [...new Set(ids)];
             if (unique.every(m => ms.has(m))) {
-              reservaMergeGroup[r.id] = unique;
+              reservaMergeGroup[r.id] = Array.isArray(grp) ? unique : { ids: unique, clampToFirst: grp.clampToFirst };
               break;
             }
           }
         });
 
-        // Track secondaries: all mesas in a group except the primary (first)
         const secondaryMesas = new Set();
         Object.values(reservaMergeGroup).forEach(grp => {
-          grp.slice(1).forEach(m => secondaryMesas.add(m));
+          const ids = Array.isArray(grp) ? grp : grp.ids;
+          ids.slice(1).forEach(m => secondaryMesas.add(m));
         });
 
         const MesaSVG = ({ mesa }) => {
@@ -1450,22 +1453,23 @@ ${textoPegado}`
           const sinConfirmar = res && res.estado === "tomada";
           const llego = res && res.estado === "llego";
 
-          const fill   = barra ? "#d7ccc8" : llego ? "#f5f5f5" : ocupada ? (sinConfirmar ? "#fff8e1" : "#2e7d32") : "#e8f5e9";
-          const stroke = barra ? "#bcaaa4" : llego ? "#e0e0e0" : ocupada ? (sinConfirmar ? "#f9a825" : "#1b5e20") : "#81c784";
-          const textC  = barra ? "#5d4037"    : llego ? "#bdbdbd" : ocupada ? (sinConfirmar ? "#e65100" : "#fff")    : "#2e7d32";
+          const fill   = llego ? "#f5f5f5" : ocupada ? (sinConfirmar ? "#fff8e1" : "#2e7d32") : "#e8f5e9";
+          const stroke = llego ? "#e0e0e0" : ocupada ? (sinConfirmar ? "#f9a825" : "#1b5e20") : "#81c784";
+          const textC  = llego ? "#bdbdbd" : ocupada ? (sinConfirmar ? "#e65100" : "#fff") : "#2e7d32";
 
-          // Check if this mesa is primary of a merge group
           const mergeGroup = res ? reservaMergeGroup[res.id] : null;
-          const isMerged = mergeGroup && mergeGroup[0] === id;
+          const mergeIds = mergeGroup ? (Array.isArray(mergeGroup) ? mergeGroup : mergeGroup.ids) : null;
+          const clampToFirst = mergeGroup && !Array.isArray(mergeGroup) && mergeGroup.clampToFirst;
+          const isMerged = mergeIds && mergeIds[0] === id;
 
-          // Compute bounding rect over all mesas in the group
           let mw = w * U;
           let mh = h * U;
           let mx = PAD + cx * U - (w * U) / 2;
           let my = PAD + cy * U - (h * U) / 2;
 
-          if (isMerged && mergeGroup.length > 1) {
-            mergeGroup.slice(1).forEach(secId => {
+          if (isMerged && mergeIds.length > 1) {
+            const origMx = mx, origMw = mw;
+            mergeIds.slice(1).forEach(secId => {
               const sec = MESAS_POS.find(p => p.id === secId);
               if (!sec) return;
               const sx = PAD + sec.cx * U - (sec.w * U) / 2;
@@ -1477,6 +1481,8 @@ ${textoPegado}`
               mw = x2 - mx;
               mh = y2 - my;
             });
+            // Clamp width to first mesa's column width
+            if (clampToFirst) { mx = origMx; mw = origMw; }
           }
 
           const R = 6;
@@ -1492,7 +1498,7 @@ ${textoPegado}`
           return (
             <g key={id} style={{ cursor: res ? "pointer" : "default" }}
               onClick={() => res && setPlanoModal({ reservaId: res.id, nombre: res.nombre, estado: res.estado })}>
-              <rect x={mx} y={my} width={mw} height={mh} rx={barra ? 4 : R} fill={fill} stroke={stroke} strokeWidth={1.5}/>
+              <rect x={mx} y={my} width={mw} height={mh} rx={R} fill={fill} stroke={stroke} strokeWidth={1.5}/>
               <text x={mx + mw/2} y={my + lineH} textAnchor="middle"
                 style={{ fontFamily: "'Jost', sans-serif", fontSize: barra ? 9 : 10, fontWeight: 600, fill: textC }}>
                 {labelMesa}
@@ -1535,9 +1541,9 @@ ${textoPegado}`
                   <button key={t.key} onClick={() => setFiltroTurno(t.key)}
                     style={{ padding: "8px 14px", fontSize: 11, cursor: "pointer", fontFamily: "'Jost', sans-serif",
                       letterSpacing: 1, textTransform: "uppercase",
-                      border: `1px solid ${filtroTurno === t.key ? "#1b5e20" : "#81c784"}`,
-                      background: filtroTurno === t.key ? "#1b5e20" : "none",
-                      color: filtroTurno === t.key ? "#fff" : "#2e7d32",
+                      border: `1px solid ${planoTurno === t.key ? "#1b5e20" : "#81c784"}`,
+                      background: planoTurno === t.key ? "#1b5e20" : "none",
+                      color: planoTurno === t.key ? "#fff" : "#2e7d32",
                       borderRadius: 4, transition: "all 0.2s" }}>
                     {t.label}
                   </button>
@@ -1586,10 +1592,9 @@ ${textoPegado}`
             <h2 style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", marginBottom: 24 }}>{planoModal.nombre}</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {[
-                { value: "tomada",     label: "Tomada",     bg: "#fff8e1", color: "#f57f17", border: "#ffcc02" },
                 { value: "confirmada", label: "Confirmada", bg: "#e8f5e9", color: "#1b5e20", border: "#81c784" },
-                { value: "llego",      label: "Llegó",      bg: "#f5f5f5", color: "#9e9e9e", border: "#e0e0e0" },
-                { value: "cancelada",  label: "Cancelada",  bg: "#ffebee", color: "#c62828", border: "#ef9a9a" },
+                { value: "llego",      label: "Llegó",      bg: "#f3e5f5", color: "#6a1b9a", border: "#ce93d8" },
+                { value: "cancelada",  label: "Cancelada",   bg: "#ffebee", color: "#c62828", border: "#ef9a9a" },
               ].map(op => (
                 <button key={op.value}
                   onClick={() => {
@@ -1609,7 +1614,7 @@ ${textoPegado}`
                 </button>
               ))}
             </div>
-            <button className="btn-outline" style={{ marginTop: 20, width: "100%" }} onClick={() => setPlanoModal(null)}>Cancelar</button>
+            <button className="btn-outline" style={{ marginTop: 20, width: "100%", color: "#888", borderColor: "#ccc", fontSize: 11 }} onClick={() => setPlanoModal(null)}>Salir</button>
           </div>
         </div>
       )}
