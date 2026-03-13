@@ -45,6 +45,7 @@ export default function App() {
   const [form, setForm] = useState({ nombre: "", telefono: "", email: "", fecha: "", hora: "", personas: "", mesas: [], notas: "", estado: "tomada", tomadaPor: "", prefijo: "+34" });
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
   const [toast, setToast] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [confirmarWA, setConfirmarWA] = useState(false);
   const [pendingSheetIdx, setPendingSheetIdx] = useState(null);
   const [textoPegado, setTextoPegado] = useState("");
@@ -503,18 +504,8 @@ ${textoPegado}`
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400;1,600&family=Cormorant+Garamond:wght@300;400;600;700&family=Jost:wght@300;400;500&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        :root {
-          --gold: #2e7d32;
-          --gold-light: #43a047;
-          --dark: #e8f5e9;
-          --dark2: #ffffff;
-          --dark3: #f1f8f1;
-          --cream: #1a2e1a;
-          --muted: #555;
-        }
+        :root { --gold: #2e7d32; --gold-light: #43a047; --cream: #1a2e1a; }
         body { background: #b8ddb8; }
-        .font-display { font-family: 'Cormorant Garamond', serif; }
-        .font-body { font-family: 'Jost', sans-serif; }
         input, select, textarea { outline: none; }
         input::placeholder, textarea::placeholder { color: #555; }
         ::-webkit-scrollbar { width: 6px; }
@@ -526,11 +517,11 @@ ${textoPegado}`
         .card { background: #ffffff; border: 1px solid #dcedc8; border-radius: 8px; box-shadow: 0 2px 8px rgba(46,125,50,0.08); }
         .stat-card { background: #ffffff; border: 1px solid #c8e6c9; border-radius: 4px; padding: 24px; transition: border-color 0.2s; }
         .stat-card:hover { border-color: #2e7d32; }
-        .btn-gold { background: #2e7d32; color: #ffffff; border: none; cursor: pointer; font-family: 'Jost', sans-serif; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; padding: 12px 24px; transition: background 0.2s; font-weight: 500; }
+        .btn-gold { background: #2e7d32; color: #ffffff; border: none; cursor: pointer; font-family: 'Jost', sans-serif; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; padding: 12px 24px; transition: background 0.2s; font-weight: 500; border-radius: 4px; }
         .btn-gold:hover { background: #1b5e20; }
-        .btn-outline { background: none; border: 1px solid #81c784; color: #2e7d32; cursor: pointer; font-family: 'Jost', sans-serif; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; padding: 8px 16px; transition: all 0.2s; }
+        .btn-outline { background: none; border: 1px solid #81c784; color: #2e7d32; cursor: pointer; font-family: 'Jost', sans-serif; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; padding: 8px 16px; transition: all 0.2s; border-radius: 4px; }
         .btn-outline:hover { border-color: #1b5e20; color: #1b5e20; }
-        .input-field { background: #ffffff; border: 1px solid #a5d6a7; color: #1a2e1a; padding: 10px 14px; font-family: 'Jost', sans-serif; font-size: 14px; width: 100%; transition: border-color 0.2s; }
+        .input-field { background: #ffffff; border: 1px solid #a5d6a7; color: #1a2e1a; padding: 10px 14px; font-family: 'Jost', sans-serif; font-size: 14px; width: 100%; transition: border-color 0.2s; border-radius: 4px; }
         .input-field:focus { border-color: #2e7d32; }
         .badge { display: inline-block; padding: 3px 10px; font-family: 'Jost', sans-serif; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; border-radius: 2px; }
         .badge-confirmada { background: #e8f5e9; color: #1b5e20; border: 1px solid #81c784; }
@@ -538,8 +529,8 @@ ${textoPegado}`
         .badge-cancelada { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
         .row-hover { transition: background 0.15s; }
         .row-hover:hover { background: #f1f8f1; }
-        .overlay { position: fixed; inset: 0; background: rgba(0,60,0,0.4); z-index: 50; display: flex; align-items: center; justify-content: center; }
-        .modal { background: #ffffff; border: 1px solid #c8e6c9; padding: 40px; width: 90%; max-width: 560px; max-height: 90vh; overflow-y: auto; }
+        .overlay { position: fixed; inset: 0; background: rgba(0,60,0,0.4); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
+        .modal { background: #ffffff; border: 1px solid #c8e6c9; padding: 40px; width: 90%; max-width: 560px; max-height: 90vh; overflow-y: auto; border-radius: 8px; }
         .toast { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); padding: 18px 36px; font-family: 'Jost', sans-serif; font-size: 16px; letter-spacing: 1px; z-index: 100; border-radius: 4px; animation: fadeIn 0.3s; text-align: center; white-space: nowrap; box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
         .toast-ok { background: #e8f5e9; border: 1px solid #81c784; color: #1b5e20; }
         .toast-error { background: #ffebee; border: 1px solid #ef9a9a; color: #b71c1c; }
@@ -547,29 +538,73 @@ ${textoPegado}`
         label { display: block; font-family: 'Jost', sans-serif; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #4a7a4a; margin-bottom: 6px; }
         .divider { border: none; border-top: 1px solid #c8e6c9; margin: 24px 0; }
         select option { background: #ffffff; color: #1a2e1a; }
+
+        /* ── MOBILE NAV ── */
+        .mobile-nav-drawer { display: none; }
+        .hamburger { display: none; }
+
+        /* ── RESERVA CARD (mobile) ── */
+        .reserva-card { display: none; }
+
+        @media (max-width: 768px) {
+          .hamburger { display: flex; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
+          .hamburger span { display: block; width: 22px; height: 2px; background: #1a3a1a; border-radius: 2px; transition: all 0.2s; }
+          .desktop-nav { display: none !important; }
+          .desktop-subtitle { display: none !important; }
+          .mobile-nav-drawer { display: flex; flex-direction: column; position: fixed; top: 64px; left: 0; right: 0; background: #fff; z-index: 9; border-bottom: 1px solid #c8e6c9; box-shadow: 0 4px 12px rgba(0,0,0,0.08); padding: 8px 0; }
+          .mobile-nav-drawer .nav-btn { padding: 14px 24px; font-size: 14px; text-align: left; border-bottom: 1px solid #f0f7f0; }
+          .mobile-nav-drawer .nav-btn:last-child { border-bottom: none; }
+          .desktop-table { display: none !important; }
+          .reserva-card { display: block; }
+          .main-pad { padding: 16px !important; }
+          .filtros-wrap { flex-direction: column !important; }
+          .filtros-wrap input, .filtros-wrap select { width: 100% !important; }
+          .header-actions { flex-direction: column !important; gap: 8px !important; align-items: flex-start !important; }
+          .modal { padding: 24px 20px !important; width: 100% !important; max-width: 100% !important; max-height: 95vh !important; border-radius: 12px 12px 0 0 !important; }
+          .modal-grid { grid-template-columns: 1fr !important; }
+          .overlay { align-items: flex-end !important; padding: 0 !important; }
+          .turnos-wrap { flex-wrap: wrap !important; gap: 6px !important; }
+          .page-title { font-size: 32px !important; }
+        }
       `}</style>
 
       {/* HEADER */}
-      <header style={{ borderBottom: "1px solid #a5d6a7", background: "#ffffff", padding: "0 40px", position: "sticky", top: 0, zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between", height: 72, boxShadow: "0 2px 8px rgba(46,125,50,0.10)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+      <header style={{ borderBottom: "1px solid #a5d6a7", background: "#ffffff", padding: "0 24px", position: "sticky", top: 0, zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between", height: 64, boxShadow: "0 2px 8px rgba(46,125,50,0.10)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <div style={{ lineHeight: 1.1 }}>
-            <div style={{ fontFamily: "'Lora', serif", fontSize: 26, fontWeight: 700, color: "#1a1a1a", fontStyle: "italic" }}>
+            <div style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", fontStyle: "italic" }}>
               Buenas <span style={{ color: "#2e7d32" }}>y</span> Santas
             </div>
             <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, letterSpacing: 3, color: "#5a8a5a", textTransform: "uppercase", marginTop: 3 }}>nueva cocina casera</div>
           </div>
-          <span style={{ color: "#c8e6c9", fontSize: 22 }}>|</span>
-          <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 3, color: "#6a9a6a", textTransform: "uppercase" }}>Gestión de Reservas</span>
+          <span className="desktop-subtitle" style={{ color: "#c8e6c9", fontSize: 22 }}>|</span>
+          <span className="desktop-subtitle" style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 3, color: "#6a9a6a", textTransform: "uppercase" }}>Gestión de Reservas</span>
         </div>
-        <nav style={{ display: "flex", gap: 4 }}>
-          <button className={`nav-btn ${vista === "reservas" ? "active" : ""}`} onClick={() => setVista("reservas")} style={{ color: vista === "reservas" ? "#1b5e20" : "#1a3a1a" }}>Reservas</button>
-          <button className="nav-btn" onClick={abrirNueva} style={{ color: "#1a3a1a" }}>+ Nueva</button>
-          <button className={`nav-btn ${vista === "pegar" ? "active" : ""}`} onClick={() => setVista("pegar")} style={{ color: vista === "pegar" ? "#1b5e20" : "#1a3a1a" }}>📋 Pegar WhatsApp</button>
-          <button className={`nav-btn ${vista === "sheet" ? "active" : ""}`} onClick={() => setVista("sheet")} style={{ color: vista === "sheet" ? "#1b5e20" : "#1a3a1a" }}>📲 Nueva WhatsApp</button>
+        {/* Desktop nav */}
+        <nav className="desktop-nav" style={{ display: "flex", gap: 4 }}>
+          <button className={`nav-btn ${vista === "reservas" ? "active" : ""}`} onClick={() => setVista("reservas")}>Reservas</button>
+          <button className="nav-btn" onClick={abrirNueva}>+ Nueva</button>
+          <button className={`nav-btn ${vista === "pegar" ? "active" : ""}`} onClick={() => setVista("pegar")}>📋 Pegar WhatsApp</button>
+          <button className={`nav-btn ${vista === "sheet" ? "active" : ""}`} onClick={() => setVista("sheet")}>📲 Nueva WhatsApp</button>
         </nav>
+        {/* Hamburger */}
+        <button className="hamburger" onClick={() => setMenuOpen(o => !o)} aria-label="Menú">
+          <span style={{ transform: menuOpen ? "rotate(45deg) translate(5px,5px)" : "none" }}/>
+          <span style={{ opacity: menuOpen ? 0 : 1 }}/>
+          <span style={{ transform: menuOpen ? "rotate(-45deg) translate(5px,-5px)" : "none" }}/>
+        </button>
       </header>
+      {/* Mobile drawer */}
+      {menuOpen && (
+        <nav className="mobile-nav-drawer">
+          <button className={`nav-btn ${vista === "reservas" ? "active" : ""}`} onClick={() => { setVista("reservas"); setMenuOpen(false); }}>Reservas</button>
+          <button className="nav-btn" onClick={() => { abrirNueva(); setMenuOpen(false); }}>+ Nueva reserva</button>
+          <button className={`nav-btn ${vista === "pegar" ? "active" : ""}`} onClick={() => { setVista("pegar"); setMenuOpen(false); }}>📋 Pegar WhatsApp</button>
+          <button className={`nav-btn ${vista === "sheet" ? "active" : ""}`} onClick={() => { setVista("sheet"); setMenuOpen(false); }}>📲 Nueva WhatsApp</button>
+        </nav>
+      )}
 
-      <main style={{ padding: "40px", maxWidth: 1200, margin: "0 auto", position: "relative", zIndex: 1 }}>
+      <main className="main-pad" style={{ padding: "40px", maxWidth: 1200, margin: "0 auto", position: "relative", zIndex: 1 }}>
 
         {/* ── PANEL ── */}
         {vista === "panel" && (
@@ -646,16 +681,16 @@ ${textoPegado}`
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32 }}>
               <div>
                 <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 3, color: "#4a7a4a", textTransform: "uppercase", marginBottom: 8 }}>Gestión</p>
-                <h1 style={{ fontFamily: "'Lora', serif", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Reservas</h1>
+                <h1 className="page-title" style={{ fontFamily: "'Lora', serif", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Reservas</h1>
               </div>
-              <div style={{ display: "flex", gap: 12 }}>
+              <div className="header-actions" style={{ display: "flex", gap: 12 }}>
                 <button className="btn-outline" style={{ borderColor: "#81c784", color: "#2e7d32", fontSize: 11 }} onClick={archivarReservasPasadas}>📦 Archivar pasadas</button>
                 <button className="btn-gold" onClick={abrirNueva}>+ Nueva reserva</button>
               </div>
             </div>
 
             {/* Filtros */}
-            <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap", alignItems: "center" }}>
+            <div className="filtros-wrap" style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap", alignItems: "center" }}>
               <input type="date" className="input-field" style={{ width: 180 }} value={filtroFecha} onChange={e => setFiltroFecha(e.target.value)} />
               <input type="text" className="input-field" style={{ width: 220 }} placeholder="Buscar cliente..." value={busqueda} onChange={e => setBusqueda(e.target.value)} />
               <select className="input-field" style={{ width: 160 }} value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}>
@@ -665,7 +700,7 @@ ${textoPegado}`
                 <option value="cancelada">Canceladas</option>
               </select>
               <button className="btn-outline" onClick={() => setFiltroFecha("")}>Ver todas las fechas</button>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              <div className="turnos-wrap" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {[
                   { key: "todos", label: "Todos los turnos" },
                   { key: "t1",    label: "1º Turno" },
@@ -690,7 +725,7 @@ ${textoPegado}`
             </div>
 
             {/* Tabla */}
-            <div className="card" style={{ overflow: "hidden" }}>
+            <div className="card desktop-table" style={{ overflow: "hidden" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid #c8e6c9" }}>
@@ -853,6 +888,88 @@ ${textoPegado}`
                   })()}
                 </tbody>
               </table>
+            </div>
+
+            {/* ── MOBILE CARDS ── */}
+            <div className="reserva-card">
+              {(() => {
+                const sorted = [...reservasFiltradas].sort((a,b) => (a.fecha+a.hora).localeCompare(b.fecha+b.hora));
+                const grupos = [];
+                sorted.forEach(r => {
+                  const turno = getTurno(r.hora);
+                  const turnoKey = r.fecha + "_" + turno;
+                  if (!grupos.length || grupos[grupos.length-1].turnoKey !== turnoKey) {
+                    grupos.push({ turnoKey, turno, fecha: r.fecha, reservas: [] });
+                  }
+                  grupos[grupos.length-1].reservas.push(r);
+                });
+                return grupos.map((grupo, gi) => {
+                  const color = TURNO_COLORES[grupo.turno];
+                  return (
+                    <div key={grupo.turnoKey} style={{ marginBottom: 20 }}>
+                      <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "#4a7a4a", padding: "10px 4px 6px", fontWeight: 600 }}>
+                        {color.label}
+                      </div>
+                      {grupo.reservas.map(r => (
+                        <div key={r.id} style={{ background: color.bg, border: "1px solid #c8e6c9", borderRadius: 8, padding: 16, marginBottom: 10 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                            <div>
+                              <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, color: "#1a2e1a" }}>{r.nombre}</p>
+                              <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>{r.telefono}</p>
+                            </div>
+                            <select value={r.estado} onChange={e => cambiarEstado(r.id, e.target.value)}
+                              className={`badge badge-${r.estado}`}
+                              style={{ cursor: "pointer", border: "none", appearance: "none" }}>
+                              <option value="tomada">Tomada</option>
+                              <option value="confirmada">Confirmada</option>
+                              <option value="cancelada">Cancelada</option>
+                            </select>
+                          </div>
+                          <div style={{ display: "flex", gap: 16, marginBottom: 10, flexWrap: "wrap" }}>
+                            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, color: "#1b5e20", fontWeight: 600 }}>{r.hora}</span>
+                            <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{r.personas} pax</span>
+                            <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>
+                              {(r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []).map(getMesaNombre).join(" + ") || "Sin mesa"}
+                            </span>
+                            <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>
+                              {new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}
+                            </span>
+                          </div>
+                          {r.notas ? <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#6a9a6a", marginBottom: 10, fontStyle: "italic" }}>{r.notas}</p> : null}
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            <button className="btn-outline" style={{ padding: "6px 12px", fontSize: 11 }} onClick={() => abrirEditar(r)}>Editar</button>
+                            <BtnWhatsApp reserva={r} />
+                            <button className="btn-outline" style={{ padding: "6px 12px", fontSize: 11, borderColor: "#ef9a9a", color: "#ba5d5d" }} onClick={() => eliminarReserva(r.id)}>✕</button>
+                          </div>
+                        </div>
+                      ))}
+                      {filtroFecha && (() => {
+                        const todasOcupadas = reservas.filter(x => x.fecha === grupo.fecha && getTurno(x.hora) === grupo.turno && x.estado !== "cancelada").flatMap(x => x.mesas && x.mesas.length > 0 ? x.mesas : x.mesa ? [x.mesa] : []);
+                        const libres = MESAS.filter(m => !todasOcupadas.includes(m));
+                        return (
+                          <div style={{ background: color.bg, border: "1px solid #c8e6c9", borderRadius: 8, padding: "10px 14px", marginBottom: 4 }}>
+                            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
+                              Mesas libres: {libres.length === 0 ? <span style={{ color: "#c62828" }}>ninguna</span> : libres.map(m => (
+                                <span key={m} style={{ display: "inline-block", background: "#fff", border: "1px solid #a5d6a7", borderRadius: 4, padding: "1px 7px", marginRight: 4, fontSize: 11, color: "#2e7d32" }}>{getMesaNombre(m)}</span>
+                              ))}
+                            </p>
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <button onClick={() => asignarMesasTurno(grupo.fecha, grupo.turno)}
+                                style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "#2e7d32", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer" }}>
+                                ✦ Asignar mesas
+                              </button>
+                              <button onClick={() => borrarMesasTurno(grupo.fecha, grupo.turno)}
+                                style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "none", color: "#b71c1c", border: "1px solid #ef9a9a", borderRadius: 4, cursor: "pointer" }}>
+                                ✕ Borrar mesas
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  );
+                });
+              })()}
             </div>
           </div>
         )}
@@ -1055,7 +1172,7 @@ ${textoPegado}`
             <h2 style={{ fontFamily: "'Lora', serif", fontSize: 32, fontWeight: 700, color: "#1a1a1a", marginBottom: 28 }}>
               {reservaEditando ? "Editar reserva" : "Nueva reserva"}
             </h2>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+            <div className="modal-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
 
               {/* Cliente con búsqueda por texto + datalist */}
               <div style={{ gridColumn: "1/-1" }}>
