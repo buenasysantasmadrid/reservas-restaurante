@@ -1357,46 +1357,30 @@ ${textoPegado}`
 
       {/* ── PLANO ── */}
       {vista === "plano" && (() => {
-        // Plano fiel al PDF:
-        // Fila 1: 40 41 | 12 1 3 5
-        // Fila 2:        | 13 2 4 15
-        // Fila 3:        |    18 17 16
-        // Fila 4:        | 11 10 8 7 6
-        // Barra:  Barra1 Barra2
-
-        // U = unidad base px dentro del SVG viewBox
-        const U = 60; // cell size
+        const U = 60;
         const PAD = 10;
         const CHAIR = 9;
-        const R = 6; // corner radius for table rect
+        const R = 6;
 
-        // Mesa position: { id, col, row, w, h } in grid units
-        // Grid origin top-left. w/h in grid units.
         const MESAS_POS = [
-          // 40 arriba de la 1, 41 arriba de la 3, separadas por fila en blanco
           { id: 40, cx: 3.2, cy:  0.5, w: 0.8, h: 0.8 },
           { id: 41, cx: 4.5, cy:  0.5, w: 0.8, h: 0.8 },
-          // Fila 1 (gap de 1 fila bajo 40/41): 12, 1, 3, 5
           { id: 12, cx: 1,   cy: 1.7, w: 0.8, h: 0.8 },
           { id: 1,  cx: 3.2, cy: 1.7, w: 0.8, h: 0.8 },
           { id: 3,  cx: 4.5, cy: 1.7, w: 0.8, h: 0.8 },
           { id: 5,  cx: 5.8, cy: 1.7, w: 0.8, h: 0.8 },
-          // Fila 2: 13, 2, 4, 15
           { id: 13, cx: 1,   cy: 2.6, w: 0.8, h: 0.8 },
           { id: 2,  cx: 3.2, cy: 2.6, w: 0.8, h: 0.8 },
           { id: 4,  cx: 4.5, cy: 2.6, w: 0.8, h: 0.8 },
           { id: 15, cx: 5.8, cy: 2.6, w: 0.8, h: 0.8 },
-          // Fila 3: 18, 17, 16
           { id: 18, cx: 3.2, cy: 3.9, w: 0.8, h: 0.8 },
           { id: 17, cx: 4.5, cy: 3.9, w: 0.8, h: 0.8 },
           { id: 16, cx: 5.8, cy: 3.9, w: 0.8, h: 0.8 },
-          // Fila 4: 11, 10, 8, 7, 6
           { id: 11, cx: 0.5,  cy: 4.8, w: 0.8, h: 0.8 },
           { id: 10, cx: 1.6,  cy: 4.8, w: 0.8, h: 0.8 },
           { id: 8,  cx: 3.2,  cy: 4.8, w: 0.8, h: 0.8 },
           { id: 7,  cx: 4.5,  cy: 4.8, w: 0.8, h: 0.8 },
           { id: 6,  cx: 5.8,  cy: 4.8, w: 0.8, h: 0.8 },
-          // Barra
           { id: 30, cx: 3.2,  cy: 6.0, w: 0.8, h: 0.8, barra: true },
           { id: 31, cx: 4.5,  cy: 6.0, w: 0.8, h: 0.8, barra: true },
         ];
@@ -1406,30 +1390,23 @@ ${textoPegado}`
         const VW = SVG_COLS * U + PAD * 2;
         const VH = SVG_ROWS * U + PAD * 2;
 
-        // Get reservas for selected fecha+turno
-        // In plano: if filtroTurno is "todos" or "mediodia", default to t1; else use selected turno
         const planoTurno = (filtroTurno === "todos" || filtroTurno === "mediodia") ? "t1" : filtroTurno;
         const reservasTurno = reservas.filter(r => {
           if (!filtroFecha || r.fecha !== filtroFecha) return false;
           return getTurno(r.hora) === planoTurno && r.estado !== "cancelada";
         });
 
-        // Map mesa -> reserva
         const mesaReserva = {};
         reservasTurno.forEach(r => {
           const ms = r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : [];
           ms.forEach(m => { mesaReserva[m] = r; });
         });
 
-        // All valid merge groups ordered by size desc (largest first for matching)
-        // primary = first element, rest = secondaries (hidden)
         const MERGE_GROUPS = [
-          // 4-mesa groups
           { ids: [8, 2, 18, 1], clampToFirst: true, clampHeight: 3.2, anchorBottom: true },
           { ids: [7, 17, 4, 3], clampToFirst: true, clampHeight: 3.2, anchorBottom: true },
           { ids: [6, 16, 15, 5], clampToFirst: true, clampHeight: 3.2, anchorBottom: true },
           { ids: [12, 13, 11, 10], clampToFirst: true, clampHeight: 3.2 },
-          // 3-mesa groups
           { ids: [5, 15, 16], clampToFirst: true, clampHeight: 2.1 },
           { ids: [6, 16, 15], clampToFirst: true, clampHeight: 2.1, anchorBottom: true },
           { ids: [3, 4, 17], clampToFirst: true, clampHeight: 2.1 },
@@ -1437,19 +1414,13 @@ ${textoPegado}`
           { ids: [1, 2, 18], clampToFirst: true, clampHeight: 2.1 },
           { ids: [8, 18, 2], clampToFirst: true, clampHeight: 2.1, anchorBottom: true },
           { ids: [12, 13, 11], clampToFirst: true, clampHeight: 2.1 },
-          // 2-mesa groups
           [1, 2], [3, 4], [5, 15], [12, 13],
           [8, 18], [7, 17], [6, 16],
-          [11, 10], // horizontal pair — 11 is primary (leftmost)
-          [40, 41], // horizontal pair — 40 is primary
-          [30, 31], // barra pair — 30 is primary
+          [11, 10],
+          [40, 41],
+          [30, 31],
         ];
 
-        // Mesa blocks — when a mesa from a block is selected, only show others from same block
-
-
-
-        // For each reserva, find the best (largest) matching group
         const reservaMergeGroup = {};
         reservasTurno.forEach(r => {
           const ms = new Set(r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []);
@@ -1473,7 +1444,6 @@ ${textoPegado}`
         const MesaSVG = ({ mesa }) => {
           const { id, cx, cy, w, h, barra } = mesa;
 
-          // Skip secondary mesas (they are rendered as part of the primary)
           if (secondaryMesas.has(id)) return null;
 
           const res = mesaReserva[id];
@@ -1524,30 +1494,20 @@ ${textoPegado}`
                   mh = y2 - my;
                 }
               });
-              // Apply height cap if specified
               if (clampHeight) mh = Math.min(mh, clampHeight * U);
-              // Anchor to primary mesa's bottom edge (draw upward)
               if (anchorBottom) my = (PAD + cy * U + (h * U) / 2) - mh;
             }
           }
 
-          const R = 8;
-          const CHAIR = 9;
-
-          const chairs = [];
-
-          // Labels
+          const RR = 8;
           const labelMesa = MESA_NOMBRE[id] || String(id);
-
           const lineH = isMerged ? mh * 0.22 : (res ? mh * 0.28 : mh / 2 + 4);
 
           return (
             <g key={id} style={{ cursor: res ? "pointer" : "default" }}
-              onClick={() => res && setPlanoModal({ reservaId: res.id, nombre: res.nombre, estado: res.estado, telefono: res.telefono || "" })}>
-              {/* Shadow */}
-              <rect x={mx+1} y={my+2} width={mw} height={mh} rx={R+1} fill="rgba(0,0,0,0.06)"/>
-              {/* Mesa body */}
-              <rect x={mx} y={my} width={mw} height={mh} rx={R} fill={fill} stroke={stroke} strokeWidth={ocupada ? 2 : 1.2}/>
+              onClick={() => res && setPlanoModal({ reservaId: res.id, nombre: res.nombre, estado: res.estado, telefono: res.telefono || "", prefijo: res.prefijo || "" })}>
+              <rect x={mx+1} y={my+2} width={mw} height={mh} rx={RR+1} fill="rgba(0,0,0,0.06)"/>
+              <rect x={mx} y={my} width={mw} height={mh} rx={RR} fill={fill} stroke={stroke} strokeWidth={ocupada ? 2 : 1.2}/>
               <text x={mx + mw/2} y={my + lineH} textAnchor="middle"
                 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: barra ? 11 : 13, fontWeight: 700, fill: textC, letterSpacing: 0.5 }}>
                 {labelMesa}
@@ -1624,10 +1584,8 @@ ${textoPegado}`
                     <path d={`M ${U*0.5} 0 L 0 0 0 ${U*0.5}`} fill="none" stroke="#e8f5e9" strokeWidth="0.5"/>
                   </pattern>
                 </defs>
-                {/* Floor */}
                 <rect x={0} y={0} width={VW} height={VH} fill="#f4faf4" rx={12}/>
                 <rect x={0} y={0} width={VW} height={VH} fill="url(#floorGrid)" rx={12}/>
-                {/* Separator: horizontal between 40/41 row and main rows */}
                 <line x1={PAD + 0.2*U} y1={PAD + 1.15*U} x2={PAD + 6.5*U} y2={PAD + 1.15*U} stroke="#c8e6c9" strokeWidth={0.8} strokeDasharray="5 5" opacity="0.7"/>
                 {MESAS_POS.map(m => <MesaSVG key={m.id} mesa={m} />)}
               </svg>
@@ -1647,7 +1605,28 @@ ${textoPegado}`
         <div className="overlay" style={{ zIndex: 60 }} onClick={e => e.target === e.currentTarget && setPlanoModal(null)}>
           <div className="modal" style={{ maxWidth: 340, padding: "36px 32px", textAlign: "center" }}>
             <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", marginBottom: 8 }}>Cambiar estado</p>
-            <h2 style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", marginBottom: 24 }}>{planoModal.nombre}</h2>
+            <h2 style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", marginBottom: 12 }}>{planoModal.nombre}</h2>
+
+            {/* ── WhatsApp justo debajo del nombre ── */}
+            {planoModal.telefono && (() => {
+              const digits = planoModal.telefono.replace(/\D/g, '');
+              const preDigits = (planoModal.prefijo || "34").replace(/\D/g, '');
+              const tel = preDigits + digits;
+              const firstName = planoModal.nombre.split(' ')[0];
+              const msg = encodeURIComponent(`Hola ${firstName}, tenemos ahora mismo una mesa libre, ¿quieres venir?`);
+              return (
+                <a href={`https://wa.me/${tel}?text=${msg}`} target="_blank" rel="noreferrer"
+                  style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+                    marginBottom: 20, padding: "10px 20px", background: "#25d366", color: "#fff",
+                    borderRadius: 6, fontFamily: "'Jost', sans-serif", fontSize: 12,
+                    letterSpacing: 1, textTransform: "uppercase", textDecoration: "none",
+                    fontWeight: 600, cursor: "pointer" }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                  WhatsApp
+                </a>
+              );
+            })()}
+
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {[
                 { value: "confirmada", label: "Confirmada", bg: "#e8f5e9", color: "#1b5e20", border: "#81c784" },
@@ -1672,23 +1651,6 @@ ${textoPegado}`
                 </button>
               ))}
             </div>
-            {planoModal.telefono && (() => {
-              const digits = planoModal.telefono.replace(/\D/g, '');
-              const tel = digits.length > 9 ? digits : '34' + digits;
-              const firstName = planoModal.nombre.split(' ')[0];
-              const msg = encodeURIComponent(`Hola ${firstName}, tenemos ahora mismo una mesa libre, ¿quieres venir?`);
-              return (
-                <a href={`https://wa.me/${tel}?text=${msg}`} target="_blank" rel="noreferrer"
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                    marginTop: 16, padding: "12px 20px", background: "#25d366", color: "#fff",
-                    borderRadius: 6, fontFamily: "'Jost', sans-serif", fontSize: 12,
-                    letterSpacing: 1, textTransform: "uppercase", textDecoration: "none",
-                    fontWeight: 600, cursor: "pointer" }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                  WhatsApp
-                </a>
-              );
-            })()}
             <button className="btn-outline" style={{ marginTop: 10, width: "100%", color: "#888", borderColor: "#ccc", fontSize: 11 }} onClick={() => setPlanoModal(null)}>Salir</button>
           </div>
         </div>
