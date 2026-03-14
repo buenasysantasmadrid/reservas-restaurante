@@ -77,6 +77,28 @@ export default function App() {
     noche: { bg: "#d0e8d0", label: "Noche" },
   };
 
+  const MESA_BLOCKS = [
+    [3, 4, 7, 17],
+    [10, 11, 12, 13],
+    [5, 15, 6, 16],
+    [1, 2, 8, 18],
+  ];
+
+  const getMesasDisponibles = (mesasActuales, mesasOcupadas) => {
+    if (mesasActuales.length === 0) {
+      return MESAS.filter(m => !mesasOcupadas.includes(m));
+    }
+    const block = MESA_BLOCKS.find(b => mesasActuales.some(m => b.includes(m)));
+    if (block) {
+      const remaining = block.filter(m => !mesasActuales.includes(m) && !mesasOcupadas.includes(m));
+      if (mesasActuales.filter(m => block.includes(m)).length >= 4) {
+        return MESAS.filter(m => !mesasActuales.includes(m) && !mesasOcupadas.includes(m));
+      }
+      return remaining;
+    }
+    return MESAS.filter(m => !mesasActuales.includes(m) && !mesasOcupadas.includes(m));
+  };
+
   const reservasFiltradas = reservas.filter(r => {
     const matchFecha = filtroFecha ? r.fecha === filtroFecha : true;
     const matchEstado = filtroEstado === "todas" ? true : r.estado === filtroEstado;
@@ -808,8 +830,7 @@ ${textoPegado}`
                                 .filter(x => x.id !== r.id && getTurno(x.hora) === turnoR && x.fecha === r.fecha && x.estado !== "cancelada")
                                 .flatMap(x => x.mesas || (x.mesa ? [x.mesa] : []));
                               const mesasActuales = r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : [];
-                              return MESAS
-                                .filter(m => !mesasActuales.includes(m) && !mesasOcupadasEnTurno.includes(m))
+                              return getMesasDisponibles(mesasActuales, mesasOcupadasEnTurno)
                                 .map(m => <option key={m} value={m}>{getMesaNombre(m)}</option>);
                             })()}
                           </select>
@@ -970,7 +991,7 @@ ${textoPegado}`
                                 const turnoR = getTurno(r.hora);
                                 const ocupadas = reservas.filter(x => x.id !== r.id && getTurno(x.hora) === turnoR && x.fecha === r.fecha && x.estado !== "cancelada").flatMap(x => x.mesas || (x.mesa ? [x.mesa] : []));
                                 const actuales = r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : [];
-                                return MESAS.filter(m => !actuales.includes(m) && !ocupadas.includes(m)).map(m => (
+                                return getMesasDisponibles(actuales, ocupadas).map(m => (
                                   <option key={m} value={m}>{getMesaNombre(m)}</option>
                                 ));
                               })()}
@@ -1423,6 +1444,10 @@ ${textoPegado}`
           [40, 41], // horizontal pair — 40 is primary
           [30, 31], // barra pair — 30 is primary
         ];
+
+        // Mesa blocks — when a mesa from a block is selected, only show others from same block
+
+
 
         // For each reserva, find the best (largest) matching group
         const reservaMergeGroup = {};
