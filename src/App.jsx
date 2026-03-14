@@ -56,6 +56,10 @@ export default function App() {
   const [sheetCargando, setSheetCargando] = useState(false);
   const [sheetFilas, setSheetFilas] = useState([]);
   const [sheetError, setSheetError] = useState("");
+  const [turnoModalAbierto, setTurnoModalAbierto] = useState(false);
+  const [turnoDesde, setTurnoDesde] = useState("13:30");
+  const [turnoHasta, setTurnoHasta] = useState("16:00");
+  const [turnoPersonalizado, setTurnoPersonalizado] = useState(null); // { desde, hasta } when active
 
   const showToast = (msg, tipo = "ok") => {
     setToast({ msg, tipo });
@@ -104,9 +108,20 @@ export default function App() {
     const matchEstado = filtroEstado === "todas" ? true : r.estado === filtroEstado;
     const matchBusqueda = r.nombre.toLowerCase().includes(busqueda.toLowerCase()) || r.telefono.includes(busqueda);
     const turno = getTurno(r.hora);
-    const matchTurno = filtroTurno === "todos" ? true
-      : filtroTurno === "mediodia" ? (turno === "t1" || turno === "t2")
-      : filtroTurno === turno;
+    let matchTurno;
+    if (filtroTurno === "custom" && turnoPersonalizado) {
+      const [hD, mD] = turnoPersonalizado.desde.split(":").map(Number);
+      const [hH, mH] = turnoPersonalizado.hasta.split(":").map(Number);
+      const [hR, mR] = (r.hora || "00:00").split(":").map(Number);
+      const minsDesde = hD * 60 + mD;
+      const minsHasta = hH * 60 + mH;
+      const minsR = hR * 60 + mR;
+      matchTurno = minsR >= minsDesde && minsR <= minsHasta;
+    } else {
+      matchTurno = filtroTurno === "todos" ? true
+        : filtroTurno === "mediodia" ? (turno === "t1" || turno === "t2")
+        : filtroTurno === turno;
+    }
     const hideCancelada = filtroTurno !== "todos" && r.estado === "cancelada";
     return matchFecha && matchEstado && matchBusqueda && matchTurno && !hideCancelada;
   });
@@ -748,6 +763,21 @@ ${textoPegado}`
                     {t.label}
                   </button>
                 ))}
+                {/* Botón TURNO? personalizado */}
+                <button
+                  onClick={() => setTurnoModalAbierto(true)}
+                  style={{
+                    padding: "8px 14px", fontSize: 11, cursor: "pointer",
+                    fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase",
+                    border: `1px solid ${filtroTurno === "custom" ? "#1b5e20" : "#81c784"}`,
+                    background: filtroTurno === "custom" ? "#1b5e20" : "none",
+                    color: filtroTurno === "custom" ? "#fff" : "#2e7d32",
+                    borderRadius: 4, transition: "all 0.2s"
+                  }}>
+                  {filtroTurno === "custom" && turnoPersonalizado
+                    ? `${turnoPersonalizado.desde} – ${turnoPersonalizado.hasta}`
+                    : "Turno?"}
+                </button>
               </div>
             </div>
 
@@ -1390,10 +1420,18 @@ ${textoPegado}`
         const VW = SVG_COLS * U + PAD * 2;
         const VH = SVG_ROWS * U + PAD * 2;
 
-        const planoTurno = (filtroTurno === "todos" || filtroTurno === "mediodia") ? "t1" : filtroTurno;
+        const planoTurno = filtroTurno === "custom" ? "custom" : (filtroTurno === "todos" || filtroTurno === "mediodia") ? "t1" : filtroTurno;
         const reservasTurno = reservas.filter(r => {
           if (!filtroFecha || r.fecha !== filtroFecha) return false;
-          return getTurno(r.hora) === planoTurno && r.estado !== "cancelada";
+          if (r.estado === "cancelada") return false;
+          if (planoTurno === "custom" && turnoPersonalizado) {
+            const [hD, mD] = turnoPersonalizado.desde.split(":").map(Number);
+            const [hH, mH] = turnoPersonalizado.hasta.split(":").map(Number);
+            const [hR, mR] = (r.hora || "00:00").split(":").map(Number);
+            const minsR = hR * 60 + mR;
+            return minsR >= hD * 60 + mD && minsR <= hH * 60 + mH;
+          }
+          return getTurno(r.hora) === planoTurno;
         });
 
         const mesaReserva = {};
@@ -1513,13 +1551,19 @@ ${textoPegado}`
                 {labelMesa}
               </text>
               {res && (
-                <text x={mx + mw/2} y={my + mh * (isMerged ? 0.5 : 0.6)} textAnchor="middle"
+                <text x={mx + mw/2} y={my + mh * (isMerged ? 0.38 : 0.48)} textAnchor="middle"
+                  style={{ fontFamily: "'Jost', sans-serif", fontSize: 7.5, fontWeight: 600, fill: textC, opacity: 0.85, letterSpacing: 0.5 }}>
+                  {res.hora}
+                </text>
+              )}
+              {res && (
+                <text x={mx + mw/2} y={my + mh * (isMerged ? 0.58 : 0.68)} textAnchor="middle"
                   style={{ fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 500, fill: textC, letterSpacing: 0.3 }}>
                   {res.nombre.split(" ")[0]}
                 </text>
               )}
               {res && (
-                <text x={mx + mw/2} y={my + mh * (isMerged ? 0.76 : 0.84)} textAnchor="middle"
+                <text x={mx + mw/2} y={my + mh * (isMerged ? 0.80 : 0.88)} textAnchor="middle"
                   style={{ fontFamily: "'Jost', sans-serif", fontSize: 7.5, fill: textC, opacity: 0.75, letterSpacing: 0.5 }}>
                   {res.personas}p
                 </text>
@@ -1557,6 +1601,18 @@ ${textoPegado}`
                     {t.label}
                   </button>
                 ))}
+                <button
+                  onClick={() => setTurnoModalAbierto(true)}
+                  style={{ padding: "8px 14px", fontSize: 11, cursor: "pointer", fontFamily: "'Jost', sans-serif",
+                    letterSpacing: 1, textTransform: "uppercase",
+                    border: `1px solid ${planoTurno === "custom" ? "#1b5e20" : "#81c784"}`,
+                    background: planoTurno === "custom" ? "#1b5e20" : "none",
+                    color: planoTurno === "custom" ? "#fff" : "#2e7d32",
+                    borderRadius: 4, transition: "all 0.2s" }}>
+                  {planoTurno === "custom" && turnoPersonalizado
+                    ? `${turnoPersonalizado.desde} – ${turnoPersonalizado.hasta}`
+                    : "Turno?"}
+                </button>
               </div>
             </div>
 
@@ -1599,6 +1655,51 @@ ${textoPegado}`
         );
       })()}
 
+
+      {/* ── MODAL TURNO PERSONALIZADO ── */}
+      {turnoModalAbierto && (
+        <div className="overlay" style={{ zIndex: 60 }} onClick={e => e.target === e.currentTarget && setTurnoModalAbierto(false)}>
+          <div className="modal" style={{ maxWidth: 360, padding: "36px 32px", textAlign: "center" }}>
+            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", marginBottom: 8 }}>Filtro personalizado</p>
+            <h2 style={{ fontFamily: "'Lora', serif", fontSize: 24, fontWeight: 700, color: "#1a1a1a", marginBottom: 28 }}>¿Qué turno?</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 28 }}>
+              <div>
+                <label style={{ marginBottom: 8 }}>Desde</label>
+                <select
+                  className="input-field"
+                  value={turnoDesde}
+                  onChange={e => setTurnoDesde(e.target.value)}
+                >
+                  {HORARIOS.map(h => <option key={h} value={h}>{h}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ marginBottom: 8 }}>Hasta</label>
+                <select
+                  className="input-field"
+                  value={turnoHasta}
+                  onChange={e => setTurnoHasta(e.target.value)}
+                >
+                  {HORARIOS.map(h => <option key={h} value={h}>{h}</option>)}
+                </select>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button className="btn-outline" onClick={() => setTurnoModalAbierto(false)}>Cancelar</button>
+              <button
+                className="btn-gold"
+                onClick={() => {
+                  setTurnoPersonalizado({ desde: turnoDesde, hasta: turnoHasta });
+                  setFiltroTurno("custom");
+                  setTurnoModalAbierto(false);
+                }}
+              >
+                Ver reservas
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── PLANO ESTADO MODAL ── */}
       {planoModal && (
