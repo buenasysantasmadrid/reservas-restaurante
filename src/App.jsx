@@ -1370,7 +1370,7 @@ ${textoPegado}`
           { id: 17, cx: 4.5, cy: 3.9, w: 0.8, h: 0.8 },
           { id: 16, cx: 5.8, cy: 3.9, w: 0.8, h: 0.8 },
           // Fila 4: 11, 10, 8, 7, 6
-          { id: 11, cx: 1,    cy: 3.4, w: 0.8, h: 0.8 },
+          { id: 11, cx: 0.5,  cy: 4.8, w: 0.8, h: 0.8 },
           { id: 10, cx: 1.6,  cy: 4.8, w: 0.8, h: 0.8 },
           { id: 8,  cx: 3.2,  cy: 4.8, w: 0.8, h: 0.8 },
           { id: 7,  cx: 4.5,  cy: 4.8, w: 0.8, h: 0.8 },
@@ -1404,18 +1404,18 @@ ${textoPegado}`
         // primary = first element, rest = secondaries (hidden)
         const MERGE_GROUPS = [
           // 4-mesa groups
-          [1, 2, 8, 18],
-          [3, 4, 17, 7],
-          [5, 15, 16, 6],
-          { ids: [12, 13, 11, 10], clampToFirst: true },
+          { ids: [8, 2, 18, 1], clampToFirst: true, clampHeight: 3.2, anchorBottom: true },
+          { ids: [7, 17, 4, 3], clampToFirst: true, clampHeight: 3.2, anchorBottom: true },
+          { ids: [6, 16, 15, 5], clampToFirst: true, clampHeight: 3.2, anchorBottom: true },
+          { ids: [12, 13, 11, 10], clampToFirst: true, clampHeight: 3.2 },
           // 3-mesa groups
-          [5, 15, 16],
-          [6, 16, 15],
-          [3, 4, 17],
-          [7, 17, 4, 3],
-          [1, 2, 18],
-          [8, 18, 2],
-          { ids: [12, 13, 11], clampToFirst: true },
+          { ids: [5, 15, 16], clampToFirst: true, clampHeight: 2.1 },
+          { ids: [6, 16, 15], clampToFirst: true, clampHeight: 2.1, anchorBottom: true },
+          { ids: [3, 4, 17], clampToFirst: true, clampHeight: 2.1 },
+          { ids: [7, 17, 4], clampToFirst: true, clampHeight: 2.1, anchorBottom: true },
+          { ids: [1, 2, 18], clampToFirst: true, clampHeight: 2.1 },
+          { ids: [8, 18, 2], clampToFirst: true, clampHeight: 2.1, anchorBottom: true },
+          { ids: [12, 13, 11], clampToFirst: true, clampHeight: 2.1 },
           // 2-mesa groups
           [1, 2], [3, 4], [5, 15], [12, 13],
           [8, 18], [7, 17], [6, 16],
@@ -1433,7 +1433,7 @@ ${textoPegado}`
             const ids = Array.isArray(grp) ? grp : grp.ids;
             const unique = [...new Set(ids)];
             if (unique.every(m => ms.has(m))) {
-              reservaMergeGroup[r.id] = Array.isArray(grp) ? unique : { ids: unique, clampToFirst: grp.clampToFirst };
+              reservaMergeGroup[r.id] = Array.isArray(grp) ? unique : { ids: unique, clampToFirst: grp.clampToFirst, clampHeight: grp.clampHeight, anchorBottom: grp.anchorBottom };
               break;
             }
           }
@@ -1463,6 +1463,8 @@ ${textoPegado}`
           const mergeGroup = res ? reservaMergeGroup[res.id] : null;
           const mergeIds = mergeGroup ? (Array.isArray(mergeGroup) ? mergeGroup : mergeGroup.ids) : null;
           const clampToFirst = mergeGroup && !Array.isArray(mergeGroup) && mergeGroup.clampToFirst;
+          const clampHeight = mergeGroup && !Array.isArray(mergeGroup) ? mergeGroup.clampHeight : null;
+          const anchorBottom = mergeGroup && !Array.isArray(mergeGroup) && mergeGroup.anchorBottom;
           const isMerged = mergeIds && mergeIds[0] === id;
 
           let mw = w * U;
@@ -1485,20 +1487,22 @@ ${textoPegado}`
               mh = y2 - my;
             });
             if (clampToFirst) {
-              // Restore x/width; only extend height for mesas in the same column (cx matches first)
               mx = origMx; mw = origMw;
               mh = origMh;
               mergeIds.slice(1).forEach(secId => {
                 const sec = MESAS_POS.find(p => p.id === secId);
                 if (!sec) return;
-                if (Math.abs(sec.cx - cx) < 0.2) {
-                  // same column — extend height
+                if (Math.abs(sec.cx - cx) < 0.7) {
                   const sy = PAD + sec.cy * U - (sec.h * U) / 2;
                   const y2 = Math.max(my + mh, sy + sec.h * U);
                   my = Math.min(my, sy);
                   mh = y2 - my;
                 }
               });
+              // Apply height cap if specified
+              if (clampHeight) mh = Math.min(mh, clampHeight * U);
+              // Anchor to primary mesa's bottom edge (draw upward)
+              if (anchorBottom) my = (PAD + cy * U + (h * U) / 2) - mh;
             }
           }
 
