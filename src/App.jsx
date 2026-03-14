@@ -302,6 +302,131 @@ export default function App() {
     setReservas(rs => rs.map(r => r.id === id ? { ...r, estado } : r));
   };
 
+  const imprimirReservas = () => {
+    const fechaLabel = filtroFecha
+      ? new Date(filtroFecha + "T12:00").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+      : "Todas las fechas";
+
+    const turnoLabel = filtroTurno === "todos" ? "Todos los turnos"
+      : filtroTurno === "t1" ? "1º Turno Mediodía"
+      : filtroTurno === "t2" ? "2º Turno Mediodía"
+      : filtroTurno === "mediodia" ? "Mediodía completo"
+      : filtroTurno === "noche" ? "Noche"
+      : filtroTurno === "custom" && turnoPersonalizado ? `Turno ${turnoPersonalizado.desde} – ${turnoPersonalizado.hasta}`
+      : "";
+
+    const estadoLabel = filtroEstado === "todas" ? "" : `· Solo: ${filtroEstado}`;
+
+    const sorted = [...reservasFiltradas].sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
+
+    const grupos = [];
+    sorted.forEach(r => {
+      const turno = getTurno(r.hora);
+      const turnoKey = r.fecha + "_" + turno;
+      if (!grupos.length || grupos[grupos.length - 1].turnoKey !== turnoKey) {
+        grupos.push({ turnoKey, turno, fecha: r.fecha, reservas: [] });
+      }
+      grupos[grupos.length - 1].reservas.push(r);
+    });
+
+    const TURNO_LABEL_MAP = { t1: "1º Turno Mediodía", t2: "2º Turno Mediodía", noche: "Noche" };
+
+    const rows = grupos.map(grupo => {
+      const turnoHead = `<tr style="background:#e8f5e9">
+        <td colspan="7" style="padding:10px 16px;font-family:'Georgia',serif;font-size:12px;font-weight:700;color:#1b5e20;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid #a5d6a7">
+          ${!filtroFecha ? `${new Date(grupo.fecha + "T12:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" })} · ` : ""}${TURNO_LABEL_MAP[grupo.turno] || grupo.turno}
+        </td>
+      </tr>`;
+
+      const reservaRows = grupo.reservas.map(r => {
+        const mesas = r.mesas && r.mesas.length > 0 ? r.mesas.map(getMesaNombre).join("+") : r.mesa ? getMesaNombre(r.mesa) : "—";
+        const estadoBadge = {
+          confirmada: "background:#e8f5e9;color:#1b5e20;border:1px solid #81c784",
+          tomada:     "background:#fff8e1;color:#e65100;border:1px solid #ffcc02",
+          cancelada:  "background:#ffebee;color:#c62828;border:1px solid #ef9a9a",
+          llego:      "background:#f3e5f5;color:#6a1b9a;border:1px solid #ce93d8",
+        }[r.estado] || "";
+        return `<tr style="border-bottom:1px solid #e8f0e8">
+          <td style="padding:10px 16px;font-family:'Georgia',serif;font-size:16px">${r.nombre}</td>
+          <td style="padding:10px 16px;font-family:sans-serif;font-size:12px;color:#555;white-space:nowrap">${r.telefono || "—"}</td>
+          <td style="padding:10px 16px;font-family:'Georgia',serif;font-size:18px;color:#1b5e20;font-weight:700;white-space:nowrap">${r.hora}</td>
+          <td style="padding:10px 16px;font-family:sans-serif;font-size:14px;text-align:center;font-weight:600">${r.personas}</td>
+          <td style="padding:10px 16px;font-family:sans-serif;font-size:13px;color:#2e7d32;white-space:nowrap">${mesas}</td>
+          <td style="padding:10px 16px;font-family:sans-serif;font-size:12px;color:#555;max-width:200px">${r.notas || ""}</td>
+          <td style="padding:10px 12px;white-space:nowrap"><span style="display:inline-block;padding:3px 10px;border-radius:3px;font-size:10px;letter-spacing:1px;text-transform:uppercase;${estadoBadge}">${r.estado}</span></td>
+        </tr>`;
+      }).join("");
+
+      const totalPax = grupo.reservas.filter(r => r.estado !== "cancelada").reduce((s, r) => s + (r.personas || 0), 0);
+      const totalRow = `<tr style="background:#f4fbf4">
+        <td colspan="3" style="padding:7px 16px;font-family:sans-serif;font-size:10px;color:#4a7a4a;text-transform:uppercase;letter-spacing:1px">Total comensales</td>
+        <td style="padding:7px 16px;font-family:'Georgia',serif;font-size:18px;color:#2e7d32;font-weight:700;text-align:center">${totalPax}</td>
+        <td colspan="3"></td>
+      </tr>`;
+
+      return turnoHead + reservaRows + totalRow;
+    }).join(`<tr><td colspan="7" style="padding:10px 0;border:none;background:#fff"></td></tr>`);
+
+    const totalGeneral = sorted.filter(r => r.estado !== "cancelada").reduce((s, r) => s + (r.personas || 0), 0);
+
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Reservas · Buenas y Santas</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,700;1,400&display=swap" rel="stylesheet"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; color: #1a1a1a; background: #fff; padding: 32px 40px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { padding: 10px 16px; text-align: left; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #4a7a4a; font-weight: 600; border-bottom: 2px solid #c8e6c9; background: #fff; }
+    @media print {
+      body { padding: 12px 16px; }
+      @page { margin: 14mm 10mm; }
+    }
+  </style>
+</head>
+<body>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;border-bottom:2px solid #2e7d32;padding-bottom:14px">
+    <div>
+      <div style="font-family:'Lora',serif;font-size:24px;font-weight:700;font-style:italic;color:#1a1a1a">Buenas <span style="color:#2e7d32">y</span> Santas</div>
+      <div style="font-size:9px;letter-spacing:3px;color:#5a8a5a;text-transform:uppercase;margin-top:3px">nueva cocina casera · gestión de reservas</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:17px;font-weight:700;color:#1a1a1a;text-transform:capitalize">${fechaLabel}</div>
+      <div style="font-size:12px;color:#2e7d32;margin-top:3px;font-weight:600">${turnoLabel} ${estadoLabel}</div>
+      <div style="font-size:10px;color:#999;margin-top:3px">Impreso el ${new Date().toLocaleDateString("es-ES")} a las ${new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</div>
+    </div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Cliente</th>
+        <th>Teléfono</th>
+        <th>Hora</th>
+        <th style="text-align:center">Pax</th>
+        <th>Mesa</th>
+        <th>Notas</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows || '<tr><td colspan="7" style="padding:24px;text-align:center;color:#888;font-size:13px">No hay reservas con estos filtros</td></tr>'}
+    </tbody>
+  </table>
+  <div style="margin-top:20px;padding-top:12px;border-top:1px solid #c8e6c9;display:flex;justify-content:flex-end;align-items:center;gap:14px">
+    <span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#4a7a4a">Total comensales (sin canceladas)</span>
+    <span style="font-family:'Georgia',serif;font-size:32px;color:#2e7d32;font-weight:700;line-height:1">${totalGeneral}</span>
+  </div>
+  <script>window.onload = () => { window.print(); }<\/script>
+</body>
+</html>`;
+
+    const w = window.open("", "_blank");
+    w.document.write(html);
+    w.document.close();
+  };
+
   // Al elegir un cliente existente, autocompleta sus datos
   const seleccionarNombre = (nombre) => {
     if (!nombre) { setForm(f => ({ ...f, nombre: "" })); return; }
@@ -726,6 +851,7 @@ ${textoPegado}`
               </div>
               <div className="header-actions" style={{ display: "flex", gap: 12 }}>
                 <button className="btn-outline" style={{ borderColor: "#81c784", color: "#2e7d32", fontSize: 11 }} onClick={archivarReservasPasadas}>📦 Archivar pasadas</button>
+                <button className="btn-outline" style={{ borderColor: "#81c784", color: "#2e7d32", fontSize: 11 }} onClick={imprimirReservas}>🖨 Imprimir</button>
                 <button className="btn-gold" onClick={abrirNueva}>+ Nueva reserva</button>
               </div>
             </div>
