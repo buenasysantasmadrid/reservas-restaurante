@@ -42,9 +42,9 @@ Error generating stack: `+o.message+`
           ${i?"":`${new Date(O.fecha+"T12:00").toLocaleDateString("es-ES",{day:"2-digit",month:"short"})} · `}${L[O.turno]||O.turno}
         </td>
       </tr>`,b=O.reservas.map(H=>{const B=H.mesas&&H.mesas.length>0?H.mesas.map(Le).join("+"):H.mesa?Le(H.mesa):"—";return`<tr>
-          <td style="font-weight:600">${H.nombre}</td>
+          <td class="nombre">${H.nombre}</td>
           <td>${H.telefono||"—"}</td>
-          <td style="font-weight:700">${H.hora}</td>
+          <td class="hora">${H.hora}</td>
           <td style="text-align:center">${H.personas}</td>
           <td>${B}</td>
           <td style="color:#333">${H.notas||""}</td>
@@ -53,29 +53,33 @@ Error generating stack: `+o.message+`
 <head>
   <meta charset="UTF-8"/>
   <title></title>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,600;1,600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet"/>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; color: #000; background: #fff; padding: 14px 20px; }
-    .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 10px; }
-    .header-left { font-size: 20px; font-weight: 700; font-style: italic; letter-spacing: 0.5px; }
+    body { font-family: 'Jost', Arial, sans-serif; color: #000; background: #fff; padding: 18px 24px; }
+    .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.5px solid #000; padding-bottom: 10px; margin-bottom: 12px; }
+    .header-logo { font-family: 'Lora', Georgia, serif; font-size: 22px; font-weight: 600; font-style: italic; letter-spacing: 0.5px; }
+    .header-logo span { font-style: normal; }
     .header-right { text-align: right; }
-    .header-fecha { font-size: 13px; font-weight: 700; text-transform: capitalize; }
-    .header-turno { font-size: 10px; color: #444; margin-top: 2px; letter-spacing: 1px; text-transform: uppercase; }
+    .header-fecha { font-family: 'Jost', Arial, sans-serif; font-size: 12px; font-weight: 500; text-transform: capitalize; letter-spacing: 0.5px; }
+    .header-turno { font-family: 'Jost', Arial, sans-serif; font-size: 9px; font-weight: 300; color: #555; margin-top: 2px; letter-spacing: 1.5px; text-transform: uppercase; }
     table { width: 100%; border-collapse: collapse; }
-    th { padding: 3px 7px; text-align: left; font-size: 8px; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; border-bottom: 1px solid #000; }
-    td { padding: 2px 7px; font-size: 10px; border-bottom: 1px solid #e0e0e0; line-height: 1.35; }
-    .turno-head td { font-size: 8px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 7px 2px; border-top: 1px solid #bbb; border-bottom: 1px solid #bbb; background: #f0f0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .gap td { border: none; padding: 1px 0; }
+    th { padding: 4px 8px; text-align: left; font-family: 'Jost', Arial, sans-serif; font-size: 8px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: #333; border-bottom: 1px solid #000; }
+    td { padding: 3px 8px; font-family: 'Jost', Arial, sans-serif; font-size: 10px; color: #000; border-bottom: 1px solid #ebebeb; line-height: 1.4; }
+    td.nombre { font-weight: 500; font-size: 10.5px; }
+    td.hora { font-family: 'Lora', Georgia, serif; font-size: 12px; font-weight: 600; }
+    .turno-head td { font-family: 'Jost', Arial, sans-serif; font-size: 8px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: #333; padding: 5px 8px 3px; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; background: #f5f5f5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .gap td { border: none; padding: 2px 0; background: #fff !important; }
     @media print {
-      body { padding: 10px 16px; }
-      @page { size: A4 landscape; margin: 8mm 10mm; }
+      body { padding: 14px 20px; }
+      @page { size: A4 landscape; margin: 10mm 12mm; }
       html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
   </style>
 </head>
 <body>
   <div class="header">
-    <div class="header-left">Buenas y Santas</div>
+    <div class="header-logo">Buenas <span>y</span> Santas</div>
     <div class="header-right">
       <div class="header-fecha">${c}</div>
       ${y?`<div class="header-turno">${y}</div>`:""}
@@ -85,7 +89,7 @@ Error generating stack: `+o.message+`
     <thead>
       <tr>
         <th style="width:22%">Cliente</th>
-        <th style="width:14%">Teléfono</th>
+        <th style="width:13%">Teléfono</th>
         <th style="width:7%">Hora</th>
         <th style="width:5%;text-align:center">Pax</th>
         <th style="width:10%">Mesa</th>
@@ -93,7 +97,7 @@ Error generating stack: `+o.message+`
       </tr>
     </thead>
     <tbody>
-      ${T||'<tr><td colspan="6" style="padding:8px;text-align:center;color:#666;font-size:10px">No hay reservas</td></tr>'}
+      ${T||'<tr><td colspan="6" style="padding:10px;text-align:center;color:#888;font-size:10px">No hay reservas</td></tr>'}
     </tbody>
   </table>
   <script>window.onload = () => { window.print(); }<\/script>
