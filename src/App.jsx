@@ -81,6 +81,21 @@ export default function App() {
     noche: { bg: "#d0e8d0", label: "Noche" },
   };
 
+  const mesasParaPax = (pax) => {
+    if (pax <= 2) return 1;
+    if (pax <= 5) return 2;
+    if (pax <= 7) return 3;
+    return 4;
+  };
+
+  const getTurnoStatus = (fecha, turno) => {
+    const rs = reservas.filter(r => r.fecha === fecha && getTurno(r.hora) === turno && r.estado !== "cancelada");
+    const totalMesas = rs.reduce((sum, r) => sum + mesasParaPax(r.personas || 1), 0);
+    if (totalMesas > 14) return { status: "completo", mesas: totalMesas, bg: "#ffebee", labelBg: "#ffcdd2", labelColor: "#b71c1c" };
+    if (totalMesas > 12) return { status: "cuidado", mesas: totalMesas, bg: "#fff3e0", labelBg: "#ffe0b2", labelColor: "#e65100" };
+    return { status: "ok", mesas: totalMesas, bg: null, labelBg: null, labelColor: null };
+  };
+
   const MESA_BLOCKS = [
     [3, 4, 7, 17],
     [10, 11, 12, 13],
@@ -955,14 +970,41 @@ Buenas y Santas`;
                     grupos.forEach((grupo, gi) => {
                       const { turno, fecha, turnoKey } = grupo;
                       const color = TURNO_COLORES[turno];
+                      const tStatus = getTurnoStatus(fecha, turno);
+                      const rowBg = tStatus.status === "completo" ? "#ffebee" : tStatus.status === "cuidado" ? "#fff3e0" : color.bg;
                       // Separator between groups (not before first)
                       if (gi > 0) {
                         rows.push(<tr key={"sep_"+gi}><td colSpan={10} style={{ padding: 0, height: 28, background: "transparent", border: "none" }} /></tr>);
                       }
+                      // Turno header row with label + badge
+                      rows.push(
+                        <tr key={"turnohead_"+turnoKey}>
+                          <td colSpan={10} style={{ padding: "6px 20px 4px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "#4a7a4a", fontWeight: 600 }}>
+                                {color.label}
+                              </span>
+                              <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, color: "#6a9a6a" }}>
+                                · {tStatus.mesas} mesa{tStatus.mesas !== 1 ? "s" : ""}
+                              </span>
+                              {tStatus.status === "cuidado" && (
+                                <span style={{ background: "#e65100", color: "#fff", fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", padding: "2px 10px", borderRadius: 3 }}>
+                                  ⚠ CUIDADO
+                                </span>
+                              )}
+                              {tStatus.status === "completo" && (
+                                <span style={{ background: "#b71c1c", color: "#fff", fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", padding: "2px 10px", borderRadius: 3 }}>
+                                  🔴 COMPLETO
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
                       // Rows for this group
                       grupo.reservas.forEach((r, idx) => {
                       rows.push(
-                    <tr key={r.id} className="row-hover" style={{ borderBottom: "1px solid #c8e6c9", background: color.bg, opacity: r.estado === "llego" ? 0.22 : 1 }}>
+                    <tr key={r.id} className="row-hover" style={{ borderBottom: "1px solid #c8e6c9", background: rowBg, opacity: r.estado === "llego" ? 0.22 : 1 }}>
                       <td style={{ padding: "16px 20px" }}>
                         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17 }}>{r.nombre}</p>
                         <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a", marginTop: 2 }}>{(() => {
@@ -1055,7 +1097,7 @@ Buenas y Santas`;
                         const mesasLibres = MESAS.filter(m => !todasOcupadas.includes(m));
                         rows.push(
                           <tr key={"footer_"+turnoKey}>
-                            <td colSpan={10} style={{ padding: "8px 20px 12px", background: color.bg, borderBottom: "1px solid #c8e6c9" }}>
+                            <td colSpan={10} style={{ padding: "8px 20px 12px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
                               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                                 <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 1, color: "#4a7a4a", textTransform: "uppercase" }}>
                                   Mesas libres: {mesasLibres.length === 0 ? <span style={{ color: "#c62828" }}>ninguna</span> : mesasLibres.map(m => (
@@ -1107,13 +1149,18 @@ Buenas y Santas`;
                 });
                 return grupos.map((grupo, gi) => {
                   const color = TURNO_COLORES[grupo.turno];
+                  const tStatus = getTurnoStatus(grupo.fecha, grupo.turno);
+                  const rowBg = tStatus.status === "completo" ? "#ffebee" : tStatus.status === "cuidado" ? "#fff3e0" : color.bg;
                   return (
                     <div key={grupo.turnoKey} style={{ marginBottom: 20 }}>
-                      <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "#4a7a4a", padding: "10px 4px 6px", fontWeight: 600 }}>
+                      <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "#4a7a4a", padding: "10px 4px 6px", fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
                         {color.label}
+                        <span style={{ fontWeight: 400, color: "#6a9a6a" }}>· {tStatus.mesas} mesas</span>
+                        {tStatus.status === "cuidado" && <span style={{ background: "#e65100", color: "#fff", fontSize: 10, fontWeight: 700, letterSpacing: 1, padding: "1px 8px", borderRadius: 3 }}>⚠ CUIDADO</span>}
+                        {tStatus.status === "completo" && <span style={{ background: "#b71c1c", color: "#fff", fontSize: 10, fontWeight: 700, letterSpacing: 1, padding: "1px 8px", borderRadius: 3 }}>🔴 COMPLETO</span>}
                       </div>
                       {grupo.reservas.map(r => (
-                        <div key={r.id} style={{ background: color.bg, border: "1px solid #c8e6c9", borderRadius: 8, padding: 16, marginBottom: 10, opacity: r.estado === "llego" ? 0.22 : 1 }}>
+                        <div key={r.id} style={{ background: rowBg, border: "1px solid #c8e6c9", borderRadius: 8, padding: 16, marginBottom: 10, opacity: r.estado === "llego" ? 0.22 : 1 }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                             <div>
                               <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, color: "#1a2e1a" }}>{r.nombre}</p>
@@ -1181,7 +1228,7 @@ Buenas y Santas`;
                         const todasOcupadas = reservas.filter(x => x.fecha === grupo.fecha && getTurno(x.hora) === grupo.turno && x.estado !== "cancelada").flatMap(x => x.mesas && x.mesas.length > 0 ? x.mesas : x.mesa ? [x.mesa] : []);
                         const libres = MESAS.filter(m => !todasOcupadas.includes(m));
                         return (
-                          <div style={{ background: color.bg, border: "1px solid #c8e6c9", borderRadius: 8, padding: "10px 14px", marginBottom: 4 }}>
+                          <div style={{ background: rowBg, border: "1px solid #c8e6c9", borderRadius: 8, padding: "10px 14px", marginBottom: 4 }}>
                             <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
                               Mesas libres: {libres.length === 0 ? <span style={{ color: "#c62828" }}>ninguna</span> : libres.map(m => (
                                 <span key={m} style={{ display: "inline-block", background: "#fff", border: "1px solid #a5d6a7", borderRadius: 4, padding: "1px 7px", marginRight: 4, fontSize: 11, color: "#2e7d32" }}>{getMesaNombre(m)}</span>
@@ -1451,6 +1498,25 @@ Buenas y Santas`;
                   {HORARIOS.map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
               </div>
+              {/* Aviso de ocupación del turno */}
+              {form.fecha && form.hora && (() => {
+                const turno = getTurno(form.hora);
+                const st = getTurnoStatus(form.fecha, turno);
+                if (st.status === "ok") return null;
+                return (
+                  <div style={{ gridColumn: "1/-1", padding: "10px 14px", borderRadius: 6, background: st.status === "completo" ? "#ffebee" : "#fff3e0", border: `1px solid ${st.status === "completo" ? "#ef9a9a" : "#ffcc80"}`, display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 18 }}>{st.status === "completo" ? "🔴" : "⚠️"}</span>
+                    <div>
+                      <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, fontWeight: 700, color: st.status === "completo" ? "#b71c1c" : "#e65100", textTransform: "uppercase", letterSpacing: 1 }}>
+                        {st.status === "completo" ? "COMPLETO" : "CUIDADO"}
+                      </p>
+                      <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#555", marginTop: 2 }}>
+                        Este turno tiene {st.mesas} mesas ocupadas {st.status === "completo" ? "(más de 14)" : "(más de 12)"}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
               <div>
                 <label>Nº de personas *</label>
                 <input
