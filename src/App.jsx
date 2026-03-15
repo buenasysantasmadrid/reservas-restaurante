@@ -315,7 +315,7 @@ export default function App() {
       : filtroTurno === "custom" && turnoPersonalizado ? `Turno ${turnoPersonalizado.desde} – ${turnoPersonalizado.hasta}`
       : "";
 
-    const estadoLabel = filtroEstado === "todas" ? "" : `· Solo: ${filtroEstado}`;
+    const estadoLabel = "";
 
     const sorted = [...reservasFiltradas].sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
 
@@ -340,12 +340,6 @@ export default function App() {
 
       const reservaRows = grupo.reservas.map(r => {
         const mesas = r.mesas && r.mesas.length > 0 ? r.mesas.map(getMesaNombre).join("+") : r.mesa ? getMesaNombre(r.mesa) : "—";
-        const estadoBadge = {
-          confirmada: "background:#e8f5e9;color:#1b5e20;border:1px solid #81c784",
-          tomada:     "background:#fff8e1;color:#e65100;border:1px solid #ffcc02",
-          cancelada:  "background:#ffebee;color:#c62828;border:1px solid #ef9a9a",
-          llego:      "background:#f3e5f5;color:#6a1b9a;border:1px solid #ce93d8",
-        }[r.estado] || "";
         return `<tr style="border-bottom:1px solid #e8f0e8">
           <td style="padding:10px 16px;font-family:'Georgia',serif;font-size:16px">${r.nombre}</td>
           <td style="padding:10px 16px;font-family:sans-serif;font-size:12px;color:#555;white-space:nowrap">${r.telefono || "—"}</td>
@@ -353,21 +347,11 @@ export default function App() {
           <td style="padding:10px 16px;font-family:sans-serif;font-size:14px;text-align:center;font-weight:600">${r.personas}</td>
           <td style="padding:10px 16px;font-family:sans-serif;font-size:13px;color:#2e7d32;white-space:nowrap">${mesas}</td>
           <td style="padding:10px 16px;font-family:sans-serif;font-size:12px;color:#555;max-width:200px">${r.notas || ""}</td>
-          <td style="padding:10px 12px;white-space:nowrap"><span style="display:inline-block;padding:3px 10px;border-radius:3px;font-size:10px;letter-spacing:1px;text-transform:uppercase;${estadoBadge}">${r.estado}</span></td>
         </tr>`;
       }).join("");
 
-      const totalPax = grupo.reservas.filter(r => r.estado !== "cancelada").reduce((s, r) => s + (r.personas || 0), 0);
-      const totalRow = `<tr style="background:#f4fbf4">
-        <td colspan="3" style="padding:7px 16px;font-family:sans-serif;font-size:10px;color:#4a7a4a;text-transform:uppercase;letter-spacing:1px">Total comensales</td>
-        <td style="padding:7px 16px;font-family:'Georgia',serif;font-size:18px;color:#2e7d32;font-weight:700;text-align:center">${totalPax}</td>
-        <td colspan="3"></td>
-      </tr>`;
-
-      return turnoHead + reservaRows + totalRow;
-    }).join(`<tr><td colspan="7" style="padding:10px 0;border:none;background:#fff"></td></tr>`);
-
-    const totalGeneral = sorted.filter(r => r.estado !== "cancelada").reduce((s, r) => s + (r.personas || 0), 0);
+      return turnoHead + reservaRows;
+    }).join(`<tr><td colspan="6" style="padding:10px 0;border:none;background:#fff"></td></tr>`);
 
     const html = `<!DOCTYPE html>
 <html lang="es">
@@ -382,20 +366,16 @@ export default function App() {
     th { padding: 10px 16px; text-align: left; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #4a7a4a; font-weight: 600; border-bottom: 2px solid #c8e6c9; background: #fff; }
     @media print {
       body { padding: 12px 16px; }
-      @page { margin: 14mm 10mm; }
+      @page { margin: 14mm 10mm; size: landscape; }
     }
   </style>
 </head>
 <body>
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;border-bottom:2px solid #2e7d32;padding-bottom:14px">
-    <div>
-      <div style="font-family:'Lora',serif;font-size:24px;font-weight:700;font-style:italic;color:#1a1a1a">Buenas <span style="color:#2e7d32">y</span> Santas</div>
-      <div style="font-size:9px;letter-spacing:3px;color:#5a8a5a;text-transform:uppercase;margin-top:3px">nueva cocina casera · gestión de reservas</div>
-    </div>
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;border-bottom:2px solid #2e7d32;padding-bottom:14px">
+    <div style="font-family:'Lora',serif;font-size:24px;font-weight:700;font-style:italic;color:#1a1a1a">Buenas <span style="color:#2e7d32">y</span> Santas</div>
     <div style="text-align:right">
       <div style="font-size:17px;font-weight:700;color:#1a1a1a;text-transform:capitalize">${fechaLabel}</div>
-      <div style="font-size:12px;color:#2e7d32;margin-top:3px;font-weight:600">${turnoLabel} ${estadoLabel}</div>
-      <div style="font-size:10px;color:#999;margin-top:3px">Impreso el ${new Date().toLocaleDateString("es-ES")} a las ${new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</div>
+      <div style="font-size:12px;color:#2e7d32;margin-top:3px;font-weight:600">${turnoLabel}</div>
     </div>
   </div>
   <table>
@@ -407,17 +387,12 @@ export default function App() {
         <th style="text-align:center">Pax</th>
         <th>Mesa</th>
         <th>Notas</th>
-        <th>Estado</th>
       </tr>
     </thead>
     <tbody>
-      ${rows || '<tr><td colspan="7" style="padding:24px;text-align:center;color:#888;font-size:13px">No hay reservas con estos filtros</td></tr>'}
+      ${rows || '<tr><td colspan="6" style="padding:24px;text-align:center;color:#888;font-size:13px">No hay reservas con estos filtros</td></tr>'}
     </tbody>
   </table>
-  <div style="margin-top:20px;padding-top:12px;border-top:1px solid #c8e6c9;display:flex;justify-content:flex-end;align-items:center;gap:14px">
-    <span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#4a7a4a">Total comensales (sin canceladas)</span>
-    <span style="font-family:'Georgia',serif;font-size:32px;color:#2e7d32;font-weight:700;line-height:1">${totalGeneral}</span>
-  </div>
   <script>window.onload = () => { window.print(); }<\/script>
 </body>
 </html>`;
