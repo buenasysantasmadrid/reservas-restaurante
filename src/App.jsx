@@ -91,8 +91,8 @@ export default function App() {
   const getTurnoStatus = (fecha, turno) => {
     const rs = reservas.filter(r => r.fecha === fecha && getTurno(r.hora) === turno && r.estado !== "cancelada");
     const totalMesas = rs.reduce((sum, r) => sum + mesasParaPax(r.personas || 1), 0);
-    if (totalMesas > 14) return { status: "completo", mesas: totalMesas, bg: "#ffebee", labelBg: "#ffcdd2", labelColor: "#b71c1c" };
-    if (totalMesas > 12) return { status: "cuidado", mesas: totalMesas, bg: "#fff3e0", labelBg: "#ffe0b2", labelColor: "#e65100" };
+    if (totalMesas > 13) return { status: "completo", mesas: totalMesas, bg: "#ffebee", labelBg: "#ffcdd2", labelColor: "#b71c1c" };
+    if (totalMesas > 11) return { status: "cuidado", mesas: totalMesas, bg: "#fff3e0", labelBg: "#ffe0b2", labelColor: "#e65100" };
     return { status: "ok", mesas: totalMesas, bg: null, labelBg: null, labelColor: null };
   };
 
@@ -1494,25 +1494,6 @@ Buenas y Santas`;
                   {HORARIOS.map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
               </div>
-              {/* Aviso de ocupación del turno */}
-              {form.fecha && form.hora && (() => {
-                const turno = getTurno(form.hora);
-                const st = getTurnoStatus(form.fecha, turno);
-                if (st.status === "ok") return null;
-                return (
-                  <div style={{ gridColumn: "1/-1", padding: "10px 14px", borderRadius: 6, background: st.status === "completo" ? "#ffebee" : "#fff3e0", border: `1px solid ${st.status === "completo" ? "#ef9a9a" : "#ffcc80"}`, display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 18 }}>{st.status === "completo" ? "🔴" : "⚠️"}</span>
-                    <div>
-                      <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, fontWeight: 700, color: st.status === "completo" ? "#b71c1c" : "#e65100", textTransform: "uppercase", letterSpacing: 1 }}>
-                        {st.status === "completo" ? "COMPLETO" : "CUIDADO"}
-                      </p>
-                      <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#555", marginTop: 2 }}>
-                        Este turno tiene {st.mesas} mesas ocupadas {st.status === "completo" ? "(más de 14)" : "(más de 12)"}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })()}
               <div>
                 <label>Nº de personas *</label>
                 <input
@@ -1524,6 +1505,37 @@ Buenas y Santas`;
                 />
               </div>
 
+              {/* Aviso de ocupación del turno */}
+              {form.fecha && form.hora && (() => {
+                const turno = getTurno(form.hora);
+                // Calculate existing mesas in turno (excluding current reservation being edited)
+                const existing = reservas.filter(r =>
+                  r.fecha === form.fecha &&
+                  getTurno(r.hora) === turno &&
+                  r.estado !== "cancelada" &&
+                  r.id !== reservaEditando
+                );
+                const mesasExistentes = existing.reduce((sum, r) => sum + mesasParaPax(r.personas || 1), 0);
+                const mesasNuevas = form.personas ? mesasParaPax(form.personas) : 0;
+                const totalMesas = mesasExistentes + mesasNuevas;
+                let status = "ok";
+                if (totalMesas > 13) status = "completo";
+                else if (totalMesas > 11) status = "cuidado";
+                if (status === "ok") return null;
+                return (
+                  <div style={{ gridColumn: "1/-1", padding: "10px 14px", borderRadius: 6, background: status === "completo" ? "#ffebee" : "#fff3e0", border: `1px solid ${status === "completo" ? "#ef9a9a" : "#ffcc80"}`, display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 18 }}>{status === "completo" ? "🔴" : "⚠️"}</span>
+                    <div>
+                      <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, fontWeight: 700, color: status === "completo" ? "#b71c1c" : "#e65100", textTransform: "uppercase", letterSpacing: 1 }}>
+                        {status === "completo" ? "COMPLETO" : "CUIDADO"}
+                      </p>
+                      <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#555", marginTop: 2 }}>
+                        Con esta reserva el turno tendría {totalMesas} mesas ocupadas {status === "completo" ? "(más de 13)" : "(más de 11)"}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
               <div>
                 <label>Estado</label>
                 <select className="input-field" value={form.estado} onChange={e => setForm(f => ({ ...f, estado: e.target.value }))}>
