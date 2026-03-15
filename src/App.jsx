@@ -374,7 +374,7 @@ export default function App() {
     td { padding: 3px 8px; font-family: 'Jost', Arial, sans-serif; font-size: 10px; color: #000; border-bottom: 1px solid #ebebeb; line-height: 1.4; }
     td.nombre { font-family: 'Lora', Georgia, serif; font-weight: 700; font-size: 12px; font-style: italic; }
     td.hora { font-family: 'Lora', Georgia, serif; font-size: 12px; font-weight: 700; font-style: italic; }
-    td.pax { font-family: 'Lora', Georgia, serif; font-size: 12px; font-weight: 700; }
+    td.pax { font-family: 'Lora', Georgia, serif !important; font-size: 12px !important; font-weight: 700 !important; }
     .turno-head td { font-family: 'Jost', Arial, sans-serif; font-size: 8px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: #444; padding: 5px 8px 3px; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; background: #f5f5f5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .gap td { border: none; padding: 2px 0; background: #fff !important; }
     @media print {
