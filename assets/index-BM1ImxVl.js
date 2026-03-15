@@ -41,17 +41,24 @@ Error generating stack: `+o.message+`
 <html lang="es">
 <head>
   <meta charset="UTF-8"/>
-  <title>Reservas · Buenas y Santas</title>
-  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,700;1,400&display=swap" rel="stylesheet"/>
+  <title></title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: sans-serif; color: #1a1a1a; background: #fff; padding: 20px 28px; }
+    body { font-family: Arial, sans-serif; color: #000; background: #fff; padding: 6px 10px; }
     table { width: 100%; border-collapse: collapse; }
-    th { padding: 5px 10px; text-align: left; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #4a7a4a; font-weight: 600; border-bottom: 2px solid #c8e6c9; background: #fff; }
+    th { padding: 2px 6px; text-align: left; font-size: 8px; letter-spacing: 1px; text-transform: uppercase; color: #000; font-weight: 700; border-bottom: 1px solid #000; }
+    td { padding: 1px 6px; font-size: 10px; color: #000; border-bottom: 1px solid #ddd; line-height: 1.3; }
+    .turno-head td { font-size: 8px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 3px 6px 1px; border-bottom: 1px solid #000; background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .gap td { border: none; padding: 2px 0; }
     @media print {
-      body { padding: 8px 12px; }
-      @page { margin: 6mm 8mm; size: landscape; margin-header: 0; margin-footer: 0; }
-      head, header, footer { display: none !important; }
+      body { padding: 0; }
+      @page {
+        size: A4 landscape;
+        margin: 4mm;
+        margin-top: 0mm;
+        margin-bottom: 0mm;
+      }
+      html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
   </style>
 </head>
@@ -59,27 +66,27 @@ Error generating stack: `+o.message+`
   <table>
     <thead>
       <tr>
-        <th>Cliente</th>
-        <th>Teléfono</th>
-        <th>Hora</th>
-        <th style="text-align:center">Pax</th>
-        <th>Mesa</th>
+        <th style="width:22%">Cliente</th>
+        <th style="width:14%">Teléfono</th>
+        <th style="width:7%">Hora</th>
+        <th style="width:5%;text-align:center">Pax</th>
+        <th style="width:10%">Mesa</th>
         <th>Notas</th>
       </tr>
     </thead>
     <tbody>
-      ${h.map(L=>{const C=`<tr style="background:#e8f5e9">
-        <td colspan="6" style="padding:5px 10px;font-family:'Georgia',serif;font-size:10px;font-weight:700;color:#1b5e20;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid #a5d6a7">
+      ${h.map(L=>{const C=`<tr class="turno-head">
+        <td colspan="6">
           ${i?"":`${new Date(L.fecha+"T12:00").toLocaleDateString("es-ES",{day:"2-digit",month:"short"})} · `}${w[L.turno]||L.turno}
         </td>
-      </tr>`,A=L.reservas.map(j=>{const te=j.mesas&&j.mesas.length>0?j.mesas.map(Le).join("+"):j.mesa?Le(j.mesa):"—";return`<tr style="border-bottom:1px solid #e8f0e8">
-          <td style="padding:3px 10px;font-family:'Georgia',serif;font-size:13px">${j.nombre}</td>
-          <td style="padding:3px 10px;font-family:sans-serif;font-size:11px;color:#555;white-space:nowrap">${j.telefono||"—"}</td>
-          <td style="padding:3px 10px;font-family:'Georgia',serif;font-size:14px;color:#1b5e20;font-weight:700;white-space:nowrap">${j.hora}</td>
-          <td style="padding:3px 10px;font-family:sans-serif;font-size:12px;text-align:center;font-weight:600">${j.personas}</td>
-          <td style="padding:3px 10px;font-family:sans-serif;font-size:11px;color:#2e7d32;white-space:nowrap">${te}</td>
-          <td style="padding:3px 10px;font-family:sans-serif;font-size:11px;color:#555;max-width:200px">${j.notas||""}</td>
-        </tr>`}).join("");return C+A}).join('<tr><td colspan="6" style="padding:10px 0;border:none;background:#fff"></td></tr>')||'<tr><td colspan="6" style="padding:12px;text-align:center;color:#888;font-size:12px">No hay reservas con estos filtros</td></tr>'}
+      </tr>`,A=L.reservas.map(j=>{const te=j.mesas&&j.mesas.length>0?j.mesas.map(Le).join("+"):j.mesa?Le(j.mesa):"—";return`<tr>
+          <td style="font-weight:600">${j.nombre}</td>
+          <td>${j.telefono||"—"}</td>
+          <td style="font-weight:700">${j.hora}</td>
+          <td style="text-align:center">${j.personas}</td>
+          <td>${te}</td>
+          <td style="color:#333">${j.notas||""}</td>
+        </tr>`}).join("");return C+A}).join('<tr class="gap"><td colspan="6"></td></tr>')||'<tr><td colspan="6" style="padding:8px;text-align:center;color:#666;font-size:10px">No hay reservas</td></tr>'}
     </tbody>
   </table>
   <script>window.onload = () => { window.print(); }<\/script>
