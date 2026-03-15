@@ -358,33 +358,37 @@ export default function App() {
 <head>
   <meta charset="UTF-8"/>
   <title></title>
-  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,600;1,600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@1,700&family=Jost:wght@300;400;500&display=swap" rel="stylesheet"/>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Jost', Arial, sans-serif; color: #000; background: #fff; padding: 18px 24px; }
-    .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.5px solid #000; padding-bottom: 10px; margin-bottom: 12px; }
-    .header-logo { font-family: 'Lora', Georgia, serif; font-size: 22px; font-weight: 600; font-style: italic; letter-spacing: 0.5px; }
-    .header-logo span { font-style: normal; }
+    body { font-family: 'Jost', Arial, sans-serif; color: #000; background: #fff; padding: 22px 30px; }
+    .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px solid #000; padding-bottom: 12px; margin-bottom: 14px; }
+    .header-logo { font-family: 'Lora', Georgia, serif; font-size: 21px; font-weight: 700; font-style: italic; line-height: 1; color: #000; }
+    .header-logo .y { color: #555; }
+    .header-subtitle { font-family: 'Jost', Arial, sans-serif; font-size: 7.5px; font-weight: 300; letter-spacing: 3.5px; text-transform: uppercase; color: #888; margin-top: 4px; }
     .header-right { text-align: right; }
-    .header-fecha { font-family: 'Jost', Arial, sans-serif; font-size: 12px; font-weight: 500; text-transform: capitalize; letter-spacing: 0.5px; }
-    .header-turno { font-family: 'Jost', Arial, sans-serif; font-size: 9px; font-weight: 300; color: #555; margin-top: 2px; letter-spacing: 1.5px; text-transform: uppercase; }
+    .header-fecha { font-family: 'Jost', Arial, sans-serif; font-size: 12px; font-weight: 500; text-transform: capitalize; letter-spacing: 0.3px; }
+    .header-turno { font-family: 'Jost', Arial, sans-serif; font-size: 9px; font-weight: 300; color: #666; margin-top: 3px; letter-spacing: 1.5px; text-transform: uppercase; }
     table { width: 100%; border-collapse: collapse; }
-    th { padding: 4px 8px; text-align: left; font-family: 'Jost', Arial, sans-serif; font-size: 8px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: #333; border-bottom: 1px solid #000; }
+    th { padding: 4px 8px; text-align: left; font-family: 'Jost', Arial, sans-serif; font-size: 8px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: #444; border-bottom: 1px solid #000; }
     td { padding: 3px 8px; font-family: 'Jost', Arial, sans-serif; font-size: 10px; color: #000; border-bottom: 1px solid #ebebeb; line-height: 1.4; }
     td.nombre { font-weight: 500; font-size: 10.5px; }
-    td.hora { font-family: 'Lora', Georgia, serif; font-size: 12px; font-weight: 600; }
-    .turno-head td { font-family: 'Jost', Arial, sans-serif; font-size: 8px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: #333; padding: 5px 8px 3px; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; background: #f5f5f5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    td.hora { font-family: 'Lora', Georgia, serif; font-size: 12px; font-weight: 700; font-style: italic; }
+    .turno-head td { font-family: 'Jost', Arial, sans-serif; font-size: 8px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: #444; padding: 5px 8px 3px; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; background: #f5f5f5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .gap td { border: none; padding: 2px 0; background: #fff !important; }
     @media print {
-      body { padding: 14px 20px; }
-      @page { size: A4 landscape; margin: 10mm 12mm; }
+      body { padding: 0; }
+      @page { size: A4 landscape; margin: 14mm 16mm; }
       html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
   </style>
 </head>
 <body>
   <div class="header">
-    <div class="header-logo">Buenas <span>y</span> Santas</div>
+    <div>
+      <div class="header-logo">Buenas <span class="y">y</span> Santas</div>
+      <div class="header-subtitle">nueva cocina casera</div>
+    </div>
     <div class="header-right">
       <div class="header-fecha">${fechaLabel}</div>
       ${turnoLabel ? `<div class="header-turno">${turnoLabel}</div>` : ""}
