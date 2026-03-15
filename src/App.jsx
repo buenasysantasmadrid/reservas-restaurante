@@ -344,7 +344,7 @@ export default function App() {
           <td class="nombre">${r.nombre}</td>
           <td>${r.telefono || "—"}</td>
           <td class="hora">${r.hora}</td>
-          <td style="text-align:center">${r.personas}</td>
+          <td style="text-align:center" class="pax">${r.personas}</td>
           <td>${mesas}</td>
           <td style="color:#333">${r.notas || ""}</td>
         </tr>`;
@@ -372,8 +372,9 @@ export default function App() {
     table { width: 100%; border-collapse: collapse; }
     th { padding: 4px 8px; text-align: left; font-family: 'Jost', Arial, sans-serif; font-size: 8px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: #444; border-bottom: 1px solid #000; }
     td { padding: 3px 8px; font-family: 'Jost', Arial, sans-serif; font-size: 10px; color: #000; border-bottom: 1px solid #ebebeb; line-height: 1.4; }
-    td.nombre { font-weight: 500; font-size: 10.5px; }
+    td.nombre { font-family: 'Lora', Georgia, serif; font-weight: 700; font-size: 12px; font-style: italic; }
     td.hora { font-family: 'Lora', Georgia, serif; font-size: 12px; font-weight: 700; font-style: italic; }
+    td.pax { font-family: 'Lora', Georgia, serif; font-size: 12px; font-weight: 700; }
     .turno-head td { font-family: 'Jost', Arial, sans-serif; font-size: 8px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: #444; padding: 5px 8px 3px; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; background: #f5f5f5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .gap td { border: none; padding: 2px 0; background: #fff !important; }
     @media print {
