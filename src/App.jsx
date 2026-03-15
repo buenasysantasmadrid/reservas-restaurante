@@ -360,25 +360,32 @@ export default function App() {
   <title></title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; color: #000; background: #fff; padding: 6px 10px; }
+    body { font-family: Arial, sans-serif; color: #000; background: #fff; padding: 14px 20px; }
+    .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 10px; }
+    .header-left { font-size: 20px; font-weight: 700; font-style: italic; letter-spacing: 0.5px; }
+    .header-right { text-align: right; }
+    .header-fecha { font-size: 13px; font-weight: 700; text-transform: capitalize; }
+    .header-turno { font-size: 10px; color: #444; margin-top: 2px; letter-spacing: 1px; text-transform: uppercase; }
     table { width: 100%; border-collapse: collapse; }
-    th { padding: 2px 6px; text-align: left; font-size: 8px; letter-spacing: 1px; text-transform: uppercase; color: #000; font-weight: 700; border-bottom: 1px solid #000; }
-    td { padding: 1px 6px; font-size: 10px; color: #000; border-bottom: 1px solid #ddd; line-height: 1.3; }
-    .turno-head td { font-size: 8px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 3px 6px 1px; border-bottom: 1px solid #000; background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .gap td { border: none; padding: 2px 0; }
+    th { padding: 3px 7px; text-align: left; font-size: 8px; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; border-bottom: 1px solid #000; }
+    td { padding: 2px 7px; font-size: 10px; border-bottom: 1px solid #e0e0e0; line-height: 1.35; }
+    .turno-head td { font-size: 8px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 7px 2px; border-top: 1px solid #bbb; border-bottom: 1px solid #bbb; background: #f0f0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .gap td { border: none; padding: 1px 0; }
     @media print {
-      body { padding: 0; }
-      @page {
-        size: A4 landscape;
-        margin: 4mm;
-        margin-top: 0mm;
-        margin-bottom: 0mm;
-      }
+      body { padding: 10px 16px; }
+      @page { size: A4 landscape; margin: 8mm 10mm; }
       html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
   </style>
 </head>
 <body>
+  <div class="header">
+    <div class="header-left">Buenas y Santas</div>
+    <div class="header-right">
+      <div class="header-fecha">${fechaLabel}</div>
+      ${turnoLabel ? `<div class="header-turno">${turnoLabel}</div>` : ""}
+    </div>
+  </div>
   <table>
     <thead>
       <tr>
