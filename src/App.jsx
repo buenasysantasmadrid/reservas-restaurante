@@ -1086,12 +1086,8 @@ Buenas y Santas`;
                   );
                       }); // end grupo.reservas.forEach
 
-                      // Footer row: free mesas for this turno (only when a specific date is selected)
-                      if (filtroFecha) {
-                        const mesasOcupadas = grupo.reservas
-                          .filter(x => x.estado !== "cancelada")
-                          .flatMap(x => x.mesas && x.mesas.length > 0 ? x.mesas : x.mesa ? [x.mesa] : []);
-                        // Also check other reservas not in filtered list (same fecha+turno)
+                      // Footer row: always show assign/clear buttons
+                      {
                         const todasReservasTurno = reservas.filter(x => x.fecha === fecha && getTurno(x.hora) === turno && x.estado !== "cancelada");
                         const todasOcupadas = todasReservasTurno.flatMap(x => x.mesas && x.mesas.length > 0 ? x.mesas : x.mesa ? [x.mesa] : []);
                         const mesasLibres = MESAS.filter(m => !todasOcupadas.includes(m));
@@ -1224,7 +1220,7 @@ Buenas y Santas`;
                           </div>
                         </div>
                       ))}
-                      {filtroFecha && (() => {
+                      {(() => {
                         const todasOcupadas = reservas.filter(x => x.fecha === grupo.fecha && getTurno(x.hora) === grupo.turno && x.estado !== "cancelada").flatMap(x => x.mesas && x.mesas.length > 0 ? x.mesas : x.mesa ? [x.mesa] : []);
                         const libres = MESAS.filter(m => !todasOcupadas.includes(m));
                         return (
