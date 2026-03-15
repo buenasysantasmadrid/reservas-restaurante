@@ -583,8 +583,32 @@ ${textoPegado}`
       else if (digits.length > 9) tel = digits;
       else tel = "34" + digits;
     }
-    const fecha = new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
-    const msg = `Hola ${r.nombre} 👋, le confirmamos su reserva para *${r.personas} personas* el *${fecha}* a las *${r.hora}* (${r.mesas && r.mesas.length > 0 ? r.mesas.map(getMesaNombre).join("+") : getMesaNombre(r.mesa)}). ¡Le esperamos! 🍽️`;
+
+    const fechaFormateada = new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
+    const nombreCapital = r.nombre.split(" ")[0];
+
+    // Determinar turno por hora
+    const [hh, mm] = (r.hora || "00:00").split(":").map(Number);
+    const mins = hh * 60 + mm;
+    const esPrimerTurno = mins >= 13 * 60 + 30 && mins <= 14 * 60; // 13:30–14:00
+
+    const lineaImportante = esPrimerTurno
+      ? `*IMPORTANTE* Recuerda que podrás disfrutar de tu mesa hasta las 15:00 hs.`
+      : `*IMPORTANTE* Recuerda que podrás disfrutar de tu reserva 90 minutos.`;
+
+    const msg =
+`Hola, ${nombreCapital}
+Te escribimos de Buenas y Santas para confirmar tu reserva.
+
+*Día:* ${fechaFormateada}, *Hora:* ${r.hora}, *Personas:* ${r.personas}
+
+${lineaImportante}
+(si no van a venir por favor avisar que guardamos la mesa 10 minutos)
+
+Saludos, nos vemos
+
+Buenas y Santas`;
+
     window.open(`https://wa.me/+${tel}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
