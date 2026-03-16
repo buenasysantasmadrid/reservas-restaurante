@@ -1125,6 +1125,19 @@ Buenas y Santas`;
                                   >
                                     ✕ Borrar mesas
                                   </button>
+                                  <button
+                                    onClick={() => {
+                                      const conTel = todasReservasTurno.filter(x => x.telefono && x.estado !== "cancelada");
+                                      if (conTel.length === 0) return showToast("No hay teléfonos en este turno", "error");
+                                      conTel.forEach((r, i) => setTimeout(() => enviarWhatsApp(r, "confirmar"), i * 600));
+                                      showToast(`Abriendo ${conTel.length} WhatsApp...`);
+                                    }}
+                                    style={{ padding: "4px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "#25D366", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer", fontWeight: 500 }}
+                                    onMouseEnter={e => e.currentTarget.style.background="#1ebe5a"}
+                                    onMouseLeave={e => e.currentTarget.style.background="#25D366"}
+                                  >
+                                    📲 WA a todos
+                                  </button>
                                 </div>
                               </div>
                             </td>
@@ -1238,7 +1251,7 @@ Buenas y Santas`;
                                 <span key={m} style={{ display: "inline-block", background: "#fff", border: "1px solid #a5d6a7", borderRadius: 4, padding: "1px 7px", marginRight: 4, fontSize: 11, color: "#2e7d32" }}>{getMesaNombre(m)}</span>
                               ))}
                             </p>
-                            <div style={{ display: "flex", gap: 8 }}>
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                               <button onClick={() => asignarMesasTurno(grupo.fecha, grupo.turno)}
                                 style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "#2e7d32", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer" }}>
                                 ✦ Asignar mesas
@@ -1246,6 +1259,15 @@ Buenas y Santas`;
                               <button onClick={() => borrarMesasTurno(grupo.fecha, grupo.turno)}
                                 style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "none", color: "#b71c1c", border: "1px solid #ef9a9a", borderRadius: 4, cursor: "pointer" }}>
                                 ✕ Borrar mesas
+                              </button>
+                              <button onClick={() => {
+                                const conTel = reservas.filter(x => x.fecha === grupo.fecha && getTurno(x.hora) === grupo.turno && x.estado !== "cancelada" && x.telefono);
+                                if (conTel.length === 0) return showToast("No hay teléfonos en este turno", "error");
+                                conTel.forEach((r, i) => setTimeout(() => enviarWhatsApp(r, "confirmar"), i * 600));
+                                showToast(`Abriendo ${conTel.length} WhatsApp...`);
+                              }}
+                                style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "#25D366", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer" }}>
+                                📲 WA a todos
                               </button>
                             </div>
                           </div>
