@@ -605,7 +605,7 @@ ${textoPegado}`
     if (tipo === "confirmar") {
       msg =
 `Hola ${nombreCapital}!
-Necesitamos por favor que *CONFIRMES* tu reserva para hoy para *${r.personas}* personas a las *${r.hora}*hs.
+Necesitamos por favor que *CONFIRMES* tu reserva para hoy para *${r.personas}* personas a las *${r.hora}* hs.
 
 Esperamos tu respuesta
 
@@ -1937,7 +1937,7 @@ Buenas y Santas`;
               const preDigits = (planoModal.prefijo || "34").replace(/\D/g, '');
               const tel = preDigits + digits;
               const firstName = planoModal.nombre.split(' ')[0];
-              const msg = encodeURIComponent(`Hola ${firstName}, tenemos ahora mismo una mesa libre, ¿quieres venir?`);
+              const msg = encodeURIComponent(`Hola ${firstName}!\n\nTe escribimos porque en este momento *tenemos una mesa disponible.*\nSi te interesa venir antes de tu horario, respóndenos a este mensaje y te la guardamos.\nDe lo contrario, nos vemos a la hora de tu reserva\n\n \n¡Buenas y santas!`);
               return (
                 <a href={`https://wa.me/${tel}?text=${msg}`} target="_blank" rel="noreferrer"
                   style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
