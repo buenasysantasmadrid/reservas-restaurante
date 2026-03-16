@@ -33,16 +33,7 @@ const HORARIOS = (() => {
   return slots;
 })();
 
-const initialReservas = [
-  { id: 1, nombre: "María García",   telefono: "699 768 563", email: "maria@email.com",   fecha: "2026-03-22", hora: "13:30", personas: 4,  mesas: [3],    notas: "Cumpleaños",        estado: "confirmada", tomadaPor: "RAMIRO",  cuando: "20/03/2026 10:15" },
-  { id: 2, nombre: "Carlos López",   telefono: "699 768 563", email: "carlos@email.com",  fecha: "2026-03-22", hora: "14:00", personas: 2,  mesas: [1],    notas: "",                  estado: "confirmada", tomadaPor: "YAMILA",  cuando: "20/03/2026 11:30" },
-  { id: 3, nombre: "Ana Martínez",   telefono: "699 768 563", email: "ana@email.com",     fecha: "2026-03-22", hora: "15:00", personas: 6,  mesas: [5],    notas: "Alergia al gluten", estado: "tomada",     tomadaPor: "LUCIANA", cuando: "21/03/2026 09:00" },
-  { id: 4, nombre: "Pedro Sánchez",  telefono: "699 768 563", email: "pedro@email.com",   fecha: "2026-03-22", hora: "21:00", personas: 3,  mesas: [2],    notas: "",                  estado: "cancelada",  tomadaPor: "JESSICA", cuando: "21/03/2026 12:00" },
-  { id: 5, nombre: "Laura Fernández",telefono: "699 768 563", email: "laura@email.com",   fecha: "2026-03-22", hora: "13:45", personas: 2,  mesas: [4],    notas: "",                  estado: "confirmada", tomadaPor: "RAMIRO",  cuando: "19/03/2026 18:00" },
-  { id: 6, nombre: "Jorge Ruiz",     telefono: "699 768 563", email: "jorge@email.com",   fecha: "2026-03-22", hora: "14:45", personas: 5,  mesas: [6],    notas: "Mesa junto ventana",estado: "tomada",     tomadaPor: "JULIO",   cuando: "21/03/2026 16:45" },
-  { id: 7, nombre: "Sofía Blanco",   telefono: "699 768 563", email: "sofia@email.com",   fecha: "2026-03-22", hora: "21:30", personas: 4,  mesas: [7,17], notas: "",                  estado: "confirmada", tomadaPor: "SHENAY",  cuando: "20/03/2026 14:00" },
-  { id: 8, nombre: "Miguel Torres",  telefono: "699 768 563", email: "miguel@email.com",  fecha: "2026-03-22", hora: "22:00", personas: 8,  mesas: [10,11],notas: "Cena de empresa",   estado: "confirmada", tomadaPor: "JENNIFER",cuando: "18/03/2026 10:00" },
-];
+const initialReservas = [];
 
 function getTodayStr() {
   return new Date().toISOString().split("T")[0];
@@ -947,7 +938,7 @@ Buenas y Santas`;
   };
 
   // ── Botón WhatsApp reutilizable ──────────────────────────────────────────────
-  const BtnWhatsApp = ({ reserva, style = {}, tipo = "nueva" }) => (
+  const BtnWhatsApp = ({ reserva, style = {}, tipo = "nueva", conTexto = false }) => (
     reserva.telefono ? (
       <button
         onClick={() => enviarWhatsApp(reserva, tipo)}
@@ -956,7 +947,7 @@ Buenas y Santas`;
           padding: "5px 8px", background: "#25D366", border: "none",
           color: "#fff", cursor: "pointer", borderRadius: 4,
           transition: "background 0.2s", display: "inline-flex",
-          alignItems: "center", justifyContent: "center", ...style
+          alignItems: "center", justifyContent: "center", gap: 6, ...style
         }}
         onMouseEnter={e => e.currentTarget.style.background = "#1ebe5a"}
         onMouseLeave={e => e.currentTarget.style.background = "#25D366"}
@@ -964,6 +955,11 @@ Buenas y Santas`;
         <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
           <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
         </svg>
+        {conTexto && (
+          <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, letterSpacing: 0.5, fontWeight: 600 }}>
+            {tipo === "confirmar" ? "Enviar WhatsApp confirmación" : "Enviar WhatsApp"}
+          </span>
+        )}
       </button>
     ) : null
   );
@@ -1093,12 +1089,7 @@ Buenas y Santas`;
       {/* HEADER */}
       <header style={{ borderBottom: "1px solid #a5d6a7", background: "#ffffff", padding: "0 24px", position: "sticky", top: 0, zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between", height: 64, boxShadow: "0 2px 8px rgba(46,125,50,0.10)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ lineHeight: 1.1 }}>
-            <div style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", fontStyle: "italic" }}>
-              Buenas <span style={{ color: "#2e7d32" }}>y</span> Santas
-            </div>
-            <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, letterSpacing: 3, color: "#5a8a5a", textTransform: "uppercase", marginTop: 3 }}>nueva cocina casera</div>
-          </div>
+          <img src="/reservas-restaurante/logo_buenasysantas.jpg" alt="Buenas y Santas" style={{ height: 44, width: "auto", objectFit: "contain" }} />
           <span className="desktop-subtitle" style={{ color: "#c8e6c9", fontSize: 22 }}>|</span>
           <span className="desktop-subtitle" style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 3, color: "#6a9a6a", textTransform: "uppercase" }}>Gestión de Reservas</span>
         </div>
@@ -1919,7 +1910,7 @@ Buenas y Santas`;
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 14, alignItems: "center" }}>
               <button className="btn-outline" style={{ padding: "8px 16px", fontSize: 11 }} onClick={() => setModalAbierto(false)}>Cancelar</button>
               {form.telefono && (
-                <BtnWhatsApp reserva={form} style={{ padding: "8px 16px" }} />
+                <BtnWhatsApp reserva={form} style={{ padding: "8px 16px" }} conTexto={true} />
               )}
               <button className="btn-gold" style={{ padding: "8px 20px", fontSize: 11 }} onClick={guardarReserva}>{reservaEditando ? "Guardar cambios" : "Tomar reserva"}</button>
             </div>
@@ -1942,7 +1933,7 @@ Buenas y Santas`;
                 Volver
               </button>
               {form.telefono && (
-                <BtnWhatsApp reserva={form} style={{ padding: "12px 20px" }} />
+                <BtnWhatsApp reserva={form} style={{ padding: "12px 20px" }} conTexto={true} />
               )}
               <button className="btn-gold" disabled={guardando} style={{ opacity: guardando ? 0.5 : 1 }} onClick={confirmarYGuardar}>
                 {guardando ? "⏳ Guardando..." : "Sí, guardar reserva"}
