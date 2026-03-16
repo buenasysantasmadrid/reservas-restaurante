@@ -34,8 +34,18 @@ function getTodayStr() {
 
 export default function App() {
   const [vista, setVista] = useState("reservas");
-  const [reservas, setReservas] = useState(initialReservas);
-  const [clientesArchivados, setClientesArchivados] = useState([]);
+  const [reservas, setReservas] = useState(() => {
+    try {
+      const saved = localStorage.getItem("bys_reservas");
+      return saved ? JSON.parse(saved) : initialReservas;
+    } catch { return initialReservas; }
+  });
+  const [clientesArchivados, setClientesArchivados] = useState(() => {
+    try {
+      const saved = localStorage.getItem("bys_clientes");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [filtroFecha, setFiltroFecha] = useState("2026-03-22");
   const [filtroEstado, setFiltroEstado] = useState("todas");
   const [filtroTurno, setFiltroTurno] = useState("todos");
@@ -96,6 +106,16 @@ export default function App() {
       })
       .catch(() => {}); // silencioso, el usuario puede archivar manualmente si falla
   }, []); // solo al montar
+
+  // Persistir reservas en localStorage cada vez que cambien
+  useEffect(() => {
+    try { localStorage.setItem("bys_reservas", JSON.stringify(reservas)); } catch {}
+  }, [reservas]);
+
+  // Persistir clientes archivados en localStorage cada vez que cambien
+  useEffect(() => {
+    try { localStorage.setItem("bys_clientes", JSON.stringify(clientesArchivados)); } catch {}
+  }, [clientesArchivados]);
 
   const showToast = (msg, tipo = "ok") => {
     setToast({ msg, tipo });
