@@ -853,7 +853,7 @@ export default function App() {
           max_tokens: 1000,
           messages: [{
             role: "user",
-            content: `Extrae los datos de reserva de restaurante del siguiente mensaje. Hoy es ${hoy}. 
+            content: `Extrae los datos de reserva de restaurante del siguiente mensaje. Hoy es ${hoy}.
 Devuelve SOLO un JSON con estos campos (sin texto extra, sin markdown):
 {
   "nombre": "",
@@ -864,7 +864,20 @@ Devuelve SOLO un JSON con estos campos (sin texto extra, sin markdown):
   "personas": 2,
   "notas": ""
 }
-Si no encuentras algún dato, déjalo vacío o usa el valor por defecto. Para la hora usa formato 24h. Para personas usa número entero.
+
+INSTRUCCIONES IMPORTANTES:
+- El campo nombre puede venir como "Nombre:", "1. Nombre:" o similar
+- El teléfono puede venir como "Número de Teléfono:", "Teléfono:" — si empieza por 34 y tiene 11 dígitos, quítale el 34 del principio y guarda solo los 9 dígitos
+- Las personas pueden venir como "¿Cuántas personas?:", "Personas:", "Pax:" — usa número entero
+- La fecha puede venir en estos formatos:
+  * "23 Mar 2026" → convertir a 2026-03-23
+  * "2026-03-23"
+  * "Día: 23 Mar 2026" seguido de "Hora: 14:00 Europe/Madrid"
+  * "23 Mar 2026 Hora: 14:00 Europe/Madrid" (todo junto)
+- La hora puede venir como "Hora: 14:00 Europe/Madrid" — extraer solo "14:00"
+- Los comentarios/notas pueden venir como "Comentarios:" — si está vacío déjalo en ""
+- El email puede venir como "Mail:" o "Email:"
+- Si no encuentras algún dato, déjalo vacío o usa el valor por defecto
 
 Mensaje:
 ${textoPegado}`
@@ -875,6 +888,15 @@ ${textoPegado}`
       const texto = data.content.map(i => i.text || "").join("");
       const clean = texto.replace(/```json|```/g, "").trim();
       const parsed = JSON.parse(clean);
+      // Fix teléfono: si viene con prefijo 34 y tiene 11 dígitos, quitar el 34
+      if (parsed.telefono) {
+        const digits = String(parsed.telefono).replace(/\D/g, "");
+        if (digits.startsWith("34") && digits.length === 11) {
+          parsed.telefono = digits.slice(2);
+        } else {
+          parsed.telefono = digits.length > 9 ? digits : parsed.telefono;
+        }
+      }
       setDatosInterpretados(parsed);
       setForm(f => ({ ...f, ...parsed, mesa: f.mesa, estado: "tomada", personas: parsed.personas || 2 }));
       setModalAbierto(true);
