@@ -57,6 +57,7 @@ export default function App() {
   const [sheetFilas, setSheetFilas] = useState([]);
   const [sheetError, setSheetError] = useState("");
   const [turnoModalAbierto, setTurnoModalAbierto] = useState(false);
+  const [hoveredMesa, setHoveredMesa] = useState(null); // { x, y, nota, nombre }
   const [turnoDesde, setTurnoDesde] = useState("13:30");
   const [turnoHasta, setTurnoHasta] = useState("16:00");
   const [turnoPersonalizado, setTurnoPersonalizado] = useState(null); // { desde, hasta } when active
@@ -959,7 +960,7 @@ Buenas y Santas`;
                 </thead>
                 <tbody>
                   {reservasFiltradas.length === 0 ? (
-                    <tr><td colSpan={11} style={{ padding: 40, textAlign: "center", color: "#4a7a4a", fontFamily: "'Jost', sans-serif", fontSize: 14 }}>No hay reservas con estos filtros.</td></tr>
+                    <tr><td colSpan={10} style={{ padding: 40, textAlign: "center", color: "#4a7a4a", fontFamily: "'Jost', sans-serif", fontSize: 14 }}>No hay reservas con estos filtros.</td></tr>
                   ) : (() => {
                     const sorted = [...reservasFiltradas].sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
                     const rows = [];
@@ -983,12 +984,12 @@ Buenas y Santas`;
                       const rowBg = tStatus.status === "completo" ? "#ffebee" : tStatus.status === "cuidado" ? "#fff3e0" : color.bg;
                       // Separator between groups (not before first)
                       if (gi > 0) {
-                        rows.push(<tr key={"sep_"+gi}><td colSpan={11} style={{ padding: 0, height: 28, background: "transparent", border: "none" }} /></tr>);
+                        rows.push(<tr key={"sep_"+gi}><td colSpan={10} style={{ padding: 0, height: 28, background: "transparent", border: "none" }} /></tr>);
                       }
                       // Turno header row with label + badge
                       rows.push(
                         <tr key={"turnohead_"+turnoKey}>
-                          <td colSpan={11} style={{ padding: "6px 20px 4px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
+                          <td colSpan={10} style={{ padding: "6px 20px 4px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                               <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "#4a7a4a", fontWeight: 600 }}>
                                 {color.label}
@@ -1101,7 +1102,7 @@ Buenas y Santas`;
                         const mesasLibres = MESAS.filter(m => !todasOcupadas.includes(m));
                         rows.push(
                           <tr key={"footer_"+turnoKey}>
-                            <td colSpan={11} style={{ padding: "8px 20px 12px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
+                            <td colSpan={10} style={{ padding: "8px 20px 12px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
                               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                                 <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 1, color: "#4a7a4a", textTransform: "uppercase" }}>
                                   Mesas libres: {mesasLibres.length === 0 ? <span style={{ color: "#c62828" }}>ninguna</span> : mesasLibres.map(m => (
@@ -1788,7 +1789,23 @@ Buenas y Santas`;
 
           return (
             <g key={id} style={{ cursor: res ? "pointer" : "default" }}
-              onClick={() => res && setPlanoModal({ reservaId: res.id, nombre: res.nombre, estado: res.estado, telefono: res.telefono || "", prefijo: res.prefijo || "" })}>
+              onClick={() => res && setPlanoModal({ reservaId: res.id, nombre: res.nombre, estado: res.estado, telefono: res.telefono || "", prefijo: res.prefijo || "" })}
+              onMouseEnter={res && res.notas ? (e) => {
+                const svgEl = e.currentTarget.closest("svg");
+                const svgRect = svgEl.getBoundingClientRect();
+                const containerRect = svgEl.parentElement.getBoundingClientRect();
+                setHoveredMesa({
+                  x: mx + mw / 2,
+                  y: my,
+                  nota: res.notas,
+                  nombre: res.nombre.split(" ")[0],
+                  svgOffsetX: svgRect.left - containerRect.left,
+                  svgOffsetY: svgRect.top - containerRect.top,
+                  scaleX: svgRect.width / VW,
+                  scaleY: svgRect.height / VH,
+                });
+              } : null}
+              onMouseLeave={res && res.notas ? () => setHoveredMesa(null) : null}>
               <rect x={mx+1} y={my+2} width={mw} height={mh} rx={RR+1} fill="rgba(0,0,0,0.06)"/>
               <rect x={mx} y={my} width={mw} height={mh} rx={RR} fill={fill} stroke={stroke} strokeWidth={ocupada ? 2 : 1.2}/>
               <text x={mx + mw/2} y={my + lineH} textAnchor="middle"
@@ -1876,20 +1893,51 @@ Buenas y Santas`;
                   </div>
                 ))}
               </div>
-              <svg viewBox={`0 0 ${VW} ${VH}`} style={{ width: "100%", maxWidth: 640, display: "block", borderRadius: 12, boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
-                <defs>
-                  <filter id="mesaShadow" x="-15%" y="-15%" width="130%" height="130%">
-                    <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" floodColor="#1b5e20" floodOpacity="0.18"/>
-                  </filter>
-                  <pattern id="floorGrid" x="0" y="0" width={U*0.5} height={U*0.5} patternUnits="userSpaceOnUse">
-                    <path d={`M ${U*0.5} 0 L 0 0 0 ${U*0.5}`} fill="none" stroke="#e8f5e9" strokeWidth="0.5"/>
-                  </pattern>
-                </defs>
-                <rect x={0} y={0} width={VW} height={VH} fill="#f4faf4" rx={12}/>
-                <rect x={0} y={0} width={VW} height={VH} fill="url(#floorGrid)" rx={12}/>
-                <line x1={PAD + 0.2*U} y1={PAD + 1.15*U} x2={PAD + 6.5*U} y2={PAD + 1.15*U} stroke="#c8e6c9" strokeWidth={0.8} strokeDasharray="5 5" opacity="0.7"/>
-                {MESAS_POS.map(m => <MesaSVG key={m.id} mesa={m} />)}
-              </svg>
+              <div style={{ position: "relative", display: "inline-block", width: "100%", maxWidth: 640 }}>
+                <svg viewBox={`0 0 ${VW} ${VH}`} style={{ width: "100%", display: "block", borderRadius: 12, boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
+                  <defs>
+                    <filter id="mesaShadow" x="-15%" y="-15%" width="130%" height="130%">
+                      <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" floodColor="#1b5e20" floodOpacity="0.18"/>
+                    </filter>
+                    <pattern id="floorGrid" x="0" y="0" width={U*0.5} height={U*0.5} patternUnits="userSpaceOnUse">
+                      <path d={`M ${U*0.5} 0 L 0 0 0 ${U*0.5}`} fill="none" stroke="#e8f5e9" strokeWidth="0.5"/>
+                    </pattern>
+                  </defs>
+                  <rect x={0} y={0} width={VW} height={VH} fill="#f4faf4" rx={12}/>
+                  <rect x={0} y={0} width={VW} height={VH} fill="url(#floorGrid)" rx={12}/>
+                  <line x1={PAD + 0.2*U} y1={PAD + 1.15*U} x2={PAD + 6.5*U} y2={PAD + 1.15*U} stroke="#c8e6c9" strokeWidth={0.8} strokeDasharray="5 5" opacity="0.7"/>
+                  {MESAS_POS.map(m => <MesaSVG key={m.id} mesa={m} />)}
+                </svg>
+                {hoveredMesa && (() => {
+                  const px = (hoveredMesa.svgOffsetX || 0) + hoveredMesa.x * (hoveredMesa.scaleX || 1);
+                  const py = (hoveredMesa.svgOffsetY || 0) + hoveredMesa.y * (hoveredMesa.scaleY || 1) - 12;
+                  return (
+                    <div style={{
+                      position: "absolute",
+                      left: px,
+                      top: py,
+                      transform: "translate(-50%, -100%)",
+                      background: "#1a2e1a",
+                      color: "#fff",
+                      borderRadius: 6,
+                      padding: "7px 12px",
+                      fontFamily: "'Jost', sans-serif",
+                      fontSize: 12,
+                      letterSpacing: 0.3,
+                      maxWidth: 200,
+                      whiteSpace: "pre-wrap",
+                      pointerEvents: "none",
+                      zIndex: 20,
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+                      lineHeight: 1.5,
+                    }}>
+                      <span style={{ fontSize: 10, color: "#81c784", textTransform: "uppercase", letterSpacing: 1, display: "block", marginBottom: 3 }}>{hoveredMesa.nombre} · nota</span>
+                      {hoveredMesa.nota}
+                      <div style={{ position: "absolute", bottom: -6, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderTop: "6px solid #1a2e1a" }} />
+                    </div>
+                  );
+                })()}
+              </div>
               {!filtroFecha && (
                 <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#9e9e9e", marginTop: 12 }}>
                   Selecciona una fecha para ver la ocupación.
