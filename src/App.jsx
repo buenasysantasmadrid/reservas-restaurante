@@ -599,7 +599,9 @@ ${textoPegado}`
       else tel = "34" + digits;
     }
 
-    const fechaFormateada = new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
+    const fechaObj = new Date(r.fecha + "T12:00");
+    const diaSemana = fechaObj.toLocaleDateString("es-ES", { weekday: "long" });
+    const diaMes = fechaObj.toLocaleDateString("es-ES", { day: "numeric", month: "long" });
     const nombreCapital = r.nombre.split(" ")[0];
 
     // Determinar turno por hora
@@ -608,14 +610,14 @@ ${textoPegado}`
     const esPrimerTurno = mins >= 13 * 60 + 30 && mins <= 14 * 60; // 13:30–14:00
 
     const lineaImportante = esPrimerTurno
-      ? `*IMPORTANTE* Recuerda que podrás disfrutar de tu mesa hasta las 15:00 hs.`
-      : `*IMPORTANTE* Recuerda que podrás disfrutar de tu reserva 90 minutos.`;
+      ? `*IMPORTANTE: Recuerda que podrás disfrutar de tu mesa hasta las 15:00 hs.*`
+      : `*IMPORTANTE: Recuerda que podrás disfrutar de tu reserva 90 minutos.*`;
 
     const msg =
 `Hola, ${nombreCapital}
 Te escribimos de Buenas y Santas para confirmar tu reserva.
 
-*Día:* ${fechaFormateada}, *Hora:* ${r.hora}, *Personas:* ${r.personas}
+Día: *${diaSemana}*, ${diaMes}, Hora: *${r.hora}*, Personas: *${r.personas}*
 
 ${lineaImportante}
 (si no van a venir por favor avisar que guardamos la mesa 10 minutos)
