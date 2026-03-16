@@ -61,6 +61,40 @@ export default function App() {
   const [turnoHasta, setTurnoHasta] = useState("16:00");
   const [turnoPersonalizado, setTurnoPersonalizado] = useState(null); // { desde, hasta } when active
 
+  // Auto-archivar al abrir la app si son las 4am o más
+  useEffect(() => {
+    const ahora = new Date();
+    const hoy = getTodayStr();
+    const esDespuesDeLas4 = ahora.getHours() >= 4;
+    if (!esDespuesDeLas4) return;
+
+    const pasadas = reservas.filter(r => r.fecha < hoy);
+    if (pasadas.length === 0) return;
+
+    const filas = pasadas.map(r => ({
+      nombre: r.nombre, telefono: r.telefono || "", fecha: r.fecha,
+      hora: r.hora || "", personas: r.personas || "", mesas: r.mesas || [],
+      mesa: r.mesa || "", estado: r.estado || "", notas: r.notas || "",
+      email: r.email || "", tomadaPor: r.tomadaPor || "", cuando: r.cuando || ""
+    }));
+
+    const url = "https://script.google.com/macros/s/AKfycbxr4Yb8O1Db5W0sEh9eywRa-4rUgjd72TMZC_WJjvyTiDBljmtzj3tu5JhqHqqV0-y0HA/exec";
+    fetch(url, { method: "POST", body: JSON.stringify(filas) })
+      .then(res => { if (!res.ok) throw new Error(); })
+      .then(() => {
+        setClientesArchivados(prev => {
+          const todos = [...prev];
+          pasadas.forEach(r => {
+            if (!todos.find(c => c.nombre === r.nombre))
+              todos.push({ nombre: r.nombre, telefono: r.telefono || "", email: r.email || "" });
+          });
+          return todos;
+        });
+        setReservas(rs => rs.filter(r => r.fecha >= hoy));
+      })
+      .catch(() => {}); // silencioso, el usuario puede archivar manualmente si falla
+  }, []); // solo al montar
+
   const showToast = (msg, tipo = "ok") => {
     setToast({ msg, tipo });
     setTimeout(() => setToast(null), 2800);
