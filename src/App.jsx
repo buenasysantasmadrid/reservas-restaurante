@@ -801,7 +801,7 @@ Buenas y Santas`;
         </nav>
       )}
 
-      <main className="main-pad" style={{ padding: "40px", maxWidth: 1200, margin: "0 auto", position: "relative", zIndex: 1 }}>
+      <main className="main-pad" style={{ padding: "40px", maxWidth: 1440, margin: "0 auto", position: "relative", zIndex: 1 }}>
 
         {/* ── PANEL ── */}
         {vista === "panel" && (
@@ -943,7 +943,7 @@ Buenas y Santas`;
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid #c8e6c9" }}>
-                    {["Cliente", "Fecha", "Hora", "Personas", "Mesa", "Estado", "Mail", "Observaciones", "Tomada por", "Cuando", "Acciones"].map(h => (
+                    {["Cliente", "Fecha", "Hora", "Personas", "Mesa", "Estado", "Mail", "Observaciones", "Acciones", "Tomada por", "Cuando"].map(h => (
                       <th key={h} style={{ padding: "14px 20px", textAlign: "left", fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", fontWeight: 400 }}>{h}</th>
                     ))}
                   </tr>
@@ -1069,18 +1069,18 @@ Buenas y Santas`;
                       <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", maxWidth: 160 }}>
                         {r.notas || "—"}
                       </td>
-                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>
-                        {r.tomadaPor || "—"}
-                      </td>
-                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a" }}>
-                        {r.cuando || "—"}
-                      </td>
                       <td style={{ padding: "16px 20px" }}>
                         <div style={{ display: "flex", gap: 8 }}>
                           <button className="btn-outline" style={{ padding: "6px 12px", fontSize: 11 }} onClick={() => abrirEditar(r)}>Editar</button>
                           <BtnWhatsApp reserva={r} />
                           <button className="btn-outline" style={{ padding: "6px 12px", fontSize: 11, borderColor: "#4a2a2a", color: "#ba5d5d" }} onClick={() => eliminarReserva(r.id)}>✕</button>
                         </div>
+                      </td>
+                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>
+                        {r.tomadaPor || "—"}
+                      </td>
+                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a" }}>
+                        {r.cuando || "—"}
                       </td>
                     </tr>
                   );
