@@ -1105,7 +1105,7 @@ Buenas y Santas`;
                               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                                 <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 1, color: "#4a7a4a", textTransform: "uppercase" }}>
                                   Mesas libres: {mesasLibres.length === 0 ? <span style={{ color: "#c62828" }}>ninguna</span> : mesasLibres.map(m => (
-                                    <span key={m} style={{ display: "inline-block", background: "#fff", border: "1px solid #a5d6a7", borderRadius: 4, padding: "1px 7px", marginRight: 4, fontSize: 11, color: "#2e7d32" }}>{getMesaNombre(m)}</span>
+                                    <span key={m} style={{ display: "inline-block", background: rowBg, border: "1px solid #a5d6a7", borderRadius: 4, padding: "1px 7px", marginRight: 4, fontSize: 11, color: "#2e7d32" }}>{getMesaNombre(m)}</span>
                                   ))}
                                 </span>
                                 <div style={{ display: "flex", gap: 8 }}>
