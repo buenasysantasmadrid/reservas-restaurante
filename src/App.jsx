@@ -1,4 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { initializeApp } from "firebase/app";
+import { getFirestore, collection, doc, onSnapshot, setDoc, deleteDoc, writeBatch, getDocs } from "firebase/firestore";
+
+// ── Firebase config ──────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyDuy8_t_-SDm85B1NMa33vRqv7ZBjeZE2I",
+  authDomain: "reservas-buenas-y-santas.firebaseapp.com",
+  projectId: "reservas-buenas-y-santas",
+  storageBucket: "reservas-buenas-y-santas.firebasestorage.app",
+  messagingSenderId: "320028238373",
+  appId: "1:320028238373:web:5ec1eeaad33a825788d5cc",
+  measurementId: "G-MDFWR29ZJ7"
+};
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+// ─────────────────────────────────────────────────────────────────────────────
 
 const MESAS = [1, 2, 3, 4, 5, 15, 6, 16, 7, 17, 8, 18, 10, 11, 12, 13, 40, 41, 30, 31];
 const MESA_NOMBRE = { 30: "Barra 1", 31: "Barra 2" };
@@ -34,18 +50,11 @@ function getTodayStr() {
 
 export default function App() {
   const [vista, setVista] = useState("reservas");
-  const [reservas, setReservas] = useState(() => {
-    try {
-      const saved = localStorage.getItem("bys_reservas");
-      return saved ? JSON.parse(saved) : initialReservas;
-    } catch { return initialReservas; }
-  });
-  const [clientesArchivados, setClientesArchivados] = useState(() => {
-    try {
-      const saved = localStorage.getItem("bys_clientes");
-      return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
-  });
+  const [reservas, setReservas] = useState([]);
+  const [clientesArchivados, setClientesArchivados] = useState([]);
+  const [fbCargando, setFbCargando] = useState(true);
+  // Track whether Firestore has been seeded with initial data
+  const seededRef = useRef(false);
   const [filtroFecha, setFiltroFecha] = useState("2026-03-22");
   const [filtroEstado, setFiltroEstado] = useState("todas");
   const [filtroTurno, setFiltroTurno] = useState("todos");
@@ -75,6 +84,7 @@ export default function App() {
 
   // Auto-archivar al abrir la app si son las 4am o más
   useEffect(() => {
+    if (fbCargando) return; // wait until Firestore data is loaded
     const ahora = new Date();
     const hoy = getTodayStr();
     const esDespuesDeLas4 = ahora.getHours() >= 4;
@@ -93,29 +103,67 @@ export default function App() {
     const url = "https://script.google.com/macros/s/AKfycbxr4Yb8O1Db5W0sEh9eywRa-4rUgjd72TMZC_WJjvyTiDBljmtzj3tu5JhqHqqV0-y0HA/exec";
     fetch(url, { method: "POST", body: JSON.stringify(filas) })
       .then(res => { if (!res.ok) throw new Error(); })
-      .then(() => {
-        setClientesArchivados(prev => {
-          const todos = [...prev];
-          pasadas.forEach(r => {
-            if (!todos.find(c => c.nombre === r.nombre))
-              todos.push({ nombre: r.nombre, telefono: r.telefono || "", email: r.email || "" });
-          });
-          return todos;
+      .then(async () => {
+        // Archive clients to Firestore
+        pasadas.forEach(r => {
+          if (!clientesArchivados.find(c => c.nombre === r.nombre))
+            fbSetCliente({ nombre: r.nombre, telefono: r.telefono || "", email: r.email || "" });
         });
-        setReservas(rs => rs.filter(r => r.fecha >= hoy));
+        // Delete past reservas from Firestore
+        const batch = writeBatch(db);
+        pasadas.forEach(r => batch.delete(doc(db, "reservas", String(r.id))));
+        await batch.commit();
       })
-      .catch(() => {}); // silencioso, el usuario puede archivar manualmente si falla
-  }, []); // solo al montar
+      .catch(() => {}); // silencioso
+  }, [fbCargando]); // run once data is loaded
 
-  // Persistir reservas en localStorage cada vez que cambien
+  // ── Firestore: listen to reservas in real time ───────────────────────────
   useEffect(() => {
-    try { localStorage.setItem("bys_reservas", JSON.stringify(reservas)); } catch {}
-  }, [reservas]);
+    const unsub = onSnapshot(collection(db, "reservas"), async (snap) => {
+      if (snap.empty && !seededRef.current) {
+        // First run: seed with demo data
+        seededRef.current = true;
+        const batch = writeBatch(db);
+        initialReservas.forEach(r => {
+          batch.set(doc(db, "reservas", String(r.id)), r);
+        });
+        await batch.commit();
+        return; // the commit will trigger another snapshot
+      }
+      seededRef.current = true;
+      setReservas(snap.docs.map(d => d.data()));
+      setFbCargando(false);
+    }, (err) => {
+      console.error("Firestore reservas error:", err);
+      setFbCargando(false);
+    });
+    return () => unsub();
+  }, []);
 
-  // Persistir clientes archivados en localStorage cada vez que cambien
+  // ── Firestore: listen to clientes in real time ───────────────────────────
   useEffect(() => {
-    try { localStorage.setItem("bys_clientes", JSON.stringify(clientesArchivados)); } catch {}
-  }, [clientesArchivados]);
+    const unsub = onSnapshot(collection(db, "clientes"), (snap) => {
+      setClientesArchivados(snap.docs.map(d => d.data()));
+    }, (err) => { console.error("Firestore clientes error:", err); });
+    return () => unsub();
+  }, []);
+
+  // ── Firestore: helper writers ─────────────────────────────────────────────
+  const fbSetReserva = async (reserva) => {
+    try { await setDoc(doc(db, "reservas", String(reserva.id)), reserva); }
+    catch (e) { console.error("fbSetReserva:", e); }
+  };
+
+  const fbDeleteReserva = async (id) => {
+    try { await deleteDoc(doc(db, "reservas", String(id))); }
+    catch (e) { console.error("fbDeleteReserva:", e); }
+  };
+
+  const fbSetCliente = async (cliente) => {
+    const key = cliente.email || cliente.nombre.replace(/\s+/g, "_");
+    try { await setDoc(doc(db, "clientes", key), cliente); }
+    catch (e) { console.error("fbSetCliente:", e); }
+  };
 
   const showToast = (msg, tipo = "ok") => {
     setToast({ msg, tipo });
@@ -233,17 +281,19 @@ export default function App() {
       setConfirmarWA(true);
       return;
     }
-    setReservas(rs => rs.map(r => r.id === reservaEditando ? { ...form, id: r.id } : r));
+    const updated = { ...form, id: reservaEditando };
+    fbSetReserva(updated);
     showToast("Reserva actualizada ✓");
     setModalAbierto(false);
   };
 
-  const confirmarYGuardar = () => {
+  const confirmarYGuardar = async () => {
     setGuardando(true);
     const ahora = new Date();
     const cuando = `${String(ahora.getDate()).padStart(2,"0")}/${String(ahora.getMonth()+1).padStart(2,"0")}/${ahora.getFullYear()} ${String(ahora.getHours()).padStart(2,"0")}:${String(ahora.getMinutes()).padStart(2,"0")}`;
     const nuevoId = Date.now() + Math.floor(Math.random() * 10000);
-    setReservas(rs => [...rs, { ...form, mesa: form.mesas.join("+"), id: nuevoId, cuando }]);
+    const nuevaReserva = { ...form, mesa: form.mesas.join("+"), id: nuevoId, cuando };
+    await fbSetReserva(nuevaReserva);
     if (pendingSheetIdx !== null) {
       setSheetFilas(fs => [fs[0], ...fs.slice(1).filter((_, idx) => idx + 1 !== pendingSheetIdx)]);
       setPendingSheetIdx(null);
@@ -279,17 +329,19 @@ export default function App() {
       const url = "https://script.google.com/macros/s/AKfycbxr4Yb8O1Db5W0sEh9eywRa-4rUgjd72TMZC_WJjvyTiDBljmtzj3tu5JhqHqqV0-y0HA/exec";
       const res = await fetch(url, { method: "POST", body: JSON.stringify(filas) });
       if (!res.ok) throw new Error("Error al conectar con Google Sheets");
-      // Guardar clientes en memoria antes de borrar las reservas
-      setClientesArchivados(prev => {
-        const todos = [...prev];
-        pasadas.forEach(r => {
-          if (!todos.find(c => c.nombre === r.nombre)) {
-            todos.push({ nombre: r.nombre, telefono: r.telefono || "", email: r.email || "" });
-          }
-        });
-        return todos;
+      // Guardar clientes en Firestore
+      const nuevosClientes = [];
+      pasadas.forEach(r => {
+        if (!clientesArchivados.find(c => c.nombre === r.nombre)) {
+          const cliente = { nombre: r.nombre, telefono: r.telefono || "", email: r.email || "" };
+          nuevosClientes.push(cliente);
+          fbSetCliente(cliente);
+        }
       });
-      setReservas(rs => rs.filter(r => r.fecha >= hoy));
+      // Borrar reservas archivadas de Firestore
+      const batch = writeBatch(db);
+      pasadas.forEach(r => batch.delete(doc(db, "reservas", String(r.id))));
+      await batch.commit();
       showToast(`${pasadas.length} reserva${pasadas.length > 1 ? "s" : ""} archivada${pasadas.length > 1 ? "s" : ""} ✓`);
     } catch (e) {
       showToast("Error al archivar en Google Sheets", "error");
@@ -349,10 +401,14 @@ export default function App() {
       }
     }
 
-    setReservas(rs => rs.map(r => {
-      if (asignaciones[r.id]) return { ...r, mesas: asignaciones[r.id] };
-      return r;
-    }));
+    const batch = writeBatch(db);
+    reservasTurno.forEach(r => {
+      const nuevasMesas = asignaciones[r.id];
+      if (nuevasMesas) {
+        batch.set(doc(db, "reservas", String(r.id)), { ...r, mesas: nuevasMesas });
+      }
+    });
+    await batch.commit();
 
     if (sinMesa.length > 0) {
       showToast(`Sin mesa disponible: ${sinMesa.join(", ")}`, "error");
@@ -361,19 +417,22 @@ export default function App() {
     }
   };
 
-  const borrarMesasTurno = (fecha, turno) => {
-    const ids = reservas.filter(r => r.fecha === fecha && getTurno(r.hora) === turno && r.estado !== "cancelada").map(r => r.id);
-    setReservas(rs => rs.map(r => ids.includes(r.id) ? { ...r, mesas: [], mesa: "" } : r));
+  const borrarMesasTurno = async (fecha, turno) => {
+    const afectadas = reservas.filter(r => r.fecha === fecha && getTurno(r.hora) === turno && r.estado !== "cancelada");
+    const batch = writeBatch(db);
+    afectadas.forEach(r => batch.set(doc(db, "reservas", String(r.id)), { ...r, mesas: [], mesa: "" }));
+    await batch.commit();
     showToast("Mesas borradas", "error");
   };
 
   const eliminarReserva = (id) => {
-    setReservas(rs => rs.filter(r => r.id !== id));
+    fbDeleteReserva(id);
     showToast("Reserva eliminada", "error");
   };
 
   const cambiarEstado = (id, estado) => {
-    setReservas(rs => rs.map(r => r.id === id ? { ...r, estado } : r));
+    const r = reservas.find(r => r.id === id);
+    if (r) fbSetReserva({ ...r, estado });
   };
 
   const imprimirReservas = () => {
@@ -916,6 +975,15 @@ Buenas y Santas`;
     personas: reservas.filter(r => r.fecha === getTodayStr() && r.estado === "confirmada").reduce((s, r) => s + r.personas, 0),
   };
 
+  if (fbCargando) return (
+    <div style={{ minHeight: "100vh", background: "#b8ddb8", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20 }}>
+      <div style={{ fontFamily: "'Lora', serif", fontSize: 28, fontWeight: 700, fontStyle: "italic", color: "#1b5e20" }}>Buenas <span style={{ color: "#555" }}>y</span> Santas</div>
+      <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 3, textTransform: "uppercase", color: "#4a7a4a" }}>Cargando reservas…</div>
+      <div style={{ width: 32, height: 32, border: "3px solid #81c784", borderTopColor: "#1b5e20", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+
   return (
     <div style={{ minHeight: "100vh", background: "#b8ddb8", fontFamily: "'Georgia', serif", color: "#1a2e1a", position: "relative" }}>
       {/* Hojas marca de agua */}
@@ -1280,7 +1348,7 @@ Buenas y Santas`;
                           {(r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []).map(m => (
                             <span key={m} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#2e7d32", color: "#fff", borderRadius: 4, padding: "2px 8px", fontSize: 12, fontFamily: "'Jost', sans-serif", width: "fit-content" }}>
                               {getMesaNombre(m)}
-                              <button type="button" onClick={() => setReservas(rs => rs.map(x => x.id === r.id ? { ...x, mesas: (x.mesas||[x.mesa]||[]).filter(v => v !== m) } : x))}
+                              <button type="button" onClick={() => { const updated = { ...r, mesas: (r.mesas||[r.mesa]||[]).filter(v => v !== m) }; fbSetReserva(updated); }}
                                 style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 13, padding: 0, lineHeight: 1 }}>×</button>
                             </span>
                           ))}
@@ -1290,12 +1358,14 @@ Buenas y Santas`;
                             onChange={e => {
                               const val = parseInt(e.target.value);
                               if (!val) return;
-                              setReservas(rs => rs.map(x => {
+                              setReservas(rs => rs.map(x => {  // local optimistic update for immediate UI feedback
                                 if (x.id !== r.id) return x;
                                 const curr = x.mesas || (x.mesa ? [x.mesa] : []);
                                 if (curr.includes(val) || curr.length >= 8) return x;
                                 return { ...x, mesas: [...curr, val] };
                               }));
+                              const curr = r.mesas || (r.mesa ? [r.mesa] : []);
+                              if (!curr.includes(val) && curr.length < 8) fbSetReserva({ ...r, mesas: [...curr, val] });
                             }}
                           >
                             <option value="">+ mesa</option>
@@ -1456,7 +1526,7 @@ Buenas y Santas`;
                             {(r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []).map(m => (
                               <span key={m} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#2e7d32", color: "#fff", borderRadius: 4, padding: "3px 10px", fontSize: 13, fontFamily: "'Jost', sans-serif" }}>
                                 {getMesaNombre(m)}
-                                <button type="button" onClick={() => setReservas(rs => rs.map(x => x.id === r.id ? { ...x, mesas: (x.mesas || (x.mesa ? [x.mesa] : [])).filter(v => v !== m) } : x))}
+                                <button type="button" onClick={() => { const updated = { ...r, mesas: (r.mesas || (r.mesa ? [r.mesa] : [])).filter(v => v !== m) }; fbSetReserva(updated); }}
                                   style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 15, padding: 0, lineHeight: 1 }}>×</button>
                               </span>
                             ))}
@@ -1466,12 +1536,14 @@ Buenas y Santas`;
                               onChange={e => {
                                 const val = parseInt(e.target.value);
                                 if (!val) return;
-                                setReservas(rs => rs.map(x => {
+                                setReservas(rs => rs.map(x => { // optimistic local update
                                   if (x.id !== r.id) return x;
                                   const curr = x.mesas || (x.mesa ? [x.mesa] : []);
                                   if (curr.includes(val) || curr.length >= 8) return x;
                                   return { ...x, mesas: [...curr, val] };
                                 }));
+                                const curr = r.mesas || (r.mesa ? [r.mesa] : []);
+                                if (!curr.includes(val) && curr.length < 8) fbSetReserva({ ...r, mesas: [...curr, val] });
                               }}
                             >
                               <option value="">+ mesa</option>
@@ -2271,7 +2343,8 @@ Buenas y Santas`;
               ].map(op => (
                 <button key={op.value}
                   onClick={() => {
-                    setReservas(rs => rs.map(r => r.id === planoModal.reservaId ? { ...r, estado: op.value } : r));
+                    const r = reservas.find(r => r.id === planoModal.reservaId);
+                    if (r) fbSetReserva({ ...r, estado: op.value });
                     setPlanoModal(null);
                     showToast(`${planoModal.nombre} → ${op.label} ✓`);
                   }}
