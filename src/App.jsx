@@ -1184,9 +1184,11 @@ Buenas y Santas`;
                               <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "#4a7a4a", fontWeight: 600 }}>
                                 {color.label}
                               </span>
-                              <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, color: "#6a9a6a" }}>
-                                · {tStatus.mesas} mesa{tStatus.mesas !== 1 ? "s" : ""}
-                              </span>
+                              {tStatus.status === "ok" && (
+                                <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, color: "#6a9a6a" }}>
+                                  · {tStatus.mesas} mesa{tStatus.mesas !== 1 ? "s" : ""}
+                                </span>
+                              )}
                               {tStatus.status === "cuidado" && (
                                 <span style={{ background: "#e65100", color: "#fff", fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", padding: "2px 10px", borderRadius: 3 }}>
                                   ⚠ CUIDADO
@@ -1363,7 +1365,7 @@ Buenas y Santas`;
                     <div key={grupo.turnoKey} style={{ marginBottom: 20 }}>
                       <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "#4a7a4a", padding: "10px 4px 6px", fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
                         {color.label}
-                        <span style={{ fontWeight: 400, color: "#6a9a6a" }}>· {tStatus.mesas} mesas</span>
+                        {tStatus.status === "ok" && <span style={{ fontWeight: 400, color: "#6a9a6a" }}>· {tStatus.mesas} mesas</span>}
                         {tStatus.status === "cuidado" && <span style={{ background: "#e65100", color: "#fff", fontSize: 10, fontWeight: 700, letterSpacing: 1, padding: "1px 8px", borderRadius: 3 }}>⚠ CUIDADO</span>}
                         {tStatus.status === "completo" && <span style={{ background: "#b71c1c", color: "#fff", fontSize: 10, fontWeight: 700, letterSpacing: 1, padding: "1px 8px", borderRadius: 3 }}>🔴 COMPLETO</span>}
                       </div>
@@ -1749,7 +1751,7 @@ Buenas y Santas`;
                     <span style={{ fontSize: 16 }}>{status === "completo" ? "🔴" : "⚠️"}</span>
                     <div>
                       <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 700, color: status === "completo" ? "#b71c1c" : "#e65100", textTransform: "uppercase", letterSpacing: 1 }}>
-                        {status === "completo" ? "COMPLETO" : "CUIDADO"} · {totalMesas} mesas ocupadas
+                        {status === "completo" ? "COMPLETO" : "CUIDADO"}
                       </p>
                     </div>
                   </div>
