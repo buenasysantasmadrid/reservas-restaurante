@@ -61,6 +61,7 @@ export default function App() {
   const [turnoHasta, setTurnoHasta] = useState("16:00");
   const [turnoPersonalizado, setTurnoPersonalizado] = useState(null); // { desde, hasta } when active
   const [hoveredMesa, setHoveredMesa] = useState(null);
+  const [guardando, setGuardando] = useState(false);
 
   // Auto-archivar al abrir la app si son las 4am o más
   useEffect(() => {
@@ -218,9 +219,11 @@ export default function App() {
   };
 
   const confirmarYGuardar = () => {
+    setGuardando(true);
     const ahora = new Date();
     const cuando = `${String(ahora.getDate()).padStart(2,"0")}/${String(ahora.getMonth()+1).padStart(2,"0")}/${ahora.getFullYear()} ${String(ahora.getHours()).padStart(2,"0")}:${String(ahora.getMinutes()).padStart(2,"0")}`;
-    setReservas(rs => [...rs, { ...form, mesa: form.mesas.join("+"), id: Date.now(), cuando }]);
+    const nuevoId = Date.now() + Math.floor(Math.random() * 10000);
+    setReservas(rs => [...rs, { ...form, mesa: form.mesas.join("+"), id: nuevoId, cuando }]);
     if (pendingSheetIdx !== null) {
       setSheetFilas(fs => [fs[0], ...fs.slice(1).filter((_, idx) => idx + 1 !== pendingSheetIdx)]);
       setPendingSheetIdx(null);
@@ -229,6 +232,7 @@ export default function App() {
     setConfirmarWA(false);
     setModalAbierto(false);
     if (vista === "sheet") setVista("sheet");
+    setTimeout(() => setGuardando(false), 800);
   };
 
   const archivarReservasPasadas = async () => {
@@ -1655,15 +1659,17 @@ Buenas y Santas`;
                     {sheetFilas.slice(1).map((fila, i) => (
                       <tr key={i} className="row-hover" style={{ borderBottom: "1px solid #c8e6c9" }}>
                         <td style={{ padding: "14px 16px" }}>
-                          <button className="btn-gold" style={{ padding: "8px 16px", fontSize: 11 }}
+                          <button className="btn-gold" style={{ padding: "8px 16px", fontSize: 11, opacity: guardando ? 0.5 : 1, cursor: guardando ? "not-allowed" : "pointer" }}
+                            disabled={guardando}
                             onClick={() => {
+                              if (guardando) return;
                               const d = importarFilaSheet(headers, fila);
                               setReservaEditando(null);
                               setForm(d);
                               setPendingSheetIdx(i + 1); // +1 porque slice(1)
                               setModalAbierto(true);
                             }}>
-                            + Importar
+                            {guardando ? "⏳ Importando..." : "+ Importar"}
                           </button>
                         </td>
                         {fila.map((celda, j) => {
@@ -1849,8 +1855,8 @@ Buenas y Santas`;
               {form.telefono && (
                 <BtnWhatsApp reserva={form} style={{ padding: "12px 20px" }} />
               )}
-              <button className="btn-gold" onClick={confirmarYGuardar}>
-                Sí, guardar reserva
+              <button className="btn-gold" disabled={guardando} style={{ opacity: guardando ? 0.5 : 1 }} onClick={confirmarYGuardar}>
+                {guardando ? "⏳ Guardando..." : "Sí, guardar reserva"}
               </button>
             </div>
           </div>
