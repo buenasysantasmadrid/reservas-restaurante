@@ -57,7 +57,6 @@ export default function App() {
   const [sheetFilas, setSheetFilas] = useState([]);
   const [sheetError, setSheetError] = useState("");
   const [turnoModalAbierto, setTurnoModalAbierto] = useState(false);
-  const [hoveredMesa, setHoveredMesa] = useState(null); // { x, y, nota, nombre }
   const [turnoDesde, setTurnoDesde] = useState("13:30");
   const [turnoHasta, setTurnoHasta] = useState("16:00");
   const [turnoPersonalizado, setTurnoPersonalizado] = useState(null); // { desde, hasta } when active
@@ -430,6 +429,197 @@ export default function App() {
 </body>
 </html>`;
 
+    const w = window.open("", "_blank");
+    w.document.write(html);
+    w.document.close();
+  };
+
+  const imprimirPlano = () => {
+    const fechaLabel = filtroFecha
+      ? new Date(filtroFecha + "T12:00").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+      : "Todas las fechas";
+
+    const turnoLabelMap = { t1: "1º Turno Mediodía", t2: "2º Turno Mediodía", noche: "Noche" };
+    const turnoLabel = turnoLabelMap[filtroTurno] || (filtroTurno === "custom" && turnoPersonalizado ? `Turno ${turnoPersonalizado.desde} – ${turnoPersonalizado.hasta}` : "");
+
+    const planoTurnoLocal = filtroTurno === "custom" ? "custom" : (filtroTurno === "todos" || filtroTurno === "mediodia") ? "t1" : filtroTurno;
+    const resTurno = reservas.filter(r => {
+      if (!filtroFecha || r.fecha !== filtroFecha) return false;
+      if (r.estado === "cancelada") return false;
+      if (planoTurnoLocal === "custom" && turnoPersonalizado) {
+        const [hD, mD] = turnoPersonalizado.desde.split(":").map(Number);
+        const [hH, mH] = turnoPersonalizado.hasta.split(":").map(Number);
+        const [hR, mR] = (r.hora || "00:00").split(":").map(Number);
+        const minsR = hR * 60 + mR;
+        return minsR >= hD * 60 + mD && minsR <= hH * 60 + mH;
+      }
+      return getTurno(r.hora) === planoTurnoLocal;
+    }).sort((a, b) => (a.hora || "").localeCompare(b.hora || ""));
+
+    const mesaResMap = {};
+    resTurno.forEach(r => {
+      const ms = r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : [];
+      ms.forEach(m => { mesaResMap[m] = r; });
+    });
+
+    const U = 64;
+    const PAD = 12;
+    const MESAS_POS_P = [
+      { id: 40, cx: 3.2, cy: 0.5, w: 0.8, h: 0.8 },
+      { id: 41, cx: 4.5, cy: 0.5, w: 0.8, h: 0.8 },
+      { id: 12, cx: 1,   cy: 1.7, w: 0.8, h: 0.8 },
+      { id: 1,  cx: 3.2, cy: 1.7, w: 0.8, h: 0.8 },
+      { id: 3,  cx: 4.5, cy: 1.7, w: 0.8, h: 0.8 },
+      { id: 5,  cx: 5.8, cy: 1.7, w: 0.8, h: 0.8 },
+      { id: 13, cx: 1,   cy: 2.6, w: 0.8, h: 0.8 },
+      { id: 2,  cx: 3.2, cy: 2.6, w: 0.8, h: 0.8 },
+      { id: 4,  cx: 4.5, cy: 2.6, w: 0.8, h: 0.8 },
+      { id: 15, cx: 5.8, cy: 2.6, w: 0.8, h: 0.8 },
+      { id: 18, cx: 3.2, cy: 3.9, w: 0.8, h: 0.8 },
+      { id: 17, cx: 4.5, cy: 3.9, w: 0.8, h: 0.8 },
+      { id: 16, cx: 5.8, cy: 3.9, w: 0.8, h: 0.8 },
+      { id: 11, cx: 0.5, cy: 4.8, w: 0.8, h: 0.8 },
+      { id: 10, cx: 1.6, cy: 4.8, w: 0.8, h: 0.8 },
+      { id: 8,  cx: 3.2, cy: 4.8, w: 0.8, h: 0.8 },
+      { id: 7,  cx: 4.5, cy: 4.8, w: 0.8, h: 0.8 },
+      { id: 6,  cx: 5.8, cy: 4.8, w: 0.8, h: 0.8 },
+      { id: 30, cx: 3.2, cy: 6.0, w: 0.8, h: 0.8, barra: true },
+      { id: 31, cx: 4.5, cy: 6.0, w: 0.8, h: 0.8, barra: true },
+    ];
+    const MESA_NOMBRE_P = { 30: "Barra 1", 31: "Barra 2" };
+    const getMesaNombreP = (m) => MESA_NOMBRE_P[m] || String(m);
+
+    const SVG_COLS = 6.1;
+    const SVG_ROWS = 7.8;
+    const VW = SVG_COLS * U + PAD * 2;
+    const VH = SVG_ROWS * U + PAD * 2;
+
+    const mesasSVG = MESAS_POS_P.map(({ id, cx, cy, w, h, barra }) => {
+      const res = mesaResMap[id];
+      const ocupada = !!res;
+      const sinConfirmar = res && res.estado === "tomada";
+      const llego = res && res.estado === "llego";
+      const fill   = llego ? "#f5f5f5" : ocupada ? (sinConfirmar ? "#fff8e1" : "#2e7d32") : "#e8f5e9";
+      const stroke = llego ? "#e0e0e0" : ocupada ? (sinConfirmar ? "#f9a825" : "#1b5e20") : "#81c784";
+      const textC  = llego ? "#bdbdbd" : ocupada ? (sinConfirmar ? "#e65100" : "#fff") : "#2e7d32";
+      const mx = PAD + cx * U - (w * U) / 2;
+      const my = PAD + cy * U - (h * U) / 2;
+      const mw = w * U;
+      const mh = h * U;
+      const RR = 8;
+      const label = getMesaNombreP(id);
+      const strokeW = ocupada ? 2 : 1.2;
+      const nombre1 = res ? res.nombre.split(" ")[0] : "";
+      const hora1 = res ? res.hora : "";
+      const pax1 = res ? res.personas + "p" : "";
+      const hasNota = res && res.notas;
+
+      return `
+        <g>
+          <rect x="${mx+1}" y="${my+2}" width="${mw}" height="${mh}" rx="${RR+1}" fill="rgba(0,0,0,0.06)"/>
+          <rect x="${mx}" y="${my}" width="${mw}" height="${mh}" rx="${RR}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}"/>
+          <text x="${mx + mw/2}" y="${my + (res ? mh*0.28 : mh/2+4)}" text-anchor="middle"
+            style="font-family:'Cormorant Garamond',serif;font-size:${barra?11:13}px;font-weight:700;fill:${textC};letter-spacing:0.5px">${label}</text>
+          ${res ? `<text x="${mx + mw/2}" y="${my + mh*0.48}" text-anchor="middle"
+            style="font-family:'Jost',sans-serif;font-size:7.5px;font-weight:600;fill:${textC};opacity:0.85">${hora1}</text>` : ""}
+          ${res ? `<text x="${mx + mw/2}" y="${my + mh*0.68}" text-anchor="middle"
+            style="font-family:'Jost',sans-serif;font-size:8px;font-weight:500;fill:${textC}">${nombre1}</text>` : ""}
+          ${res ? `<text x="${mx + mw/2}" y="${my + mh*0.88}" text-anchor="middle"
+            style="font-family:'Jost',sans-serif;font-size:7.5px;fill:${textC};opacity:0.75">${pax1}</text>` : ""}
+          ${hasNota ? `<circle cx="${mx + mw - 7}" cy="${my + 7}" r="4" fill="#e65100" opacity="0.85"/>
+          <text x="${mx + mw - 7}" y="${my + 10}" text-anchor="middle" style="font-family:'Jost',sans-serif;font-size:6px;fill:#fff;font-weight:700">!</text>` : ""}
+        </g>`;
+    }).join("");
+
+    const tablaRows = resTurno.map(r => {
+      const mesas = r.mesas && r.mesas.length > 0 ? r.mesas.map(getMesaNombreP).join("+") : r.mesa ? getMesaNombreP(r.mesa) : "—";
+      const estadoBadge = r.estado === "confirmada" ? "badge-conf" : r.estado === "tomada" ? "badge-tom" : r.estado === "llego" ? "badge-llego" : "badge-canc";
+      return `<tr>
+        <td class="nombre">${r.nombre}</td>
+        <td>${r.telefono || "—"}</td>
+        <td class="hora">${r.hora}</td>
+        <td style="text-align:center" class="pax">${r.personas}</td>
+        <td><strong>${mesas}</strong></td>
+        <td><span class="${estadoBadge}">${r.estado}</span></td>
+        <td style="color:#555;font-size:9px">${r.notas || ""}</td>
+      </tr>`;
+    }).join("");
+
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Plano</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,700;1,700&family=Cormorant+Garamond:wght@700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Jost', Arial, sans-serif; color: #000; background: #fff; padding: 18px 24px; }
+    .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.5px solid #1b5e20; padding-bottom: 10px; margin-bottom: 16px; }
+    .header-logo { font-family: 'Lora', Georgia, serif; font-size: 20px; font-weight: 700; font-style: italic; color: #000; }
+    .header-logo .y { color: #2e7d32; }
+    .header-sub { font-size: 7px; letter-spacing: 3px; text-transform: uppercase; color: #888; margin-top: 3px; }
+    .header-right { text-align: right; }
+    .header-fecha { font-size: 12px; font-weight: 500; text-transform: capitalize; }
+    .header-turno { font-size: 8.5px; font-weight: 300; color: #2e7d32; letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+    .layout { display: flex; gap: 24px; align-items: flex-start; margin-bottom: 20px; }
+    .plano-wrap { flex: 0 0 auto; }
+    svg { display: block; }
+    .tabla-wrap { flex: 1; }
+    .section-title { font-family: 'Jost', sans-serif; font-size: 8px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: #4a7a4a; margin-bottom: 8px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { padding: 4px 7px; text-align: left; font-size: 7.5px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: #444; border-bottom: 1px solid #1b5e20; }
+    td { padding: 4px 7px; font-size: 9.5px; color: #000; border-bottom: 1px solid #ebebeb; line-height: 1.4; vertical-align: middle; }
+    td.nombre { font-family: 'Lora', Georgia, serif; font-weight: 700; font-size: 11px; font-style: italic; }
+    td.hora { font-family: 'Lora', Georgia, serif; font-size: 11px; font-weight: 700; font-style: italic; }
+    td.pax { font-family: 'Lora', Georgia, serif; font-size: 11px; font-weight: 700; }
+    .badge-conf  { background:#e8f5e9; color:#1b5e20; border:1px solid #81c784; border-radius:3px; padding:1px 6px; font-size:8px; letter-spacing:1px; text-transform:uppercase; }
+    .badge-tom   { background:#fff8e1; color:#e65100; border:1px solid #ffcc02; border-radius:3px; padding:1px 6px; font-size:8px; letter-spacing:1px; text-transform:uppercase; }
+    .badge-llego { background:#f3e5f5; color:#6a1b9a; border:1px solid #ce93d8; border-radius:3px; padding:1px 6px; font-size:8px; letter-spacing:1px; text-transform:uppercase; }
+    .badge-canc  { background:#ffebee; color:#c62828; border:1px solid #ef9a9a; border-radius:3px; padding:1px 6px; font-size:8px; letter-spacing:1px; text-transform:uppercase; }
+    @media print {
+      body { padding: 0; }
+      @page { size: A4 landscape; margin: 10mm 14mm; }
+      html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="header-logo">Buenas <span class="y">y</span> Santas</div>
+      <div class="header-sub">nueva cocina casera</div>
+    </div>
+    <div class="header-right">
+      <div class="header-fecha">${fechaLabel}</div>
+      ${turnoLabel ? `<div class="header-turno">${turnoLabel}</div>` : ""}
+    </div>
+  </div>
+  <div class="layout">
+    <div class="plano-wrap">
+      <div class="section-title">Plano de sala</div>
+      <svg viewBox="0 0 ${VW} ${VH}" width="${VW * 0.72}" height="${VH * 0.72}" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="${VW}" height="${VH}" fill="#f4faf4" rx="12"/>
+        <line x1="${PAD + 0.2*U}" y1="${PAD + 1.15*U}" x2="${PAD + 6.5*U}" y2="${PAD + 1.15*U}" stroke="#c8e6c9" stroke-width="0.8" stroke-dasharray="5 5" opacity="0.7"/>
+        ${mesasSVG}
+      </svg>
+    </div>
+    <div class="tabla-wrap">
+      <div class="section-title">Reservas del turno — ${resTurno.length} reserva${resTurno.length !== 1 ? "s" : ""}</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Cliente</th><th>Teléfono</th><th>Hora</th><th style="text-align:center">Pax</th><th>Mesa</th><th>Estado</th><th>Notas</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tablaRows || '<tr><td colspan="7" style="padding:10px;text-align:center;color:#888;font-size:9px">No hay reservas</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <script>window.onload = () => { window.print(); }<\/script>
+</body>
+</html>`;
     const w = window.open("", "_blank");
     w.document.write(html);
     w.document.close();
@@ -1789,23 +1979,7 @@ Buenas y Santas`;
 
           return (
             <g key={id} style={{ cursor: res ? "pointer" : "default" }}
-              onClick={() => res && setPlanoModal({ reservaId: res.id, nombre: res.nombre, estado: res.estado, telefono: res.telefono || "", prefijo: res.prefijo || "" })}
-              onMouseEnter={res && res.notas ? (e) => {
-                const svgEl = e.currentTarget.closest("svg");
-                const svgRect = svgEl.getBoundingClientRect();
-                const containerRect = svgEl.parentElement.getBoundingClientRect();
-                setHoveredMesa({
-                  x: mx + mw / 2,
-                  y: my,
-                  nota: res.notas,
-                  nombre: res.nombre.split(" ")[0],
-                  svgOffsetX: svgRect.left - containerRect.left,
-                  svgOffsetY: svgRect.top - containerRect.top,
-                  scaleX: svgRect.width / VW,
-                  scaleY: svgRect.height / VH,
-                });
-              } : null}
-              onMouseLeave={res && res.notas ? () => setHoveredMesa(null) : null}>
+              onClick={() => res && setPlanoModal({ reservaId: res.id, nombre: res.nombre, estado: res.estado, telefono: res.telefono || "", prefijo: res.prefijo || "" })}>
               <rect x={mx+1} y={my+2} width={mw} height={mh} rx={RR+1} fill="rgba(0,0,0,0.06)"/>
               <rect x={mx} y={my} width={mw} height={mh} rx={RR} fill={fill} stroke={stroke} strokeWidth={ocupada ? 2 : 1.2}/>
               <text x={mx + mw/2} y={my + lineH} textAnchor="middle"
@@ -1841,6 +2015,7 @@ Buenas y Santas`;
                 <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 3, color: "#4a7a4a", textTransform: "uppercase", marginBottom: 8 }}>Vista sala</p>
                 <h1 className="page-title" style={{ fontFamily: "'Lora', serif", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Plano</h1>
               </div>
+              <button className="btn-outline" style={{ borderColor: "#81c784", color: "#2e7d32", fontSize: 11 }} onClick={imprimirPlano}>🖨 Imprimir plano</button>
             </div>
 
             {/* Filtros */}
@@ -1893,51 +2068,20 @@ Buenas y Santas`;
                   </div>
                 ))}
               </div>
-              <div style={{ position: "relative", display: "inline-block", width: "100%", maxWidth: 640 }}>
-                <svg viewBox={`0 0 ${VW} ${VH}`} style={{ width: "100%", display: "block", borderRadius: 12, boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
-                  <defs>
-                    <filter id="mesaShadow" x="-15%" y="-15%" width="130%" height="130%">
-                      <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" floodColor="#1b5e20" floodOpacity="0.18"/>
-                    </filter>
-                    <pattern id="floorGrid" x="0" y="0" width={U*0.5} height={U*0.5} patternUnits="userSpaceOnUse">
-                      <path d={`M ${U*0.5} 0 L 0 0 0 ${U*0.5}`} fill="none" stroke="#e8f5e9" strokeWidth="0.5"/>
-                    </pattern>
-                  </defs>
-                  <rect x={0} y={0} width={VW} height={VH} fill="#f4faf4" rx={12}/>
-                  <rect x={0} y={0} width={VW} height={VH} fill="url(#floorGrid)" rx={12}/>
-                  <line x1={PAD + 0.2*U} y1={PAD + 1.15*U} x2={PAD + 6.5*U} y2={PAD + 1.15*U} stroke="#c8e6c9" strokeWidth={0.8} strokeDasharray="5 5" opacity="0.7"/>
-                  {MESAS_POS.map(m => <MesaSVG key={m.id} mesa={m} />)}
-                </svg>
-                {hoveredMesa && (() => {
-                  const px = (hoveredMesa.svgOffsetX || 0) + hoveredMesa.x * (hoveredMesa.scaleX || 1);
-                  const py = (hoveredMesa.svgOffsetY || 0) + hoveredMesa.y * (hoveredMesa.scaleY || 1) - 12;
-                  return (
-                    <div style={{
-                      position: "absolute",
-                      left: px,
-                      top: py,
-                      transform: "translate(-50%, -100%)",
-                      background: "#1a2e1a",
-                      color: "#fff",
-                      borderRadius: 6,
-                      padding: "7px 12px",
-                      fontFamily: "'Jost', sans-serif",
-                      fontSize: 12,
-                      letterSpacing: 0.3,
-                      maxWidth: 200,
-                      whiteSpace: "pre-wrap",
-                      pointerEvents: "none",
-                      zIndex: 20,
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
-                      lineHeight: 1.5,
-                    }}>
-                      <span style={{ fontSize: 10, color: "#81c784", textTransform: "uppercase", letterSpacing: 1, display: "block", marginBottom: 3 }}>{hoveredMesa.nombre} · nota</span>
-                      {hoveredMesa.nota}
-                      <div style={{ position: "absolute", bottom: -6, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderTop: "6px solid #1a2e1a" }} />
-                    </div>
-                  );
-                })()}
-              </div>
+              <svg viewBox={`0 0 ${VW} ${VH}`} style={{ width: "100%", maxWidth: 640, display: "block", borderRadius: 12, boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
+                <defs>
+                  <filter id="mesaShadow" x="-15%" y="-15%" width="130%" height="130%">
+                    <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" floodColor="#1b5e20" floodOpacity="0.18"/>
+                  </filter>
+                  <pattern id="floorGrid" x="0" y="0" width={U*0.5} height={U*0.5} patternUnits="userSpaceOnUse">
+                    <path d={`M ${U*0.5} 0 L 0 0 0 ${U*0.5}`} fill="none" stroke="#e8f5e9" strokeWidth="0.5"/>
+                  </pattern>
+                </defs>
+                <rect x={0} y={0} width={VW} height={VH} fill="#f4faf4" rx={12}/>
+                <rect x={0} y={0} width={VW} height={VH} fill="url(#floorGrid)" rx={12}/>
+                <line x1={PAD + 0.2*U} y1={PAD + 1.15*U} x2={PAD + 6.5*U} y2={PAD + 1.15*U} stroke="#c8e6c9" strokeWidth={0.8} strokeDasharray="5 5" opacity="0.7"/>
+                {MESAS_POS.map(m => <MesaSVG key={m.id} mesa={m} />)}
+              </svg>
               {!filtroFecha && (
                 <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#9e9e9e", marginTop: 12 }}>
                   Selecciona una fecha para ver la ocupación.
