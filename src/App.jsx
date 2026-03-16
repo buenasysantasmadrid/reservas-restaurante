@@ -361,7 +361,7 @@ export default function App() {
     1: [{internas:[3]}, {internas:[10]}, {internas:[11]}, {internas:[4]}, {internas:[5]}, {internas:[15]}, {internas:[7]}, {internas:[17]}, {internas:[8]}, {internas:[18]}, {internas:[1]}, {internas:[2]}, {internas:[6]}, {internas:[16]}],
   };
 
-  const asignarMesasTurno = (fecha, turno) => {
+  const asignarMesasTurno = async (fecha, turno) => {
     // Get all reservas for this fecha+turno, excluding canceladas
     const reservasTurno = reservas.filter(r => r.fecha === fecha && getTurno(r.hora) === turno && r.estado !== "cancelada");
     if (reservasTurno.length === 0) return;
