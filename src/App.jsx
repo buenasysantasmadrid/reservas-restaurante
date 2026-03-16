@@ -1791,41 +1791,40 @@ Buenas y Santas`;
                 />
               </div>
 
-              {/* Aviso de ocupación del turno */}
-              {form.fecha && form.hora && (() => {
-                const turno = getTurno(form.hora);
-                const existing = reservas.filter(r =>
-                  r.fecha === form.fecha &&
-                  getTurno(r.hora) === turno &&
-                  r.estado !== "cancelada" &&
-                  r.id !== reservaEditando
-                );
-                const mesasExistentes = existing.reduce((sum, r) => sum + mesasParaPax(r.personas || 1), 0);
-                const mesasNuevas = form.personas ? mesasParaPax(form.personas) : 0;
-                const totalMesas = mesasExistentes + mesasNuevas;
-                let status = "ok";
-                if (totalMesas > 13) status = "completo";
-                else if (totalMesas > 11) status = "cuidado";
-                if (status === "ok") return null;
-                return (
-                  <div style={{ gridColumn: "1/-1", padding: "7px 12px", borderRadius: 6, background: status === "completo" ? "#ffebee" : "#fff3e0", border: `1px solid ${status === "completo" ? "#ef9a9a" : "#ffcc80"}`, display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 16 }}>{status === "completo" ? "🔴" : "⚠️"}</span>
-                    <div>
-                      <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 700, color: status === "completo" ? "#b71c1c" : "#e65100", textTransform: "uppercase", letterSpacing: 1 }}>
+              <div style={{ display: "flex", alignItems: "flex-end", gap: 10 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 9, marginBottom: 3 }}>Estado</label>
+                  <select className="input-field" value={form.estado} onChange={e => setForm(f => ({ ...f, estado: e.target.value }))} style={{ padding: "7px 10px", fontSize: 13 }}>
+                    <option value="tomada">Tomada</option>
+                    <option value="confirmada">Confirmada</option>
+                    <option value="cancelada">Cancelada</option>
+                    <option value="llego">Llegó</option>
+                  </select>
+                </div>
+                {form.fecha && form.hora && (() => {
+                  const turno = getTurno(form.hora);
+                  const existing = reservas.filter(r =>
+                    r.fecha === form.fecha &&
+                    getTurno(r.hora) === turno &&
+                    r.estado !== "cancelada" &&
+                    r.id !== reservaEditando
+                  );
+                  const mesasExistentes = existing.reduce((sum, r) => sum + mesasParaPax(r.personas || 1), 0);
+                  const mesasNuevas = form.personas ? mesasParaPax(form.personas) : 0;
+                  const totalMesas = mesasExistentes + mesasNuevas;
+                  let status = "ok";
+                  if (totalMesas > 13) status = "completo";
+                  else if (totalMesas > 11) status = "cuidado";
+                  if (status === "ok") return null;
+                  return (
+                    <div style={{ padding: "7px 12px", borderRadius: 6, background: status === "completo" ? "#ffebee" : "#fff3e0", border: `1px solid ${status === "completo" ? "#ef9a9a" : "#ffcc80"}`, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
+                      <span style={{ fontSize: 15 }}>{status === "completo" ? "🔴" : "⚠️"}</span>
+                      <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 700, color: status === "completo" ? "#b71c1c" : "#e65100", textTransform: "uppercase", letterSpacing: 1 }}>
                         {status === "completo" ? "COMPLETO" : "CUIDADO"}
-                      </p>
+                      </span>
                     </div>
-                  </div>
-                );
-              })()}
-              <div>
-                <label style={{ fontSize: 9, marginBottom: 3 }}>Estado</label>
-                <select className="input-field" value={form.estado} onChange={e => setForm(f => ({ ...f, estado: e.target.value }))} style={{ padding: "7px 10px", fontSize: 13 }}>
-                  <option value="tomada">Tomada</option>
-                  <option value="confirmada">Confirmada</option>
-                  <option value="cancelada">Cancelada</option>
-                  <option value="llego">Llegó</option>
-                </select>
+                  );
+                })()}
               </div>
               <div>
                 <label style={{ fontSize: 9, marginBottom: 3 }}>Tomada por *</label>
