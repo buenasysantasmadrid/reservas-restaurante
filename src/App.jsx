@@ -1445,15 +1445,15 @@ Buenas y Santas`;
       {/* ── MODAL NUEVA / EDITAR RESERVA ── */}
       {modalAbierto && (
         <div className="overlay" onClick={e => e.target === e.currentTarget && setModalAbierto(false)}>
-          <div className="modal">
-            <h2 style={{ fontFamily: "'Lora', serif", fontSize: 32, fontWeight: 700, color: "#1a1a1a", marginBottom: 28 }}>
+          <div className="modal" style={{ padding: "24px 28px" }}>
+            <h2 style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", marginBottom: 16 }}>
               {reservaEditando ? "Editar reserva" : "Nueva reserva"}
             </h2>
-            <div className="modal-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+            <div className="modal-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
 
               {/* Cliente con búsqueda por texto + datalist */}
               <div style={{ gridColumn: "1/-1" }}>
-                <label>Cliente *</label>
+                <label style={{ fontSize: 9, marginBottom: 3 }}>Cliente *</label>
                 <input
                   className="input-field"
                   list="lista-clientes"
@@ -1466,6 +1466,7 @@ Buenas y Santas`;
                   }}
                   placeholder="Escribe o busca un cliente..."
                   autoComplete="off"
+                  style={{ padding: "7px 10px", fontSize: 13 }}
                 />
                 <datalist id="lista-clientes">
                   {nombresClientes.map(n => <option key={n} value={n} />)}
@@ -1473,42 +1474,42 @@ Buenas y Santas`;
               </div>
 
               <div>
-                <label>Teléfono</label>
+                <label style={{ fontSize: 9, marginBottom: 3 }}>Teléfono</label>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <input className="input-field" value={form.prefijo ?? "+34"} onChange={e => setForm(f => ({ ...f, prefijo: e.target.value }))} autoComplete="off" style={{ width: 72 }} placeholder="+34" />
-                  <input className="input-field" value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} autoComplete="off" />
+                  <input className="input-field" value={form.prefijo ?? "+34"} onChange={e => setForm(f => ({ ...f, prefijo: e.target.value }))} autoComplete="off" style={{ width: 64, padding: "7px 8px", fontSize: 13 }} placeholder="+34" />
+                  <input className="input-field" value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} autoComplete="off" style={{ padding: "7px 10px", fontSize: 13 }} />
                 </div>
               </div>
               <div>
-                <label>Email</label>
-                <input className="input-field" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} autoComplete="off" />
+                <label style={{ fontSize: 9, marginBottom: 3 }}>Email</label>
+                <input className="input-field" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} autoComplete="off" style={{ padding: "7px 10px", fontSize: 13 }} />
               </div>
               <div>
-                <label>Fecha *</label>
-                <input type="date" className="input-field" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} autoComplete="off" />
+                <label style={{ fontSize: 9, marginBottom: 3 }}>Fecha *</label>
+                <input type="date" className="input-field" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} autoComplete="off" style={{ padding: "7px 10px", fontSize: 13 }} />
               </div>
               <div>
-                <label>Hora *</label>
-                <select className="input-field" value={form.hora} onChange={e => setForm(f => ({ ...f, hora: e.target.value }))}>
-                  <option value="">— Seleccionar hora —</option>
+                <label style={{ fontSize: 9, marginBottom: 3 }}>Hora *</label>
+                <select className="input-field" value={form.hora} onChange={e => setForm(f => ({ ...f, hora: e.target.value }))} style={{ padding: "7px 10px", fontSize: 13 }}>
+                  <option value="">— Hora —</option>
                   {HORARIOS.map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
               </div>
               <div>
-                <label>Nº de personas *</label>
+                <label style={{ fontSize: 9, marginBottom: 3 }}>Nº de personas *</label>
                 <input
                   type="number"
                   className="input-field"
                   min={1} max={40}
                   value={form.personas}
                   onChange={e => setForm(f => ({ ...f, personas: parseInt(e.target.value) || "" }))}
+                  style={{ padding: "7px 10px", fontSize: 13 }}
                 />
               </div>
 
               {/* Aviso de ocupación del turno */}
               {form.fecha && form.hora && (() => {
                 const turno = getTurno(form.hora);
-                // Calculate existing mesas in turno (excluding current reservation being edited)
                 const existing = reservas.filter(r =>
                   r.fecha === form.fecha &&
                   getTurno(r.hora) === turno &&
@@ -1523,22 +1524,19 @@ Buenas y Santas`;
                 else if (totalMesas > 11) status = "cuidado";
                 if (status === "ok") return null;
                 return (
-                  <div style={{ gridColumn: "1/-1", padding: "10px 14px", borderRadius: 6, background: status === "completo" ? "#ffebee" : "#fff3e0", border: `1px solid ${status === "completo" ? "#ef9a9a" : "#ffcc80"}`, display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 18 }}>{status === "completo" ? "🔴" : "⚠️"}</span>
+                  <div style={{ gridColumn: "1/-1", padding: "7px 12px", borderRadius: 6, background: status === "completo" ? "#ffebee" : "#fff3e0", border: `1px solid ${status === "completo" ? "#ef9a9a" : "#ffcc80"}`, display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 16 }}>{status === "completo" ? "🔴" : "⚠️"}</span>
                     <div>
-                      <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, fontWeight: 700, color: status === "completo" ? "#b71c1c" : "#e65100", textTransform: "uppercase", letterSpacing: 1 }}>
-                        {status === "completo" ? "COMPLETO" : "CUIDADO"}
-                      </p>
-                      <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#555", marginTop: 2 }}>
-                        Con esta reserva el turno tendría {totalMesas} mesas ocupadas {status === "completo" ? "(más de 13)" : "(más de 11)"}
+                      <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 700, color: status === "completo" ? "#b71c1c" : "#e65100", textTransform: "uppercase", letterSpacing: 1 }}>
+                        {status === "completo" ? "COMPLETO" : "CUIDADO"} · {totalMesas} mesas ocupadas
                       </p>
                     </div>
                   </div>
                 );
               })()}
               <div>
-                <label>Estado</label>
-                <select className="input-field" value={form.estado} onChange={e => setForm(f => ({ ...f, estado: e.target.value }))}>
+                <label style={{ fontSize: 9, marginBottom: 3 }}>Estado</label>
+                <select className="input-field" value={form.estado} onChange={e => setForm(f => ({ ...f, estado: e.target.value }))} style={{ padding: "7px 10px", fontSize: 13 }}>
                   <option value="tomada">Tomada</option>
                   <option value="confirmada">Confirmada</option>
                   <option value="cancelada">Cancelada</option>
@@ -1546,11 +1544,12 @@ Buenas y Santas`;
                 </select>
               </div>
               <div>
-                <label>Tomada por *</label>
+                <label style={{ fontSize: 9, marginBottom: 3 }}>Tomada por *</label>
                 <select
                   className="input-field"
                   value={form.tomadaPor || ""}
                   onChange={e => setForm(f => ({ ...f, tomadaPor: e.target.value }))}
+                  style={{ padding: "7px 10px", fontSize: 13 }}
                 >
                   <option value="">— Seleccionar —</option>
                   {["RAMIRO","YAMILA","LUCIANA","SHENAY","JESSICA","JULIO","JENNIFER","OTRO"].map(n => (
@@ -1559,17 +1558,17 @@ Buenas y Santas`;
                 </select>
               </div>
               <div style={{ gridColumn: "1/-1" }}>
-                <label>Observaciones</label>
-                <textarea className="input-field" value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} rows={3} style={{ resize: "vertical" }} />
+                <label style={{ fontSize: 9, marginBottom: 3 }}>Observaciones</label>
+                <textarea className="input-field" value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} rows={2} style={{ resize: "vertical", padding: "7px 10px", fontSize: 13 }} />
               </div>
             </div>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 24, alignItems: "center" }}>
-              <button className="btn-outline" onClick={() => setModalAbierto(false)}>Cancelar</button>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 14, alignItems: "center" }}>
+              <button className="btn-outline" style={{ padding: "8px 16px", fontSize: 11 }} onClick={() => setModalAbierto(false)}>Cancelar</button>
               {form.telefono && (
-                <BtnWhatsApp reserva={form} style={{ padding: "12px 20px" }} />
+                <BtnWhatsApp reserva={form} style={{ padding: "8px 16px" }} />
               )}
-              <button className="btn-gold" onClick={guardarReserva}>{reservaEditando ? "Guardar cambios" : "Tomar reserva"}</button>
+              <button className="btn-gold" style={{ padding: "8px 20px", fontSize: 11 }} onClick={guardarReserva}>{reservaEditando ? "Guardar cambios" : "Tomar reserva"}</button>
             </div>
           </div>
         </div>
