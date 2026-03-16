@@ -18,14 +18,14 @@ const HORARIOS = (() => {
 })();
 
 const initialReservas = [
-  { id: 1, nombre: "María García",   telefono: "611 234 567", email: "maria@email.com",   fecha: "2026-03-22", hora: "13:30", personas: 4,  mesas: [3],    notas: "Cumpleaños",        estado: "confirmada", tomadaPor: "RAMIRO",  cuando: "20/03/2026 10:15" },
-  { id: 2, nombre: "Carlos López",   telefono: "622 345 678", email: "carlos@email.com",  fecha: "2026-03-22", hora: "14:00", personas: 2,  mesas: [1],    notas: "",                  estado: "confirmada", tomadaPor: "YAMILA",  cuando: "20/03/2026 11:30" },
-  { id: 3, nombre: "Ana Martínez",   telefono: "633 456 789", email: "ana@email.com",     fecha: "2026-03-22", hora: "15:00", personas: 6,  mesas: [5],    notas: "Alergia al gluten", estado: "tomada",     tomadaPor: "LUCIANA", cuando: "21/03/2026 09:00" },
-  { id: 4, nombre: "Pedro Sánchez",  telefono: "644 567 890", email: "pedro@email.com",   fecha: "2026-03-22", hora: "21:00", personas: 3,  mesas: [2],    notas: "",                  estado: "cancelada",  tomadaPor: "JESSICA", cuando: "21/03/2026 12:00" },
-  { id: 5, nombre: "Laura Fernández",telefono: "655 111 222", email: "laura@email.com",   fecha: "2026-03-22", hora: "13:45", personas: 2,  mesas: [4],    notas: "",                  estado: "confirmada", tomadaPor: "RAMIRO",  cuando: "19/03/2026 18:00" },
-  { id: 6, nombre: "Jorge Ruiz",     telefono: "666 333 444", email: "jorge@email.com",   fecha: "2026-03-22", hora: "14:45", personas: 5,  mesas: [6],    notas: "Mesa junto ventana",estado: "tomada",     tomadaPor: "JULIO",   cuando: "21/03/2026 16:45" },
-  { id: 7, nombre: "Sofía Blanco",   telefono: "677 555 666", email: "sofia@email.com",   fecha: "2026-03-22", hora: "21:30", personas: 4,  mesas: [7,17], notas: "",                  estado: "confirmada", tomadaPor: "SHENAY",  cuando: "20/03/2026 14:00" },
-  { id: 8, nombre: "Miguel Torres",  telefono: "688 777 888", email: "miguel@email.com",  fecha: "2026-03-22", hora: "22:00", personas: 8,  mesas: [10,11],notas: "Cena de empresa",   estado: "confirmada", tomadaPor: "JENNIFER",cuando: "18/03/2026 10:00" },
+  { id: 1, nombre: "María García",   telefono: "699 768 563", email: "maria@email.com",   fecha: "2026-03-22", hora: "13:30", personas: 4,  mesas: [3],    notas: "Cumpleaños",        estado: "confirmada", tomadaPor: "RAMIRO",  cuando: "20/03/2026 10:15" },
+  { id: 2, nombre: "Carlos López",   telefono: "699 768 563", email: "carlos@email.com",  fecha: "2026-03-22", hora: "14:00", personas: 2,  mesas: [1],    notas: "",                  estado: "confirmada", tomadaPor: "YAMILA",  cuando: "20/03/2026 11:30" },
+  { id: 3, nombre: "Ana Martínez",   telefono: "699 768 563", email: "ana@email.com",     fecha: "2026-03-22", hora: "15:00", personas: 6,  mesas: [5],    notas: "Alergia al gluten", estado: "tomada",     tomadaPor: "LUCIANA", cuando: "21/03/2026 09:00" },
+  { id: 4, nombre: "Pedro Sánchez",  telefono: "699 768 563", email: "pedro@email.com",   fecha: "2026-03-22", hora: "21:00", personas: 3,  mesas: [2],    notas: "",                  estado: "cancelada",  tomadaPor: "JESSICA", cuando: "21/03/2026 12:00" },
+  { id: 5, nombre: "Laura Fernández",telefono: "699 768 563", email: "laura@email.com",   fecha: "2026-03-22", hora: "13:45", personas: 2,  mesas: [4],    notas: "",                  estado: "confirmada", tomadaPor: "RAMIRO",  cuando: "19/03/2026 18:00" },
+  { id: 6, nombre: "Jorge Ruiz",     telefono: "699 768 563", email: "jorge@email.com",   fecha: "2026-03-22", hora: "14:45", personas: 5,  mesas: [6],    notas: "Mesa junto ventana",estado: "tomada",     tomadaPor: "JULIO",   cuando: "21/03/2026 16:45" },
+  { id: 7, nombre: "Sofía Blanco",   telefono: "699 768 563", email: "sofia@email.com",   fecha: "2026-03-22", hora: "21:30", personas: 4,  mesas: [7,17], notas: "",                  estado: "confirmada", tomadaPor: "SHENAY",  cuando: "20/03/2026 14:00" },
+  { id: 8, nombre: "Miguel Torres",  telefono: "699 768 563", email: "miguel@email.com",  fecha: "2026-03-22", hora: "22:00", personas: 8,  mesas: [10,11],notas: "Cena de empresa",   estado: "confirmada", tomadaPor: "JENNIFER",cuando: "18/03/2026 10:00" },
 ];
 
 function getTodayStr() {
@@ -584,7 +584,7 @@ ${textoPegado}`
     setInterpretando(false);
   };
 
-  const enviarWhatsApp = (r) => {
+  const enviarWhatsApp = (r, tipo = "nueva") => {
     const raw = String(r.telefono || "").trim();
     const prefijo = String(r.prefijo || "").trim();
     let tel;
@@ -599,21 +599,28 @@ ${textoPegado}`
       else tel = "34" + digits;
     }
 
-    const fechaObj = new Date(r.fecha + "T12:00");
-    const diaSemana = fechaObj.toLocaleDateString("es-ES", { weekday: "long" });
-    const diaMes = fechaObj.toLocaleDateString("es-ES", { day: "numeric", month: "long" });
     const nombreCapital = r.nombre.split(" ")[0];
+    let msg;
 
-    // Determinar turno por hora
-    const [hh, mm] = (r.hora || "00:00").split(":").map(Number);
-    const mins = hh * 60 + mm;
-    const esPrimerTurno = mins >= 13 * 60 + 30 && mins <= 14 * 60; // 13:30–14:00
+    if (tipo === "confirmar") {
+      msg =
+`Hola ${nombreCapital}!
+Necesitamos por favor que *CONFIRMES* tu reserva para hoy para *${r.personas}* personas a las *${r.hora}*hs.
 
-    const lineaImportante = esPrimerTurno
-      ? `*IMPORTANTE: Recuerda que podrás disfrutar de tu mesa hasta las 15:00 hs.*`
-      : `*IMPORTANTE: Recuerda que podrás disfrutar de tu reserva 90 minutos.*`;
+Esperamos tu respuesta
 
-    const msg =
+Buenas y Santas`;
+    } else {
+      const fechaObj = new Date(r.fecha + "T12:00");
+      const diaSemana = fechaObj.toLocaleDateString("es-ES", { weekday: "long" });
+      const diaMes = fechaObj.toLocaleDateString("es-ES", { day: "numeric", month: "long" });
+      const [hh, mm] = (r.hora || "00:00").split(":").map(Number);
+      const mins = hh * 60 + mm;
+      const esPrimerTurno = mins >= 13 * 60 + 30 && mins <= 14 * 60;
+      const lineaImportante = esPrimerTurno
+        ? `*IMPORTANTE: Recuerda que podrás disfrutar de tu mesa hasta las 15:00 hs.*`
+        : `*IMPORTANTE: Recuerda que podrás disfrutar de tu reserva 90 minutos.*`;
+      msg =
 `Hola, ${nombreCapital}
 Te escribimos de Buenas y Santas para confirmar tu reserva.
 
@@ -625,15 +632,16 @@ ${lineaImportante}
 Saludos, nos vemos
 
 Buenas y Santas`;
+    }
 
     window.open(`https://wa.me/+${tel}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
   // ── Botón WhatsApp reutilizable ──────────────────────────────────────────────
-  const BtnWhatsApp = ({ reserva, style = {} }) => (
+  const BtnWhatsApp = ({ reserva, style = {}, tipo = "nueva" }) => (
     reserva.telefono ? (
       <button
-        onClick={() => enviarWhatsApp(reserva)}
+        onClick={() => enviarWhatsApp(reserva, tipo)}
         title="Enviar confirmación por WhatsApp"
         style={{
           padding: "5px 8px", background: "#25D366", border: "none",
@@ -1070,7 +1078,7 @@ Buenas y Santas`;
                       <td style={{ padding: "16px 20px" }}>
                         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                           <button className="btn-outline" style={{ padding: "6px 12px", fontSize: 11 }} onClick={() => abrirEditar(r)}>Editar</button>
-                          <BtnWhatsApp reserva={r} />
+                          <BtnWhatsApp reserva={r} tipo="confirmar" />
                         </div>
                       </td>
                       <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>
@@ -1215,7 +1223,7 @@ Buenas y Santas`;
                           {r.notas ? <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#6a9a6a", marginBottom: 10, fontStyle: "italic" }}>{r.notas}</p> : null}
                           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                             <button className="btn-outline" style={{ padding: "6px 12px", fontSize: 11 }} onClick={() => abrirEditar(r)}>Editar</button>
-                            <BtnWhatsApp reserva={r} />
+                            <BtnWhatsApp reserva={r} tipo="confirmar" />
                             <button className="btn-outline" style={{ padding: "6px 12px", fontSize: 11, borderColor: "#ef9a9a", color: "#ba5d5d" }} onClick={() => eliminarReserva(r.id)}>✕</button>
                           </div>
                         </div>
