@@ -898,10 +898,13 @@ export default function App() {
       ]);
       const personas = parseInt(personasStr) || 2;
 
-      const notas = extraer([
+      // Notas: Comentarios u Observaciones — pero solo si no es un email y no está vacío
+      const notasRaw = extraer([
         /(?:\d+\.\s*)?Comentarios\s*:\s*(.+)/i,
+        /(?:\d+\.\s*)?Observaciones\s*:\s*(.+)/i,
         /Notas\s*:\s*(.+)/i
       ]);
+      const notas = (notasRaw && !notasRaw.includes("@") && notasRaw.trim().length > 0) ? notasRaw.trim() : "";
 
       // Fecha y hora — pueden venir juntas o separadas
       // Formato 1: "23 Mar 2026 Hora: 14:00 Europe/Madrid"  (todo en una línea)
