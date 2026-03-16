@@ -46,7 +46,7 @@ export default function App() {
   const [fbCargando, setFbCargando] = useState(true);
   // Track whether Firestore has been seeded with initial data
   const seededRef = useRef(false);
-  const [filtroFecha, setFiltroFecha] = useState("2026-03-22");
+  const [filtroFecha, setFiltroFecha] = useState(getTodayStr());
   const [filtroEstado, setFiltroEstado] = useState("todas");
   const [filtroTurno, setFiltroTurno] = useState("todos");
   const [busqueda, setBusqueda] = useState("");
@@ -839,66 +839,112 @@ export default function App() {
     };
   };
 
-  const interpretarTexto = async () => {
+  const interpretarTexto = () => {
     if (!textoPegado.trim()) return;
     setInterpretando(true);
     setDatosInterpretados(null);
+
     try {
-      const hoy = getTodayStr();
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          messages: [{
-            role: "user",
-            content: `Extrae los datos de reserva de restaurante del siguiente mensaje. Hoy es ${hoy}.
-Devuelve SOLO un JSON con estos campos (sin texto extra, sin markdown):
-{
-  "nombre": "",
-  "telefono": "",
-  "email": "",
-  "fecha": "YYYY-MM-DD",
-  "hora": "HH:MM",
-  "personas": 2,
-  "notas": ""
-}
+      const texto = textoPegado;
 
-INSTRUCCIONES IMPORTANTES:
-- El campo nombre puede venir como "Nombre:", "1. Nombre:" o similar
-- El teléfono puede venir como "Número de Teléfono:", "Teléfono:" — si empieza por 34 y tiene 11 dígitos, quítale el 34 del principio y guarda solo los 9 dígitos
-- Las personas pueden venir como "¿Cuántas personas?:", "Personas:", "Pax:" — usa número entero
-- La fecha puede venir en estos formatos:
-  * "23 Mar 2026" → convertir a 2026-03-23
-  * "2026-03-23"
-  * "Día: 23 Mar 2026" seguido de "Hora: 14:00 Europe/Madrid"
-  * "23 Mar 2026 Hora: 14:00 Europe/Madrid" (todo junto)
-- La hora puede venir como "Hora: 14:00 Europe/Madrid" — extraer solo "14:00"
-- Los comentarios/notas pueden venir como "Comentarios:" — si está vacío déjalo en ""
-- El email puede venir como "Mail:" o "Email:"
-- Si no encuentras algún dato, déjalo vacío o usa el valor por defecto
-
-Mensaje:
-${textoPegado}`
-          }]
-        })
-      });
-      const data = await response.json();
-      const texto = data.content.map(i => i.text || "").join("");
-      const clean = texto.replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(clean);
-      // Fix teléfono: si viene con prefijo 34 y tiene 11 dígitos, quitar el 34
-      if (parsed.telefono) {
-        const digits = String(parsed.telefono).replace(/\D/g, "");
-        if (digits.startsWith("34") && digits.length === 11) {
-          parsed.telefono = digits.slice(2);
-        } else {
-          parsed.telefono = digits.length > 9 ? digits : parsed.telefono;
+      // ── Helpers ──────────────────────────────────────────────────────────
+      const extraer = (patrones) => {
+        for (const patron of patrones) {
+          const m = texto.match(patron);
+          if (m && m[1] && m[1].trim()) return m[1].trim();
         }
+        return "";
+      };
+
+      const MESES = { jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12,
+                      ene:1,abr:4,ago:8,oct2:10 };
+      const parseFecha = (str) => {
+        if (!str) return "";
+        // YYYY-MM-DD
+        let m = str.match(/(\d{4})-(\d{2})-(\d{2})/);
+        if (m) return str.slice(0,10);
+        // DD Mon YYYY  o  D Mon YYYY
+        m = str.match(/(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})/);
+        if (m) {
+          const mes = MESES[m[2].toLowerCase()] || MESES[m[2].toLowerCase().replace(/[^a-z]/g,"")];
+          if (mes) return `${m[3]}-${String(mes).padStart(2,"0")}-${String(m[1]).padStart(2,"0")}`;
+        }
+        return "";
+      };
+
+      // ── Extraer campos ────────────────────────────────────────────────────
+      const nombre = extraer([
+        /(?:\d+\.\s*)?Nombre\s*:\s*(.+)/i,
+        /^Nombre\s*:\s*(.+)/im
+      ]);
+
+      let telefono = extraer([
+        /(?:\d+\.\s*)?N[úu]mero de Tel[eé]fono\s*:\s*(.+)/i,
+        /Tel[eé]fono\s*:\s*(.+)/i,
+        /Phone\s*:\s*(.+)/i
+      ]).replace(/\D/g, "");
+      // Si viene con prefijo 34 y tiene 11 dígitos → quitar el 34
+      if (telefono.startsWith("34") && telefono.length === 11) telefono = telefono.slice(2);
+
+      const email = extraer([
+        /(?:\d+\.\s*)?Mail\s*:\s*(.+)/i,
+        /(?:\d+\.\s*)?E-?mail\s*:\s*(.+)/i
+      ]);
+
+      const personasStr = extraer([
+        /(?:\d+\.\s*)?[¿¡]?Cu[aá]ntas personas\??[¿¡]?\s*:\s*(.+)/i,
+        /Personas\s*:\s*(.+)/i,
+        /Pax\s*:\s*(.+)/i
+      ]);
+      const personas = parseInt(personasStr) || 2;
+
+      const notas = extraer([
+        /(?:\d+\.\s*)?Comentarios\s*:\s*(.+)/i,
+        /Notas\s*:\s*(.+)/i
+      ]);
+
+      // Fecha y hora — pueden venir juntas o separadas
+      // Formato 1: "23 Mar 2026 Hora: 14:00 Europe/Madrid"  (todo en una línea)
+      // Formato 2: "Día: 23 Mar 2026\nHora: 14:00 Europe/Madrid"
+      // Formato 3: "Hora de inicio de la reserva: 23 Mar 2026 Hora: 14:00 Europe/Madrid"
+      let fechaRaw = "";
+      let horaRaw = "";
+
+      const lineaHoraInicio = texto.match(/Hora de inicio de la reserva\s*:\s*(.+)/i);
+      if (lineaHoraInicio) {
+        const resto = lineaHoraInicio[1];
+        const mHora = resto.match(/Hora\s*:\s*(\d{1,2}:\d{2})/i);
+        if (mHora) horaRaw = mHora[1];
+        fechaRaw = resto.replace(/Hora\s*:.*$/i, "").trim();
+      } else {
+        // Buscar "Día:" separado
+        const mDia = texto.match(/D[ií]a\s*:\s*(.+)/i);
+        if (mDia) fechaRaw = mDia[1].trim();
+        const mHora = texto.match(/Hora\s*:\s*(\d{1,2}:\d{2})/i);
+        if (mHora) horaRaw = mHora[1];
       }
+
+      // Si aún no hay fecha, buscar cualquier patrón de fecha
+      if (!fechaRaw) {
+        const mf = texto.match(/(\d{1,2}\s+[A-Za-z]{3}\s+\d{4})/);
+        if (mf) fechaRaw = mf[1];
+      }
+
+      const fecha = parseFecha(fechaRaw);
+      // Hora: asegurar formato HH:MM
+      const hora = horaRaw ? horaRaw.replace(/^(\d):/, "0$1:") : "";
+
+      // ── Resultado ─────────────────────────────────────────────────────────
+      const parsed = { nombre, telefono, email, fecha, hora, personas, notas };
+
+      if (!nombre && !telefono && !fecha) {
+        showToast("No se encontraron datos en el mensaje", "error");
+        setInterpretando(false);
+        return;
+      }
+
       setDatosInterpretados(parsed);
-      setForm(f => ({ ...f, ...parsed, mesa: f.mesa, estado: "tomada", personas: parsed.personas || 2 }));
+      setForm(f => ({ ...f, ...parsed, mesas: [], estado: "tomada" }));
       setModalAbierto(true);
     } catch (e) {
       showToast("No se pudo interpretar el mensaje", "error");
