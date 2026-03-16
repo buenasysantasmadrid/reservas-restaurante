@@ -959,7 +959,7 @@ Buenas y Santas`;
                 </thead>
                 <tbody>
                   {reservasFiltradas.length === 0 ? (
-                    <tr><td colSpan={10} style={{ padding: 40, textAlign: "center", color: "#4a7a4a", fontFamily: "'Jost', sans-serif", fontSize: 14 }}>No hay reservas con estos filtros.</td></tr>
+                    <tr><td colSpan={11} style={{ padding: 40, textAlign: "center", color: "#4a7a4a", fontFamily: "'Jost', sans-serif", fontSize: 14 }}>No hay reservas con estos filtros.</td></tr>
                   ) : (() => {
                     const sorted = [...reservasFiltradas].sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
                     const rows = [];
@@ -983,12 +983,12 @@ Buenas y Santas`;
                       const rowBg = tStatus.status === "completo" ? "#ffebee" : tStatus.status === "cuidado" ? "#fff3e0" : color.bg;
                       // Separator between groups (not before first)
                       if (gi > 0) {
-                        rows.push(<tr key={"sep_"+gi}><td colSpan={10} style={{ padding: 0, height: 28, background: "transparent", border: "none" }} /></tr>);
+                        rows.push(<tr key={"sep_"+gi}><td colSpan={11} style={{ padding: 0, height: 28, background: "transparent", border: "none" }} /></tr>);
                       }
                       // Turno header row with label + badge
                       rows.push(
                         <tr key={"turnohead_"+turnoKey}>
-                          <td colSpan={10} style={{ padding: "6px 20px 4px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
+                          <td colSpan={11} style={{ padding: "6px 20px 4px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                               <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "#4a7a4a", fontWeight: 600 }}>
                                 {color.label}
@@ -1101,11 +1101,11 @@ Buenas y Santas`;
                         const mesasLibres = MESAS.filter(m => !todasOcupadas.includes(m));
                         rows.push(
                           <tr key={"footer_"+turnoKey}>
-                            <td colSpan={10} style={{ padding: "8px 20px 12px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
+                            <td colSpan={11} style={{ padding: "8px 20px 12px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
                               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                                 <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 1, color: "#4a7a4a", textTransform: "uppercase" }}>
                                   Mesas libres: {mesasLibres.length === 0 ? <span style={{ color: "#c62828" }}>ninguna</span> : mesasLibres.map(m => (
-                                    <span key={m} style={{ display: "inline-block", background: rowBg, border: "1px solid #a5d6a7", borderRadius: 4, padding: "1px 7px", marginRight: 4, fontSize: 11, color: "#2e7d32" }}>{getMesaNombre(m)}</span>
+                                    <span key={m} style={{ display: "inline-block", background: "#fff", border: "1px solid #a5d6a7", borderRadius: 4, padding: "1px 7px", marginRight: 4, fontSize: 11, color: "#2e7d32" }}>{getMesaNombre(m)}</span>
                                   ))}
                                 </span>
                                 <div style={{ display: "flex", gap: 8 }}>
