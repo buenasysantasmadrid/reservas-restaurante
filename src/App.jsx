@@ -587,74 +587,171 @@ export default function App() {
       return getTurno(r.hora) === planoTurnoLocal;
     }).sort((a, b) => (a.hora || "").localeCompare(b.hora || ""));
 
-    const mesaResMap = {};
+    // ── Exactamente los mismos parámetros que usa la app ────────────────────
+    const U = 60;
+    const PAD = 10;
+
+    const MESAS_POS_P = [
+      { id: 40, cx: 3.2, cy:  0.5, w: 0.8, h: 0.8 },
+      { id: 41, cx: 4.5, cy:  0.5, w: 0.8, h: 0.8 },
+      { id: 12, cx: 1,   cy:  1.7, w: 0.8, h: 0.8 },
+      { id: 1,  cx: 3.2, cy:  1.7, w: 0.8, h: 0.8 },
+      { id: 3,  cx: 4.5, cy:  1.7, w: 0.8, h: 0.8 },
+      { id: 5,  cx: 5.8, cy:  1.7, w: 0.8, h: 0.8 },
+      { id: 13, cx: 1,   cy:  2.6, w: 0.8, h: 0.8 },
+      { id: 2,  cx: 3.2, cy:  2.6, w: 0.8, h: 0.8 },
+      { id: 4,  cx: 4.5, cy:  2.6, w: 0.8, h: 0.8 },
+      { id: 15, cx: 5.8, cy:  2.6, w: 0.8, h: 0.8 },
+      { id: 18, cx: 3.2, cy:  3.9, w: 0.8, h: 0.8 },
+      { id: 17, cx: 4.5, cy:  3.9, w: 0.8, h: 0.8 },
+      { id: 16, cx: 5.8, cy:  3.9, w: 0.8, h: 0.8 },
+      { id: 11, cx: 0.5, cy:  4.8, w: 0.8, h: 0.8 },
+      { id: 10, cx: 1.6, cy:  4.8, w: 0.8, h: 0.8 },
+      { id: 8,  cx: 3.2, cy:  4.8, w: 0.8, h: 0.8 },
+      { id: 7,  cx: 4.5, cy:  4.8, w: 0.8, h: 0.8 },
+      { id: 6,  cx: 5.8, cy:  4.8, w: 0.8, h: 0.8 },
+      { id: 30, cx: 3.2, cy:  6.0, w: 0.8, h: 0.8, barra: true },
+      { id: 31, cx: 4.5, cy:  6.0, w: 0.8, h: 0.8, barra: true },
+    ];
+
+    const SVG_COLS = 6.1;
+    const SVG_ROWS = 7.8;
+    const VW = SVG_COLS * U + PAD * 2;
+    const VH = SVG_ROWS * U + PAD * 2;
+
+    // Mismos MERGE_GROUPS que la app
+    const MERGE_GROUPS_P = [
+      { ids: [8, 2, 18, 1], clampToFirst: true, clampHeight: 3.2, anchorBottom: true },
+      { ids: [7, 17, 4, 3], clampToFirst: true, clampHeight: 3.2, anchorBottom: true },
+      { ids: [6, 16, 15, 5], clampToFirst: true, clampHeight: 3.2, anchorBottom: true },
+      { ids: [12, 13, 11, 10], clampToFirst: true, clampHeight: 3.2 },
+      { ids: [5, 15, 16], clampToFirst: true, clampHeight: 2.1 },
+      { ids: [6, 16, 15], clampToFirst: true, clampHeight: 2.1, anchorBottom: true },
+      { ids: [3, 4, 17], clampToFirst: true, clampHeight: 2.1 },
+      { ids: [7, 17, 4], clampToFirst: true, clampHeight: 2.1, anchorBottom: true },
+      { ids: [1, 2, 18], clampToFirst: true, clampHeight: 2.1 },
+      { ids: [8, 18, 2], clampToFirst: true, clampHeight: 2.1, anchorBottom: true },
+      { ids: [12, 13, 11], clampToFirst: true, clampHeight: 2.1 },
+      [1, 2], [3, 4], [5, 15], [12, 13],
+      [8, 18], [7, 17], [6, 16],
+      [11, 10],
+      [40, 41],
+      [30, 31],
+    ];
+
+    const mesaReservaP = {};
     resTurno.forEach(r => {
       const ms = r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : [];
-      ms.forEach(m => { mesaResMap[m] = r; });
+      ms.forEach(m => { mesaReservaP[m] = r; });
+    });
+
+    const reservaMergeGroupP = {};
+    resTurno.forEach(r => {
+      const ms = new Set(r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []);
+      if (ms.size < 2) return;
+      for (const grp of MERGE_GROUPS_P) {
+        const ids = Array.isArray(grp) ? grp : grp.ids;
+        const unique = [...new Set(ids)];
+        if (unique.every(m => ms.has(m))) {
+          reservaMergeGroupP[r.id] = Array.isArray(grp) ? unique : { ids: unique, clampToFirst: grp.clampToFirst, clampHeight: grp.clampHeight, anchorBottom: grp.anchorBottom };
+          break;
+        }
+      }
+    });
+
+    const secondaryMesasP = new Set();
+    Object.values(reservaMergeGroupP).forEach(grp => {
+      const ids = Array.isArray(grp) ? grp : grp.ids;
+      ids.slice(1).forEach(m => secondaryMesasP.add(m));
     });
 
     const MESA_NOMBRE_P = { 30: "Barra 1", 31: "Barra 2" };
     const getMesaNombreP = (m) => MESA_NOMBRE_P[m] || String(m);
 
-    // ── SVG plano en escala de grises (diseño vertical) ──────────────────────
-    // Layout fijo basado en el HTML de referencia: viewBox 375x182
-    const mesaLayout = [
-      // fila 1
-      { id: 40, x: 148, y: 6,   w: 34, h: 23 },
-      { id: 41, x: 190, y: 6,   w: 34, h: 23 },
-      // fila 2
-      { id: 12, x: 8,   y: 41,  w: 34, h: 23 },
-      { id: 1,  x: 148, y: 41,  w: 34, h: 23 },
-      { id: 3,  x: 190, y: 41,  w: 34, h: 23 },
-      { id: 5,  x: 232, y: 41,  w: 34, h: 23 },
-      // fila 3
-      { id: 13, x: 8,   y: 70,  w: 34, h: 23 },
-      { id: 2,  x: 148, y: 70,  w: 34, h: 23 },
-      { id: 4,  x: 190, y: 70,  w: 34, h: 23 },
-      { id: 15, x: 232, y: 70,  w: 34, h: 23 },
-      // fila 4
-      { id: 18, x: 148, y: 112, w: 34, h: 23 },
-      { id: 17, x: 190, y: 112, w: 34, h: 23 },
-      { id: 16, x: 232, y: 112, w: 34, h: 23 },
-      // fila 5
-      { id: 11, x: 8,   y: 141, w: 30, h: 23 },
-      { id: 10, x: 42,  y: 141, w: 30, h: 23 },
-      { id: 8,  x: 148, y: 141, w: 34, h: 23 },
-      { id: 7,  x: 190, y: 141, w: 34, h: 23 },
-      { id: 6,  x: 232, y: 141, w: 34, h: 23 },
-    ];
+    // ── Generar SVG mesa a mesa con la misma lógica de merge ─────────────────
+    const mesasSVG = MESAS_POS_P.map(({ id, cx, cy, w, h, barra }) => {
+      if (secondaryMesasP.has(id)) return "";
 
-    const mesasSVG = mesaLayout.map(({ id, x, y, w, h }) => {
-      const res = mesaResMap[id];
+      const res = mesaReservaP[id];
       const ocupada = !!res;
+
+      // Escala de grises
       const fill   = ocupada ? "#d2d2d2" : "#ededed";
       const stroke = ocupada ? "#999" : "#ccc";
       const strokeW = ocupada ? 0.8 : 0.6;
-      const cx = x + w / 2;
-      const cy = y + h / 2;
-      const label = String(id);
-      const nombre1 = res ? res.nombre.split(" ")[0] : "";
-      const hora1   = res ? res.hora : "";
+      const textC  = ocupada ? "#333" : "#777";
+
+      const mergeGroup = res ? reservaMergeGroupP[res.id] : null;
+      const mergeIds = mergeGroup ? (Array.isArray(mergeGroup) ? mergeGroup : mergeGroup.ids) : null;
+      const clampToFirst = mergeGroup && !Array.isArray(mergeGroup) && mergeGroup.clampToFirst;
+      const clampHeight  = mergeGroup && !Array.isArray(mergeGroup) ? mergeGroup.clampHeight : null;
+      const anchorBottom = mergeGroup && !Array.isArray(mergeGroup) && mergeGroup.anchorBottom;
+      const isMerged = mergeIds && mergeIds[0] === id;
+
+      let mw = w * U;
+      let mh = h * U;
+      let mx = PAD + cx * U - (w * U) / 2;
+      let my = PAD + cy * U - (h * U) / 2;
+
+      if (isMerged && mergeIds.length > 1) {
+        const origMx = mx, origMw = mw, origMy = my, origMh = mh;
+        mergeIds.slice(1).forEach(secId => {
+          const sec = MESAS_POS_P.find(p => p.id === secId);
+          if (!sec) return;
+          const sx = PAD + sec.cx * U - (sec.w * U) / 2;
+          const sy = PAD + sec.cy * U - (sec.h * U) / 2;
+          const x2 = Math.max(mx + mw, sx + sec.w * U);
+          const y2 = Math.max(my + mh, sy + sec.h * U);
+          mx = Math.min(mx, sx);
+          my = Math.min(my, sy);
+          mw = x2 - mx;
+          mh = y2 - my;
+        });
+        if (clampToFirst) {
+          mx = origMx; mw = origMw;
+          mh = origMh;
+          mergeIds.slice(1).forEach(secId => {
+            const sec = MESAS_POS_P.find(p => p.id === secId);
+            if (!sec) return;
+            if (Math.abs(sec.cx - cx) < 0.7) {
+              const sy = PAD + sec.cy * U - (sec.h * U) / 2;
+              const y2 = Math.max(my + mh, sy + sec.h * U);
+              my = Math.min(my, sy);
+              mh = y2 - my;
+            }
+          });
+          if (clampHeight) mh = Math.min(mh, clampHeight * U);
+          if (anchorBottom) my = (PAD + cy * U + (h * U) / 2) - mh;
+        }
+      }
+
+      const RR = 8;
+      const label = getMesaNombreP(id);
+      const lineH = isMerged ? mh * 0.22 : (res ? mh * 0.28 : mh / 2 + 4);
 
       return `<g>
-        <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}"/>
-        <text x="${cx}" y="${ocupada ? y + h*0.38 : cy + 3}" text-anchor="middle"
-          style="font-family:'Cormorant Garamond',serif;font-size:${ocupada?8:9}px;font-style:italic;fill:${ocupada?'#333':'#777'};font-weight:300">${label}</text>
-        ${ocupada ? `<text x="${cx}" y="${y + h*0.72}" text-anchor="middle"
-          style="font-family:'Jost',sans-serif;font-size:5.5px;fill:#444;font-weight:300">${nombre1} ${hora1}</text>` : ""}
+        <rect x="${mx}" y="${my}" width="${mw}" height="${mh}" rx="${RR}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}"/>
+        <text x="${mx + mw/2}" y="${my + lineH}" text-anchor="middle"
+          style="font-family:'Cormorant Garamond',serif;font-size:${barra?11:13}px;font-style:italic;fill:${textC};font-weight:300">${label}</text>
+        ${res ? `<text x="${mx + mw/2}" y="${my + mh * (isMerged ? 0.38 : 0.48)}" text-anchor="middle"
+          style="font-family:'Jost',sans-serif;font-size:7px;fill:${textC};font-weight:300;opacity:0.85">${res.hora}</text>` : ""}
+        ${res ? `<text x="${mx + mw/2}" y="${my + mh * (isMerged ? 0.58 : 0.68)}" text-anchor="middle"
+          style="font-family:'Jost',sans-serif;font-size:7.5px;fill:${textC};font-weight:300">${res.nombre.split(" ")[0]}</text>` : ""}
+        ${res ? `<text x="${mx + mw/2}" y="${my + mh * (isMerged ? 0.80 : 0.88)}" text-anchor="middle"
+          style="font-family:'Jost',sans-serif;font-size:7px;fill:${textC};font-weight:300;opacity:0.75">${res.personas}p</text>` : ""}
       </g>`;
     }).join("");
 
-    // leyenda
+    // ── leyenda ──────────────────────────────────────────────────────────────
+    const leyendaY = VH - 26;
     const leyenda = `
-      <rect x="300" y="145" width="9" height="9" rx="2" fill="#d2d2d2" stroke="#999" stroke-width="0.6"/>
-      <text x="313" y="154" style="font-family:'Jost',sans-serif;font-size:6px;fill:#888;font-weight:300">Ocupada</text>
-      <rect x="300" y="158" width="9" height="9" rx="2" fill="#ededed" stroke="#ccc" stroke-width="0.6"/>
-      <text x="313" y="167" style="font-family:'Jost',sans-serif;font-size:6px;fill:#888;font-weight:300">Libre</text>
+      <rect x="${VW - 72}" y="${leyendaY}" width="10" height="10" rx="2" fill="#d2d2d2" stroke="#999" stroke-width="0.6"/>
+      <text x="${VW - 58}" y="${leyendaY + 8}" style="font-family:'Jost',sans-serif;font-size:7px;fill:#888;font-weight:300">Ocupada</text>
+      <rect x="${VW - 72}" y="${leyendaY + 14}" width="10" height="10" rx="2" fill="#ededed" stroke="#ccc" stroke-width="0.6"/>
+      <text x="${VW - 58}" y="${leyendaY + 22}" style="font-family:'Jost',sans-serif;font-size:7px;fill:#888;font-weight:300">Libre</text>
     `;
 
-    // línea separadora entre zona interior y exterior
-    const separador = `<line x1="8" y1="36" x2="367" y2="36" stroke="#ddd" stroke-width="0.5" stroke-dasharray="4 3"/>`;
+    const separador = `<line x1="${PAD}" y1="${PAD + 1.15*U}" x2="${VW - PAD}" y2="${PAD + 1.15*U}" stroke="#ddd" stroke-width="0.5" stroke-dasharray="4 3"/>`;
 
     // ── tabla de reservas ────────────────────────────────────────────────────
     const tablaRows = resTurno.map(r => {
@@ -680,8 +777,7 @@ export default function App() {
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Jost', sans-serif; color: #1a1a1a; background: #fff; padding: 20px 24px; }
-    .wrap { max-width: 430px; margin: 0 auto; }
-    /* Header */
+    .wrap { max-width: 500px; margin: 0 auto; }
     .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 0.8px solid #333; padding-bottom: 9px; margin-bottom: 12px; }
     .header-logo { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 300; font-style: italic; color: #1a1a1a; line-height: 1; }
     .header-logo .y { color: #888; }
@@ -689,10 +785,8 @@ export default function App() {
     .header-right { text-align: right; }
     .header-fecha { font-size: 9px; font-weight: 300; color: #444; text-transform: capitalize; }
     .header-turno { font-size: 6.5px; font-weight: 200; letter-spacing: 2px; text-transform: uppercase; color: #aaa; margin-top: 2px; }
-    /* Plano label */
     .section-lbl { font-size: 6px; font-weight: 300; letter-spacing: 2.5px; text-transform: uppercase; color: #bbb; margin-bottom: 6px; }
-    svg { display: block; width: 100%; }
-    /* Tabla */
+    svg { display: block; width: 100%; height: auto; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
     th { font-family: 'Jost', sans-serif; font-size: 6px; font-weight: 300; letter-spacing: 1.5px; text-transform: uppercase; color: #999; padding: 3px 4px; border-bottom: 0.8px solid #333; text-align: left; }
     th.c { text-align: center; }
@@ -725,8 +819,8 @@ export default function App() {
     </div>
 
     <div class="section-lbl">Plano de sala</div>
-    <svg viewBox="0 0 375 182" xmlns="http://www.w3.org/2000/svg">
-      <rect width="375" height="182" fill="#f6f6f6" rx="5"/>
+    <svg viewBox="0 0 ${VW} ${VH}" xmlns="http://www.w3.org/2000/svg">
+      <rect width="${VW}" height="${VH}" fill="#f6f6f6" rx="8"/>
       ${separador}
       ${mesasSVG}
       ${leyenda}
@@ -757,6 +851,7 @@ export default function App() {
     w.document.write(html);
     w.document.close();
   };
+
 
   // Al elegir un cliente existente, autocompleta sus datos
   const seleccionarNombre = (nombre) => {
