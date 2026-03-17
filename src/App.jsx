@@ -569,7 +569,9 @@ export default function App() {
       : "Todas las fechas";
 
     const turnoLabelMap = { t1: "1º Turno Mediodía", t2: "2º Turno Mediodía", noche: "Noche" };
-    const turnoLabel = turnoLabelMap[filtroTurno] || (filtroTurno === "custom" && turnoPersonalizado ? `Turno ${turnoPersonalizado.desde} – ${turnoPersonalizado.hasta}` : "");
+    const turnoLabel = filtroTurno === "todos" ? "Todos los turnos"
+      : filtroTurno === "mediodia" ? "Mediodía"
+      : turnoLabelMap[filtroTurno] || (filtroTurno === "custom" && turnoPersonalizado ? `Turno ${turnoPersonalizado.desde} – ${turnoPersonalizado.hasta}` : "");
 
     const planoTurnoLocal = filtroTurno === "custom" ? "custom" : (filtroTurno === "todos" || filtroTurno === "mediodia") ? "t1" : filtroTurno;
     const resTurno = reservas.filter(r => {
@@ -591,86 +593,81 @@ export default function App() {
       ms.forEach(m => { mesaResMap[m] = r; });
     });
 
-    const U = 64;
-    const PAD = 12;
-    const MESAS_POS_P = [
-      { id: 40, cx: 3.2, cy: 0.5, w: 0.8, h: 0.8 },
-      { id: 41, cx: 4.5, cy: 0.5, w: 0.8, h: 0.8 },
-      { id: 12, cx: 1,   cy: 1.7, w: 0.8, h: 0.8 },
-      { id: 1,  cx: 3.2, cy: 1.7, w: 0.8, h: 0.8 },
-      { id: 3,  cx: 4.5, cy: 1.7, w: 0.8, h: 0.8 },
-      { id: 5,  cx: 5.8, cy: 1.7, w: 0.8, h: 0.8 },
-      { id: 13, cx: 1,   cy: 2.6, w: 0.8, h: 0.8 },
-      { id: 2,  cx: 3.2, cy: 2.6, w: 0.8, h: 0.8 },
-      { id: 4,  cx: 4.5, cy: 2.6, w: 0.8, h: 0.8 },
-      { id: 15, cx: 5.8, cy: 2.6, w: 0.8, h: 0.8 },
-      { id: 18, cx: 3.2, cy: 3.9, w: 0.8, h: 0.8 },
-      { id: 17, cx: 4.5, cy: 3.9, w: 0.8, h: 0.8 },
-      { id: 16, cx: 5.8, cy: 3.9, w: 0.8, h: 0.8 },
-      { id: 11, cx: 0.5, cy: 4.8, w: 0.8, h: 0.8 },
-      { id: 10, cx: 1.6, cy: 4.8, w: 0.8, h: 0.8 },
-      { id: 8,  cx: 3.2, cy: 4.8, w: 0.8, h: 0.8 },
-      { id: 7,  cx: 4.5, cy: 4.8, w: 0.8, h: 0.8 },
-      { id: 6,  cx: 5.8, cy: 4.8, w: 0.8, h: 0.8 },
-      { id: 30, cx: 3.2, cy: 6.0, w: 0.8, h: 0.8, barra: true },
-      { id: 31, cx: 4.5, cy: 6.0, w: 0.8, h: 0.8, barra: true },
-    ];
     const MESA_NOMBRE_P = { 30: "Barra 1", 31: "Barra 2" };
     const getMesaNombreP = (m) => MESA_NOMBRE_P[m] || String(m);
 
-    const SVG_COLS = 6.1;
-    const SVG_ROWS = 7.8;
-    const VW = SVG_COLS * U + PAD * 2;
-    const VH = SVG_ROWS * U + PAD * 2;
+    // ── SVG plano en escala de grises (diseño vertical) ──────────────────────
+    // Layout fijo basado en el HTML de referencia: viewBox 375x182
+    const mesaLayout = [
+      // fila 1
+      { id: 40, x: 148, y: 6,   w: 34, h: 23 },
+      { id: 41, x: 190, y: 6,   w: 34, h: 23 },
+      // fila 2
+      { id: 12, x: 8,   y: 41,  w: 34, h: 23 },
+      { id: 1,  x: 148, y: 41,  w: 34, h: 23 },
+      { id: 3,  x: 190, y: 41,  w: 34, h: 23 },
+      { id: 5,  x: 232, y: 41,  w: 34, h: 23 },
+      // fila 3
+      { id: 13, x: 8,   y: 70,  w: 34, h: 23 },
+      { id: 2,  x: 148, y: 70,  w: 34, h: 23 },
+      { id: 4,  x: 190, y: 70,  w: 34, h: 23 },
+      { id: 15, x: 232, y: 70,  w: 34, h: 23 },
+      // fila 4
+      { id: 18, x: 148, y: 112, w: 34, h: 23 },
+      { id: 17, x: 190, y: 112, w: 34, h: 23 },
+      { id: 16, x: 232, y: 112, w: 34, h: 23 },
+      // fila 5
+      { id: 11, x: 8,   y: 141, w: 30, h: 23 },
+      { id: 10, x: 42,  y: 141, w: 30, h: 23 },
+      { id: 8,  x: 148, y: 141, w: 34, h: 23 },
+      { id: 7,  x: 190, y: 141, w: 34, h: 23 },
+      { id: 6,  x: 232, y: 141, w: 34, h: 23 },
+    ];
 
-    const mesasSVG = MESAS_POS_P.map(({ id, cx, cy, w, h, barra }) => {
+    const mesasSVG = mesaLayout.map(({ id, x, y, w, h }) => {
       const res = mesaResMap[id];
       const ocupada = !!res;
-      const sinConfirmar = res && res.estado === "tomada";
-      const llego = res && res.estado === "llego";
-      const fill   = llego ? "#f5f5f5" : ocupada ? (sinConfirmar ? "#fff8e1" : "#2e7d32") : "#e8f5e9";
-      const stroke = llego ? "#e0e0e0" : ocupada ? (sinConfirmar ? "#f9a825" : "#1b5e20") : "#81c784";
-      const textC  = llego ? "#bdbdbd" : ocupada ? (sinConfirmar ? "#e65100" : "#fff") : "#2e7d32";
-      const mx = PAD + cx * U - (w * U) / 2;
-      const my = PAD + cy * U - (h * U) / 2;
-      const mw = w * U;
-      const mh = h * U;
-      const RR = 8;
-      const label = getMesaNombreP(id);
-      const strokeW = ocupada ? 2 : 1.2;
+      const fill   = ocupada ? "#d2d2d2" : "#ededed";
+      const stroke = ocupada ? "#999" : "#ccc";
+      const strokeW = ocupada ? 0.8 : 0.6;
+      const cx = x + w / 2;
+      const cy = y + h / 2;
+      const label = String(id);
       const nombre1 = res ? res.nombre.split(" ")[0] : "";
-      const hora1 = res ? res.hora : "";
-      const pax1 = res ? res.personas + "p" : "";
-      const hasNota = res && res.notas;
+      const hora1   = res ? res.hora : "";
 
-      return `
-        <g>
-          <rect x="${mx+1}" y="${my+2}" width="${mw}" height="${mh}" rx="${RR+1}" fill="rgba(0,0,0,0.06)"/>
-          <rect x="${mx}" y="${my}" width="${mw}" height="${mh}" rx="${RR}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}"/>
-          <text x="${mx + mw/2}" y="${my + (res ? mh*0.28 : mh/2+4)}" text-anchor="middle"
-            style="font-family:'Cormorant Garamond',serif;font-size:${barra?11:13}px;font-weight:700;fill:${textC};letter-spacing:0.5px">${label}</text>
-          ${res ? `<text x="${mx + mw/2}" y="${my + mh*0.48}" text-anchor="middle"
-            style="font-family:'Jost',sans-serif;font-size:7.5px;font-weight:600;fill:${textC};opacity:0.85">${hora1}</text>` : ""}
-          ${res ? `<text x="${mx + mw/2}" y="${my + mh*0.68}" text-anchor="middle"
-            style="font-family:'Jost',sans-serif;font-size:8px;font-weight:500;fill:${textC}">${nombre1}</text>` : ""}
-          ${res ? `<text x="${mx + mw/2}" y="${my + mh*0.88}" text-anchor="middle"
-            style="font-family:'Jost',sans-serif;font-size:7.5px;fill:${textC};opacity:0.75">${pax1}</text>` : ""}
-          ${hasNota ? `<circle cx="${mx + mw - 7}" cy="${my + 7}" r="4" fill="#e65100" opacity="0.85"/>
-          <text x="${mx + mw - 7}" y="${my + 10}" text-anchor="middle" style="font-family:'Jost',sans-serif;font-size:6px;fill:#fff;font-weight:700">!</text>` : ""}
-        </g>`;
+      return `<g>
+        <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}"/>
+        <text x="${cx}" y="${ocupada ? y + h*0.38 : cy + 3}" text-anchor="middle"
+          style="font-family:'Cormorant Garamond',serif;font-size:${ocupada?8:9}px;font-style:italic;fill:${ocupada?'#333':'#777'};font-weight:300">${label}</text>
+        ${ocupada ? `<text x="${cx}" y="${y + h*0.72}" text-anchor="middle"
+          style="font-family:'Jost',sans-serif;font-size:5.5px;fill:#444;font-weight:300">${nombre1} ${hora1}</text>` : ""}
+      </g>`;
     }).join("");
 
+    // leyenda
+    const leyenda = `
+      <rect x="300" y="145" width="9" height="9" rx="2" fill="#d2d2d2" stroke="#999" stroke-width="0.6"/>
+      <text x="313" y="154" style="font-family:'Jost',sans-serif;font-size:6px;fill:#888;font-weight:300">Ocupada</text>
+      <rect x="300" y="158" width="9" height="9" rx="2" fill="#ededed" stroke="#ccc" stroke-width="0.6"/>
+      <text x="313" y="167" style="font-family:'Jost',sans-serif;font-size:6px;fill:#888;font-weight:300">Libre</text>
+    `;
+
+    // línea separadora entre zona interior y exterior
+    const separador = `<line x1="8" y1="36" x2="367" y2="36" stroke="#ddd" stroke-width="0.5" stroke-dasharray="4 3"/>`;
+
+    // ── tabla de reservas ────────────────────────────────────────────────────
     const tablaRows = resTurno.map(r => {
       const mesas = r.mesas && r.mesas.length > 0 ? r.mesas.map(getMesaNombreP).join("+") : r.mesa ? getMesaNombreP(r.mesa) : "—";
-      const estadoBadge = r.estado === "confirmada" ? "badge-conf" : r.estado === "tomada" ? "badge-tom" : r.estado === "llego" ? "badge-llego" : "badge-canc";
+      const estadoLabel = r.estado === "confirmada" ? "Conf." : r.estado === "tomada" ? "Tomada" : r.estado === "llego" ? "Llegó" : r.estado;
       return `<tr>
-        <td class="nombre">${r.nombre}</td>
-        <td>${r.telefono || "—"}</td>
-        <td class="hora">${r.hora}</td>
-        <td style="text-align:center" class="pax">${r.personas}</td>
-        <td><strong>${mesas}</strong></td>
-        <td><span class="${estadoBadge}">${r.estado}</span></td>
-        <td style="color:#555;font-size:9px">${r.notas || ""}</td>
+        <td class="nom">${r.nombre}</td>
+        <td class="tel">${r.telefono || "—"}</td>
+        <td class="hr">${r.hora}</td>
+        <td class="pax">${r.personas}</td>
+        <td class="mesa">${mesas}</td>
+        <td><span class="badge">${estadoLabel}</span></td>
+        <td class="nota">${r.notas || ""}</td>
       </tr>`;
     }).join("");
 
@@ -679,76 +676,83 @@ export default function App() {
 <head>
   <meta charset="UTF-8"/>
   <title>Plano</title>
-  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,700;1,700&family=Cormorant+Garamond:wght@700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@200;300;400&display=swap" rel="stylesheet"/>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Jost', Arial, sans-serif; color: #000; background: #fff; padding: 18px 24px; }
-    .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.5px solid #1b5e20; padding-bottom: 10px; margin-bottom: 16px; }
-    .header-logo { font-family: 'Lora', Georgia, serif; font-size: 20px; font-weight: 700; font-style: italic; color: #000; }
-    .header-logo .y { color: #2e7d32; }
-    .header-sub { font-size: 7px; letter-spacing: 3px; text-transform: uppercase; color: #888; margin-top: 3px; }
+    body { font-family: 'Jost', sans-serif; color: #1a1a1a; background: #fff; padding: 20px 24px; }
+    .wrap { max-width: 430px; margin: 0 auto; }
+    /* Header */
+    .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 0.8px solid #333; padding-bottom: 9px; margin-bottom: 12px; }
+    .header-logo { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 300; font-style: italic; color: #1a1a1a; line-height: 1; }
+    .header-logo .y { color: #888; }
+    .header-sub { font-family: 'Jost', sans-serif; font-size: 6px; font-weight: 200; letter-spacing: 3.5px; text-transform: uppercase; color: #bbb; margin-top: 3px; }
     .header-right { text-align: right; }
-    .header-fecha { font-size: 12px; font-weight: 500; text-transform: capitalize; }
-    .header-turno { font-size: 8.5px; font-weight: 300; color: #2e7d32; letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
-    .layout { display: flex; gap: 24px; align-items: flex-start; margin-bottom: 20px; }
-    .plano-wrap { flex: 0 0 auto; }
-    svg { display: block; }
-    .tabla-wrap { flex: 1; }
-    .section-title { font-family: 'Jost', sans-serif; font-size: 8px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: #4a7a4a; margin-bottom: 8px; }
-    table { width: 100%; border-collapse: collapse; }
-    th { padding: 4px 7px; text-align: left; font-size: 7.5px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: #444; border-bottom: 1px solid #1b5e20; }
-    td { padding: 4px 7px; font-size: 9.5px; color: #000; border-bottom: 1px solid #ebebeb; line-height: 1.4; vertical-align: middle; }
-    td.nombre { font-family: 'Lora', Georgia, serif; font-weight: 700; font-size: 11px; font-style: italic; }
-    td.hora { font-family: 'Lora', Georgia, serif; font-size: 11px; font-weight: 700; font-style: italic; }
-    td.pax { font-family: 'Lora', Georgia, serif; font-size: 11px; font-weight: 700; }
-    .badge-conf  { background:#e8f5e9; color:#1b5e20; border:1px solid #81c784; border-radius:3px; padding:1px 6px; font-size:8px; letter-spacing:1px; text-transform:uppercase; }
-    .badge-tom   { background:#fff8e1; color:#e65100; border:1px solid #ffcc02; border-radius:3px; padding:1px 6px; font-size:8px; letter-spacing:1px; text-transform:uppercase; }
-    .badge-llego { background:#f3e5f5; color:#6a1b9a; border:1px solid #ce93d8; border-radius:3px; padding:1px 6px; font-size:8px; letter-spacing:1px; text-transform:uppercase; }
-    .badge-canc  { background:#ffebee; color:#c62828; border:1px solid #ef9a9a; border-radius:3px; padding:1px 6px; font-size:8px; letter-spacing:1px; text-transform:uppercase; }
+    .header-fecha { font-size: 9px; font-weight: 300; color: #444; text-transform: capitalize; }
+    .header-turno { font-size: 6.5px; font-weight: 200; letter-spacing: 2px; text-transform: uppercase; color: #aaa; margin-top: 2px; }
+    /* Plano label */
+    .section-lbl { font-size: 6px; font-weight: 300; letter-spacing: 2.5px; text-transform: uppercase; color: #bbb; margin-bottom: 6px; }
+    svg { display: block; width: 100%; }
+    /* Tabla */
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th { font-family: 'Jost', sans-serif; font-size: 6px; font-weight: 300; letter-spacing: 1.5px; text-transform: uppercase; color: #999; padding: 3px 4px; border-bottom: 0.8px solid #333; text-align: left; }
+    th.c { text-align: center; }
+    td { padding: 3px 4px; border-bottom: 0.5px solid #eee; vertical-align: middle; }
+    td.nom  { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 10px; font-weight: 300; }
+    td.hr   { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 10px; font-weight: 300; }
+    td.pax  { font-family: 'Cormorant Garamond', serif; font-size: 10px; font-weight: 300; text-align: center; }
+    td.tel  { font-size: 6.5px; color: #777; white-space: nowrap; font-weight: 300; }
+    td.mesa { font-size: 7.5px; font-weight: 300; color: #444; }
+    td.nota { font-size: 6.5px; color: #999; font-weight: 300; }
+    .badge { background: #efefef; color: #555; border: 0.5px solid #ccc; border-radius: 2px; padding: 1px 4px; font-size: 5.5px; letter-spacing: 0.8px; text-transform: uppercase; font-family: 'Jost', sans-serif; font-weight: 300; }
     @media print {
       body { padding: 0; }
-      @page { size: A4 landscape; margin: 10mm 14mm; }
+      @page { size: A5 portrait; margin: 10mm 12mm; }
       html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <div>
-      <div class="header-logo">Buenas <span class="y">y</span> Santas</div>
-      <div class="header-sub">nueva cocina casera</div>
+  <div class="wrap">
+    <div class="header">
+      <div>
+        <div class="header-logo">Buenas <span class="y">y</span> Santas</div>
+        <div class="header-sub">nueva cocina casera</div>
+      </div>
+      <div class="header-right">
+        <div class="header-fecha">${fechaLabel}</div>
+        ${turnoLabel ? `<div class="header-turno">${turnoLabel}</div>` : ""}
+      </div>
     </div>
-    <div class="header-right">
-      <div class="header-fecha">${fechaLabel}</div>
-      ${turnoLabel ? `<div class="header-turno">${turnoLabel}</div>` : ""}
-    </div>
-  </div>
-  <div class="layout">
-    <div class="plano-wrap">
-      <div class="section-title">Plano de sala</div>
-      <svg viewBox="0 0 ${VW} ${VH}" width="${VW * 0.72}" height="${VH * 0.72}" xmlns="http://www.w3.org/2000/svg">
-        <rect x="0" y="0" width="${VW}" height="${VH}" fill="#f4faf4" rx="12"/>
-        <line x1="${PAD + 0.2*U}" y1="${PAD + 1.15*U}" x2="${PAD + 6.5*U}" y2="${PAD + 1.15*U}" stroke="#c8e6c9" stroke-width="0.8" stroke-dasharray="5 5" opacity="0.7"/>
-        ${mesasSVG}
-      </svg>
-    </div>
-    <div class="tabla-wrap">
-      <div class="section-title">Reservas del turno — ${resTurno.length} reserva${resTurno.length !== 1 ? "s" : ""}</div>
-      <table>
-        <thead>
-          <tr>
-            <th>Cliente</th><th>Teléfono</th><th>Hora</th><th style="text-align:center">Pax</th><th>Mesa</th><th>Estado</th><th>Notas</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${tablaRows || '<tr><td colspan="7" style="padding:10px;text-align:center;color:#888;font-size:9px">No hay reservas</td></tr>'}
-        </tbody>
-      </table>
-    </div>
+
+    <div class="section-lbl">Plano de sala</div>
+    <svg viewBox="0 0 375 182" xmlns="http://www.w3.org/2000/svg">
+      <rect width="375" height="182" fill="#f6f6f6" rx="5"/>
+      ${separador}
+      ${mesasSVG}
+      ${leyenda}
+    </svg>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:22%">Cliente</th>
+          <th style="width:13%">Teléfono</th>
+          <th style="width:8%">Hora</th>
+          <th class="c" style="width:5%">Pax</th>
+          <th style="width:9%">Mesa</th>
+          <th style="width:11%">Estado</th>
+          <th>Notas</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tablaRows || '<tr><td colspan="7" style="padding:10px;text-align:center;color:#999;font-size:8px">No hay reservas</td></tr>'}
+      </tbody>
+    </table>
   </div>
   <script>window.onload = () => { window.print(); }<\/script>
 </body>
 </html>`;
+
     const w = window.open("", "_blank");
     w.document.write(html);
     w.document.close();
@@ -1401,7 +1405,7 @@ Buenas y Santas`;
                 <option value="cancelada">Canceladas</option>
                 <option value="llego">Llegaron</option>
               </select>
-              <button className="btn-outline" onClick={() => setFiltroFecha("")}>Ver todas las fechas</button>
+              <button className="btn-outline" onClick={() => { setFiltroFecha(""); setFiltroTurno("todos"); }}>Ver todas las fechas</button>
               <div className="turnos-wrap" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {[
                   { key: "todos", label: "Todos los turnos" },
