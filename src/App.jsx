@@ -1139,7 +1139,7 @@ Buenas y Santas`;
   if (!usuario) return (
     <div style={{ minHeight: "100vh", background: "#b8ddb8", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 24, padding: 24 }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      <img src="./logo_buenasysantas.jpg" alt="Buenas y Santas" style={{ height: 80, objectFit: "contain" }} onError={e => { e.target.style.display="none"; }} />
+      <img src="/src/logo_buenasysantas.jpg" alt="Buenas y Santas" style={{ height: 80, objectFit: "contain" }} onError={e => { e.target.style.display="none"; }} />
       <div style={{ textAlign: "center" }}>
         <div style={{ fontFamily: "'Lora', serif", fontSize: 28, fontWeight: 700, fontStyle: "italic", color: "#1b5e20" }}>Buenas <span style={{ color: "#555" }}>y</span> Santas</div>
         <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 3, color: "#5a8a5a", textTransform: "uppercase", marginTop: 4 }}>Gestión de Reservas</div>
@@ -1274,7 +1274,7 @@ Buenas y Santas`;
       {/* HEADER */}
       <header style={{ borderBottom: "1px solid #a5d6a7", background: "#ffffff", padding: "0 24px", position: "sticky", top: 0, zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between", height: 64, boxShadow: "0 2px 8px rgba(46,125,50,0.10)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <img src="./logo_buenasysantas.jpg" alt="Buenas y Santas" style={{ height: 44, width: "auto", objectFit: "contain" }} />
+          <img src="/src/logo_buenasysantas.jpg" alt="Buenas y Santas" style={{ height: 44, width: "auto", objectFit: "contain" }} />
           <span className="desktop-subtitle" style={{ color: "#c8e6c9", fontSize: 22 }}>|</span>
           <span className="desktop-subtitle" style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 3, color: "#6a9a6a", textTransform: "uppercase" }}>Gestión de Reservas</span>
         </div>
