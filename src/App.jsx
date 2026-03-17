@@ -286,29 +286,30 @@ export default function App() {
     if (!form.tomadaPor) return showToast("Indica quién toma la reserva", "error");
     if (!form.nombre || !form.fecha || !form.hora) return showToast("Selecciona nombre, fecha y hora", "error");
     if (!form.personas || form.personas < 1) return showToast("Indica el número de personas", "error");
-    if (!reservaEditando) {
-      // Nueva reserva: pedir confirmación de WhatsApp primero
-      setConfirmarWA(true);
-      return;
-    }
-    const updated = { ...form, id: reservaEditando };
-    fbSetReserva(updated);
-    showToast("Reserva actualizada ✓");
-    setModalAbierto(false);
+    // Siempre pedir confirmación de WhatsApp (nueva o edición)
+    setConfirmarWA(true);
   };
 
   const confirmarYGuardar = async () => {
     setGuardando(true);
     const ahora = new Date();
     const cuando = `${String(ahora.getDate()).padStart(2,"0")}/${String(ahora.getMonth()+1).padStart(2,"0")}/${ahora.getFullYear()} ${String(ahora.getHours()).padStart(2,"0")}:${String(ahora.getMinutes()).padStart(2,"0")}`;
-    const nuevoId = Date.now() + Math.floor(Math.random() * 10000);
-    const nuevaReserva = { ...form, mesa: form.mesas.join("+"), id: nuevoId, cuando };
-    await fbSetReserva(nuevaReserva);
-    if (pendingSheetIdx !== null) {
-      setSheetFilas(fs => [fs[0], ...fs.slice(1).filter((_, idx) => idx + 1 !== pendingSheetIdx)]);
-      setPendingSheetIdx(null);
+    let toastMsg;
+    if (reservaEditando) {
+      const updated = { ...form, id: reservaEditando };
+      await fbSetReserva(updated);
+      toastMsg = "Reserva actualizada ✓";
+    } else {
+      const nuevoId = Date.now() + Math.floor(Math.random() * 10000);
+      const nuevaReserva = { ...form, mesa: form.mesas.join("+"), id: nuevoId, cuando };
+      await fbSetReserva(nuevaReserva);
+      if (pendingSheetIdx !== null) {
+        setSheetFilas(fs => [fs[0], ...fs.slice(1).filter((_, idx) => idx + 1 !== pendingSheetIdx)]);
+        setPendingSheetIdx(null);
+      }
+      toastMsg = "Reserva creada ✓";
     }
-    showToast("Reserva creada ✓");
+    showToast(toastMsg);
     setConfirmarWA(false);
     setModalAbierto(false);
     if (vista === "sheet") setVista("sheet");
@@ -1138,7 +1139,7 @@ Buenas y Santas`;
   if (!usuario) return (
     <div style={{ minHeight: "100vh", background: "#b8ddb8", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 24, padding: 24 }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      <img src="/reservas-restaurante/logo_buenasysantas.jpg" alt="Buenas y Santas" style={{ height: 80, objectFit: "contain" }} onError={e => { e.target.style.display="none"; }} />
+      <img src="./logo_buenasysantas.jpg" alt="Buenas y Santas" style={{ height: 80, objectFit: "contain" }} onError={e => { e.target.style.display="none"; }} />
       <div style={{ textAlign: "center" }}>
         <div style={{ fontFamily: "'Lora', serif", fontSize: 28, fontWeight: 700, fontStyle: "italic", color: "#1b5e20" }}>Buenas <span style={{ color: "#555" }}>y</span> Santas</div>
         <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 3, color: "#5a8a5a", textTransform: "uppercase", marginTop: 4 }}>Gestión de Reservas</div>
@@ -1273,7 +1274,7 @@ Buenas y Santas`;
       {/* HEADER */}
       <header style={{ borderBottom: "1px solid #a5d6a7", background: "#ffffff", padding: "0 24px", position: "sticky", top: 0, zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between", height: 64, boxShadow: "0 2px 8px rgba(46,125,50,0.10)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <img src="/reservas-restaurante/logo_buenasysantas.jpg" alt="Buenas y Santas" style={{ height: 44, width: "auto", objectFit: "contain" }} />
+          <img src="./logo_buenasysantas.jpg" alt="Buenas y Santas" style={{ height: 44, width: "auto", objectFit: "contain" }} />
           <span className="desktop-subtitle" style={{ color: "#c8e6c9", fontSize: 22 }}>|</span>
           <span className="desktop-subtitle" style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 3, color: "#6a9a6a", textTransform: "uppercase" }}>Gestión de Reservas</span>
         </div>
@@ -1736,7 +1737,7 @@ Buenas y Santas`;
                           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                             <button className="btn-outline" style={{ padding: "6px 12px", fontSize: 11 }} onClick={() => abrirEditar(r)}>Editar</button>
                             <BtnWhatsApp reserva={r} tipo="confirmar" />
-                            <button className="btn-outline" style={{ padding: "6px 12px", fontSize: 11, borderColor: "#ef9a9a", color: "#ba5d5d" }} onClick={() => eliminarReserva(r.id)}>✕</button>
+
                           </div>
                         </div>
                       ))}
@@ -1863,9 +1864,7 @@ Buenas y Santas`;
               style={{ resize: "vertical", lineHeight: 1.7, fontSize: 14 }}
             />
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 20, alignItems: "center" }}>
-              {datosInterpretados && datosInterpretados.telefono && (
-                <BtnWhatsApp reserva={{ ...datosInterpretados, mesa: 1 }} style={{ padding: "12px 20px" }} />
-              )}
+
               <button
                 className="btn-gold"
                 onClick={interpretarTexto}
