@@ -882,6 +882,9 @@ export default function App() {
         // YYYY-MM-DD
         let m = str.match(/(\d{4})-(\d{2})-(\d{2})/);
         if (m) return str.slice(0,10);
+        // DD/MM/YYYY o DD-MM-YYYY
+        m = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+        if (m) return `${m[3]}-${String(m[2]).padStart(2,"0")}-${String(m[1]).padStart(2,"0")}`;
         // DD Mon YYYY  o  D Mon YYYY
         m = str.match(/(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})/);
         if (m) {
@@ -890,6 +893,52 @@ export default function App() {
         }
         return "";
       };
+
+      // ── Formato columnar: FECHA DISPONIBILE HORA PAX NOMBRE TELEFONO COMENTARIOS MAIL ─
+      // Detecta una línea con 6-8 campos separados por tabulaciones o múltiples espacios
+      // El orden esperado es: FECHA  DISPONIBILE  HORA  PAX  NOMBRE  TELEFONO  COMENTARIOS  MAIL
+      const lineas = texto.trim().split(/\r?\n/);
+      for (const linea of lineas) {
+        // Separar por tab o por 2+ espacios consecutivos
+        const cols = linea.split(/\t|  +/).map(s => s.trim()).filter(s => s.length > 0);
+        if (cols.length >= 5) {
+          // Heurística: col[2] parece hora (HH:MM) y col[3] parece número (pax)
+          const posibleHora = cols[2] || "";
+          const posiblePax  = cols[3] || "";
+          if (/^\d{1,2}:\d{2}$/.test(posibleHora) && /^\d+$/.test(posiblePax)) {
+            // cols: [0]=FECHA [1]=DISPONIBILE [2]=HORA [3]=PAX [4]=NOMBRE [5]=TELEFONO [6]=COMENTARIOS [7]=MAIL
+            const fechaCol  = cols[0] || "";
+            const horaCol   = cols[2] || "";
+            const paxCol    = cols[3] || "";
+            const nombreCol = cols[4] || "";
+            const telCol    = (cols[5] || "").replace(/\D/g, "");
+            const notasCol  = cols[6] || "";
+            const emailCol  = cols[7] || "";
+
+            const fechaParseada = parseFecha(fechaCol);
+            const horaLimpia = horaCol.replace(/^(\d):/, "0$1:");
+            let telLimpio = telCol;
+            if (telLimpio.startsWith("34") && telLimpio.length === 11) telLimpio = telLimpio.slice(2);
+
+            if (nombreCol || telLimpio || fechaParseada) {
+              const parsed = {
+                nombre: nombreCol,
+                telefono: telLimpio,
+                email: emailCol,
+                fecha: fechaParseada,
+                hora: horaLimpia,
+                personas: parseInt(paxCol) || 2,
+                notas: notasCol
+              };
+              setDatosInterpretados(parsed);
+              setForm(f => ({ ...f, ...parsed, mesas: [], estado: "tomada" }));
+              setModalAbierto(true);
+              setInterpretando(false);
+              return;
+            }
+          }
+        }
+      }
 
       // ── Extraer campos ────────────────────────────────────────────────────
       const nombre = extraer([
