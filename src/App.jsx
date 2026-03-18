@@ -49,15 +49,6 @@ function getTodayStr() {
 }
 
 export default function App() {
-  // Título de la pestaña del navegador
-  useEffect(() => {
-    document.title = "Reservas · Buenas y Santas";
-    const link = document.querySelector("link[rel~='icon']") || document.createElement("link");
-    link.rel = "icon";
-    link.href = logoImg;
-    document.head.appendChild(link);
-  }, []);
-
   const [vista, setVista] = useState("reservas");
   const [reservas, setReservas] = useState([]);
   const [clientesArchivados, setClientesArchivados] = useState([]);
@@ -300,6 +291,19 @@ export default function App() {
     setConfirmarWA(true);
   };
 
+  // Mueve la fila importada de Hoja1 a Pasadas en Google Sheets
+  const moverFilaSheet = async (rowIndex) => {
+    if (rowIndex === null || rowIndex === undefined) return;
+    try {
+      await fetch("https://script.google.com/macros/s/AKfycbxr4Yb8O1Db5W0sEh9eywRa-4rUgjd72TMZC_WJjvyTiDBljmtzj3tu5JhqHqqV0-y0HA/exec", {
+        method: "POST",
+        body: JSON.stringify({ action: "moverAPasadas", rowIndex })
+      });
+    } catch (e) {
+      console.warn("moverFilaSheet error:", e);
+    }
+  };
+
   const confirmarYGuardar = async () => {
     setGuardando(true);
     const ahora = new Date();
@@ -315,6 +319,7 @@ export default function App() {
       await fbSetReserva(nuevaReserva);
       if (pendingSheetIdx !== null) {
         setSheetFilas(fs => [fs[0], ...fs.slice(1).filter((_, idx) => idx + 1 !== pendingSheetIdx)]);
+        moverFilaSheet(pendingSheetIdx + 1); // +1 porque fila 1 = headers en Sheet
         setPendingSheetIdx(null);
       }
       toastMsg = "Reserva creada ✓";
@@ -800,13 +805,17 @@ export default function App() {
       const json = await res.json();
       if (!Array.isArray(json) || json.length < 2) throw new Error("No hay datos en la hoja");
 
-      // Filtrar filas que ya existen en reservas (por nombre + fecha)
+      // Filtrar filas ya existentes en reservas Y reservas pasadas
+      const hoy = getTodayStr();
       const headers = json[0];
       const filasFiltradas = json.slice(1).filter(fila => {
         const nombreFila = String(fila[0] || "").toLowerCase().trim();
         const raw = String(fila[2] || "").trim();
         const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
         const fechaFila = m ? `${m[1]}-${m[2]}-${m[3]}` : "";
+        // Descartar si la fecha ya pasó
+        if (fechaFila && fechaFila < hoy) return false;
+        // Descartar si ya existe en Firestore
         return !reservas.some(r =>
           r.nombre.toLowerCase().trim() === nombreFila && r.fecha === fechaFila
         );
@@ -1410,7 +1419,7 @@ Buenas y Santas`;
                 <option value="cancelada">Canceladas</option>
                 <option value="llego">Llegaron</option>
               </select>
-              <button className="btn-outline" onClick={() => setFiltroFecha("")}>Ver todas las fechas</button>
+              <button className="btn-outline" onClick={() => { setFiltroFecha(""); setFiltroTurno("todos"); }}>Ver todas las fechas</button>
               <div className="turnos-wrap" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {[
                   { key: "todos", label: "Todos los turnos" },
