@@ -68,6 +68,7 @@ export default function App() {
   const [planoModal, setPlanoModal] = useState(null); // { reservaId, mesaId, nombre }
   const [confirmarWA, setConfirmarWA] = useState(false);
   const [pendingSheetIdx, setPendingSheetIdx] = useState(null);
+  const [pendingSheetRowIndex, setPendingSheetRowIndex] = useState(null); // fila real en Google Sheet
   const [textoPegado, setTextoPegado] = useState("");
   const [interpretando, setInterpretando] = useState(false);
   const [datosInterpretados, setDatosInterpretados] = useState(null);
@@ -292,12 +293,12 @@ export default function App() {
   };
 
   // Mueve la fila importada de Hoja1 a Pasadas en Google Sheets
-  const moverFilaSheet = async (rowIndex) => {
-    if (rowIndex === null || rowIndex === undefined) return;
+  const moverFilaSheet = async (sheetRowIndex) => {
+    if (!sheetRowIndex) return;
     try {
       await fetch("https://script.google.com/macros/s/AKfycbxr4Yb8O1Db5W0sEh9eywRa-4rUgjd72TMZC_WJjvyTiDBljmtzj3tu5JhqHqqV0-y0HA/exec", {
         method: "POST",
-        body: JSON.stringify({ action: "moverAPasadas", rowIndex })
+        body: JSON.stringify({ action: "moverAPasadas", rowIndex: sheetRowIndex })
       });
     } catch (e) {
       console.warn("moverFilaSheet error:", e);
@@ -319,8 +320,9 @@ export default function App() {
       await fbSetReserva(nuevaReserva);
       if (pendingSheetIdx !== null) {
         setSheetFilas(fs => [fs[0], ...fs.slice(1).filter((_, idx) => idx + 1 !== pendingSheetIdx)]);
-        moverFilaSheet(pendingSheetIdx + 1); // +1 porque fila 1 = headers en Sheet
+        moverFilaSheet(pendingSheetRowIndex); // mueve la fila real del Sheet a Pasadas
         setPendingSheetIdx(null);
+        setPendingSheetRowIndex(null);
       }
       toastMsg = "Reserva creada ✓";
     }
@@ -805,24 +807,26 @@ export default function App() {
       const json = await res.json();
       if (!Array.isArray(json) || json.length < 2) throw new Error("No hay datos en la hoja");
 
-      // Filtrar filas ya existentes en reservas Y reservas pasadas
+      // Filtrar filas ya existentes y pasadas; guardar índice real del Sheet en cada fila
       const hoy = getTodayStr();
       const headers = json[0];
-      const filasFiltradas = json.slice(1).filter(fila => {
-        const nombreFila = String(fila[0] || "").toLowerCase().trim();
-        const raw = String(fila[2] || "").trim();
-        const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
-        const fechaFila = m ? `${m[1]}-${m[2]}-${m[3]}` : "";
-        // Descartar si la fecha ya pasó
-        if (fechaFila && fechaFila < hoy) return false;
-        // Descartar si ya existe en Firestore
-        return !reservas.some(r =>
-          r.nombre.toLowerCase().trim() === nombreFila && r.fecha === fechaFila
-        );
-      });
+      // Añadimos _sheetRowIndex a cada fila para saber su posición real en el Sheet
+      const filasFiltradas = json.slice(1)
+        .map((fila, i) => ({ fila, sheetRowIndex: i + 2 })) // +2: fila 1=headers, filas empiezan en 2
+        .filter(({ fila }) => {
+          const nombreFila = String(fila[0] || "").toLowerCase().trim();
+          const raw = String(fila[2] || "").trim();
+          const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+          const fechaFila = m ? `${m[1]}-${m[2]}-${m[3]}` : "";
+          if (fechaFila && fechaFila < hoy) return false; // descartar pasadas
+          return !reservas.some(r =>
+            r.nombre.toLowerCase().trim() === nombreFila && r.fecha === fechaFila
+          );
+        });
 
       if (filasFiltradas.length === 0) throw new Error("No hay reservas nuevas pendientes de importar");
-      setSheetFilas([json[0], ...filasFiltradas]);
+      // sheetFilas[0] = headers, resto = filas con _sheetRowIndex incrustado
+      setSheetFilas([json[0], ...filasFiltradas.map(({ fila, sheetRowIndex }) => ({ ...fila, _sheetRowIndex: sheetRowIndex }))]);
     } catch (e) {
       setSheetError(e.message || "Error al conectar con Google Sheets");
     } finally {
@@ -1947,10 +1951,12 @@ Buenas y Santas`;
                             disabled={guardando}
                             onClick={() => {
                               if (guardando) return;
-                              const d = importarFilaSheet(headers, fila);
+                              const filaData = Array.isArray(fila) ? fila : Object.values(fila).filter(v => typeof v !== "number");
+                              const d = importarFilaSheet(headers, filaData);
                               setReservaEditando(null);
                               setForm(d);
-                              setPendingSheetIdx(i + 1); // +1 porque slice(1)
+                              setPendingSheetIdx(i + 1);
+                              setPendingSheetRowIndex(fila._sheetRowIndex || null); // índice real del Sheet
                               setModalAbierto(true);
                             }}>
                             {guardando ? "⏳ Importando..." : "+ Importar"}
