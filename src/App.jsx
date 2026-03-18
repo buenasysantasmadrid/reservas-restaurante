@@ -49,6 +49,15 @@ function getTodayStr() {
 }
 
 export default function App() {
+  // Título de la pestaña del navegador
+  useEffect(() => {
+    document.title = "Reservas · Buenas y Santas";
+    const link = document.querySelector("link[rel~='icon']") || document.createElement("link");
+    link.rel = "icon";
+    link.href = logoImg;
+    document.head.appendChild(link);
+  }, []);
+
   const [vista, setVista] = useState("reservas");
   const [reservas, setReservas] = useState([]);
   const [clientesArchivados, setClientesArchivados] = useState([]);
@@ -448,7 +457,6 @@ export default function App() {
   };
 
   const imprimirReservas = () => {
-    const logoUrl = logoImg;
     const fechaLabel = filtroFecha
       ? new Date(filtroFecha + "T12:00").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
       : "Todas las fechas";
@@ -533,7 +541,8 @@ export default function App() {
 <body>
   <div class="header">
     <div>
-      <img src="${logoUrl}" alt="Buenas y Santas" style="height:36px;width:auto;object-fit:contain;display:block"/>
+      <div class="header-logo">Buenas <span class="y">y</span> Santas</div>
+      <div class="header-subtitle">nueva cocina casera</div>
     </div>
     <div class="header-right">
       <div class="header-fecha">${fechaLabel}</div>
@@ -565,15 +574,12 @@ export default function App() {
   };
 
   const imprimirPlano = () => {
-    const logoUrl = logoImg;
     const fechaLabel = filtroFecha
       ? new Date(filtroFecha + "T12:00").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
       : "Todas las fechas";
 
     const turnoLabelMap = { t1: "1º Turno Mediodía", t2: "2º Turno Mediodía", noche: "Noche" };
-    const turnoLabel = filtroTurno === "todos" ? "Todos los turnos"
-      : filtroTurno === "mediodia" ? "Mediodía"
-      : turnoLabelMap[filtroTurno] || (filtroTurno === "custom" && turnoPersonalizado ? `Turno ${turnoPersonalizado.desde} – ${turnoPersonalizado.hasta}` : "");
+    const turnoLabel = turnoLabelMap[filtroTurno] || (filtroTurno === "custom" && turnoPersonalizado ? `Turno ${turnoPersonalizado.desde} – ${turnoPersonalizado.hasta}` : "");
 
     const planoTurnoLocal = filtroTurno === "custom" ? "custom" : (filtroTurno === "todos" || filtroTurno === "mediodia") ? "t1" : filtroTurno;
     const resTurno = reservas.filter(r => {
@@ -589,164 +595,92 @@ export default function App() {
       return getTurno(r.hora) === planoTurnoLocal;
     }).sort((a, b) => (a.hora || "").localeCompare(b.hora || ""));
 
-    const U = 60;
-    const PAD = 10;
-
-    const MESAS_POS_P = [
-      { id: 40, cx: 3.2, cy:  0.5, w: 0.8, h: 0.8 },
-      { id: 41, cx: 4.5, cy:  0.5, w: 0.8, h: 0.8 },
-      { id: 12, cx: 1,   cy:  1.7, w: 0.8, h: 0.8 },
-      { id: 1,  cx: 3.2, cy:  1.7, w: 0.8, h: 0.8 },
-      { id: 3,  cx: 4.5, cy:  1.7, w: 0.8, h: 0.8 },
-      { id: 5,  cx: 5.8, cy:  1.7, w: 0.8, h: 0.8 },
-      { id: 13, cx: 1,   cy:  2.6, w: 0.8, h: 0.8 },
-      { id: 2,  cx: 3.2, cy:  2.6, w: 0.8, h: 0.8 },
-      { id: 4,  cx: 4.5, cy:  2.6, w: 0.8, h: 0.8 },
-      { id: 15, cx: 5.8, cy:  2.6, w: 0.8, h: 0.8 },
-      { id: 18, cx: 3.2, cy:  3.9, w: 0.8, h: 0.8 },
-      { id: 17, cx: 4.5, cy:  3.9, w: 0.8, h: 0.8 },
-      { id: 16, cx: 5.8, cy:  3.9, w: 0.8, h: 0.8 },
-      { id: 11, cx: 0.5, cy:  4.8, w: 0.8, h: 0.8 },
-      { id: 10, cx: 1.6, cy:  4.8, w: 0.8, h: 0.8 },
-      { id: 8,  cx: 3.2, cy:  4.8, w: 0.8, h: 0.8 },
-      { id: 7,  cx: 4.5, cy:  4.8, w: 0.8, h: 0.8 },
-      { id: 6,  cx: 5.8, cy:  4.8, w: 0.8, h: 0.8 },
-    ];
-
-    const MERGE_GROUPS_P = [
-      { ids: [8, 2, 18, 1], clampToFirst: true, clampHeight: 3.2, anchorBottom: true },
-      { ids: [7, 17, 4, 3], clampToFirst: true, clampHeight: 3.2, anchorBottom: true },
-      { ids: [6, 16, 15, 5], clampToFirst: true, clampHeight: 3.2, anchorBottom: true },
-      { ids: [12, 13, 11, 10], clampToFirst: true, clampHeight: 3.2 },
-      { ids: [5, 15, 16], clampToFirst: true, clampHeight: 2.1 },
-      { ids: [6, 16, 15], clampToFirst: true, clampHeight: 2.1, anchorBottom: true },
-      { ids: [3, 4, 17], clampToFirst: true, clampHeight: 2.1 },
-      { ids: [7, 17, 4], clampToFirst: true, clampHeight: 2.1, anchorBottom: true },
-      { ids: [1, 2, 18], clampToFirst: true, clampHeight: 2.1 },
-      { ids: [8, 18, 2], clampToFirst: true, clampHeight: 2.1, anchorBottom: true },
-      { ids: [12, 13, 11], clampToFirst: true, clampHeight: 2.1 },
-      [1, 2], [3, 4], [5, 15], [12, 13],
-      [8, 18], [7, 17], [6, 16],
-      [11, 10],
-      [40, 41],
-    ];
-
-    const mesaReservaP = {};
+    const mesaResMap = {};
     resTurno.forEach(r => {
       const ms = r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : [];
-      ms.forEach(m => { mesaReservaP[m] = r; });
+      ms.forEach(m => { mesaResMap[m] = r; });
     });
 
-    const reservaMergeGroupP = {};
-    resTurno.forEach(r => {
-      const ms = new Set(r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []);
-      if (ms.size < 2) return;
-      for (const grp of MERGE_GROUPS_P) {
-        const ids = Array.isArray(grp) ? grp : grp.ids;
-        const unique = [...new Set(ids)];
-        if (unique.every(m => ms.has(m))) {
-          reservaMergeGroupP[r.id] = Array.isArray(grp) ? unique : { ids: unique, clampToFirst: grp.clampToFirst, clampHeight: grp.clampHeight, anchorBottom: grp.anchorBottom };
-          break;
-        }
-      }
-    });
-
-    const secondaryMesasP = new Set();
-    Object.values(reservaMergeGroupP).forEach(grp => {
-      const ids = Array.isArray(grp) ? grp : grp.ids;
-      ids.slice(1).forEach(m => secondaryMesasP.add(m));
-    });
-
+    const U = 64;
+    const PAD = 12;
+    const MESAS_POS_P = [
+      { id: 40, cx: 3.2, cy: 0.5, w: 0.8, h: 0.8 },
+      { id: 41, cx: 4.5, cy: 0.5, w: 0.8, h: 0.8 },
+      { id: 12, cx: 1,   cy: 1.7, w: 0.8, h: 0.8 },
+      { id: 1,  cx: 3.2, cy: 1.7, w: 0.8, h: 0.8 },
+      { id: 3,  cx: 4.5, cy: 1.7, w: 0.8, h: 0.8 },
+      { id: 5,  cx: 5.8, cy: 1.7, w: 0.8, h: 0.8 },
+      { id: 13, cx: 1,   cy: 2.6, w: 0.8, h: 0.8 },
+      { id: 2,  cx: 3.2, cy: 2.6, w: 0.8, h: 0.8 },
+      { id: 4,  cx: 4.5, cy: 2.6, w: 0.8, h: 0.8 },
+      { id: 15, cx: 5.8, cy: 2.6, w: 0.8, h: 0.8 },
+      { id: 18, cx: 3.2, cy: 3.9, w: 0.8, h: 0.8 },
+      { id: 17, cx: 4.5, cy: 3.9, w: 0.8, h: 0.8 },
+      { id: 16, cx: 5.8, cy: 3.9, w: 0.8, h: 0.8 },
+      { id: 11, cx: 0.5, cy: 4.8, w: 0.8, h: 0.8 },
+      { id: 10, cx: 1.6, cy: 4.8, w: 0.8, h: 0.8 },
+      { id: 8,  cx: 3.2, cy: 4.8, w: 0.8, h: 0.8 },
+      { id: 7,  cx: 4.5, cy: 4.8, w: 0.8, h: 0.8 },
+      { id: 6,  cx: 5.8, cy: 4.8, w: 0.8, h: 0.8 },
+      { id: 30, cx: 3.2, cy: 6.0, w: 0.8, h: 0.8, barra: true },
+      { id: 31, cx: 4.5, cy: 6.0, w: 0.8, h: 0.8, barra: true },
+    ];
     const MESA_NOMBRE_P = { 30: "Barra 1", 31: "Barra 2" };
     const getMesaNombreP = (m) => MESA_NOMBRE_P[m] || String(m);
 
-    const VW = 680;
-    const VH = 349;
+    const SVG_COLS = 6.1;
+    const SVG_ROWS = 7.8;
+    const VW = SVG_COLS * U + PAD * 2;
+    const VH = SVG_ROWS * U + PAD * 2;
 
-    const mesasSVG = MESAS_POS_P.map(({ id, cx, cy, w, h }) => {
-      if (secondaryMesasP.has(id)) return "";
-      const res = mesaReservaP[id];
+    const mesasSVG = MESAS_POS_P.map(({ id, cx, cy, w, h, barra }) => {
+      const res = mesaResMap[id];
       const ocupada = !!res;
-      const fill   = ocupada ? "#e8e8e8" : "#f2f2f2";
-      const stroke = ocupada ? "#c8c8c8" : "#e0e0e0";
-      const strokeW = ocupada ? 0.7 : 0.6;
-      const textC  = ocupada ? "#555" : "#c0c0c0";
-
-      const mergeGroup = res ? reservaMergeGroupP[res.id] : null;
-      const mergeIds = mergeGroup ? (Array.isArray(mergeGroup) ? mergeGroup : mergeGroup.ids) : null;
-      const clampToFirst = mergeGroup && !Array.isArray(mergeGroup) && mergeGroup.clampToFirst;
-      const clampHeight  = mergeGroup && !Array.isArray(mergeGroup) ? mergeGroup.clampHeight : null;
-      const anchorBottom = mergeGroup && !Array.isArray(mergeGroup) && mergeGroup.anchorBottom;
-      const isMerged = mergeIds && mergeIds[0] === id;
-
-      let mw = w * U, mh = h * U;
-      let mx = PAD + cx * U - (w * U) / 2;
-      let my = PAD + cy * U - (h * U) / 2;
-
-      if (isMerged && mergeIds.length > 1) {
-        const origMx = mx, origMw = mw, origMy = my, origMh = mh;
-        mergeIds.slice(1).forEach(secId => {
-          const sec = MESAS_POS_P.find(p => p.id === secId);
-          if (!sec) return;
-          const sx = PAD + sec.cx * U - (sec.w * U) / 2;
-          const sy = PAD + sec.cy * U - (sec.h * U) / 2;
-          const x2 = Math.max(mx + mw, sx + sec.w * U);
-          const y2 = Math.max(my + mh, sy + sec.h * U);
-          mx = Math.min(mx, sx); my = Math.min(my, sy);
-          mw = x2 - mx; mh = y2 - my;
-        });
-        if (clampToFirst) {
-          mx = origMx; mw = origMw; mh = origMh;
-          mergeIds.slice(1).forEach(secId => {
-            const sec = MESAS_POS_P.find(p => p.id === secId);
-            if (!sec) return;
-            if (Math.abs(sec.cx - cx) < 0.7) {
-              const sy = PAD + sec.cy * U - (sec.h * U) / 2;
-              const y2 = Math.max(my + mh, sy + sec.h * U);
-              my = Math.min(my, sy); mh = y2 - my;
-            }
-          });
-          if (clampHeight) mh = Math.min(mh, clampHeight * U);
-          if (anchorBottom) my = (PAD + cy * U + (h * U) / 2) - mh;
-        }
-      }
-
-      const RR = 5;
+      const sinConfirmar = res && res.estado === "tomada";
+      const llego = res && res.estado === "llego";
+      const fill   = llego ? "#f5f5f5" : ocupada ? (sinConfirmar ? "#fff8e1" : "#2e7d32") : "#e8f5e9";
+      const stroke = llego ? "#e0e0e0" : ocupada ? (sinConfirmar ? "#f9a825" : "#1b5e20") : "#81c784";
+      const textC  = llego ? "#bdbdbd" : ocupada ? (sinConfirmar ? "#e65100" : "#fff") : "#2e7d32";
+      const mx = PAD + cx * U - (w * U) / 2;
+      const my = PAD + cy * U - (h * U) / 2;
+      const mw = w * U;
+      const mh = h * U;
+      const RR = 8;
       const label = getMesaNombreP(id);
-      const lineH = isMerged ? mh * 0.22 : (res ? mh * 0.28 : mh / 2 + 4);
+      const strokeW = ocupada ? 2 : 1.2;
+      const nombre1 = res ? res.nombre.split(" ")[0] : "";
+      const hora1 = res ? res.hora : "";
+      const pax1 = res ? res.personas + "p" : "";
+      const hasNota = res && res.notas;
 
-      return `<g>
-        <rect x="${mx}" y="${my}" width="${mw}" height="${mh}" rx="${RR}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}"/>
-        <text x="${mx + mw/2}" y="${my + lineH}" text-anchor="middle"
-          style="font-family:'Cormorant Garamond',serif;font-size:14px;font-style:italic;fill:${textC};font-weight:300">${label}</text>
-        ${res ? `<text x="${mx + mw/2}" y="${my + mh * (isMerged ? 0.38 : 0.48)}" text-anchor="middle"
-          style="font-family:'Jost',sans-serif;font-size:7.5px;fill:#666;font-weight:300">${res.hora}</text>` : ""}
-        ${res ? `<text x="${mx + mw/2}" y="${my + mh * (isMerged ? 0.58 : 0.68)}" text-anchor="middle"
-          style="font-family:'Jost',sans-serif;font-size:8px;fill:#555;font-weight:300">${res.nombre.split(" ")[0]}</text>` : ""}
-        ${res ? `<text x="${mx + mw/2}" y="${my + mh * (isMerged ? 0.80 : 0.88)}" text-anchor="middle"
-          style="font-family:'Jost',sans-serif;font-size:7.5px;fill:#888;font-weight:300">${res.personas}p</text>` : ""}
-      </g>`;
+      return `
+        <g>
+          <rect x="${mx+1}" y="${my+2}" width="${mw}" height="${mh}" rx="${RR+1}" fill="rgba(0,0,0,0.06)"/>
+          <rect x="${mx}" y="${my}" width="${mw}" height="${mh}" rx="${RR}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}"/>
+          <text x="${mx + mw/2}" y="${my + (res ? mh*0.28 : mh/2+4)}" text-anchor="middle"
+            style="font-family:'Cormorant Garamond',serif;font-size:${barra?11:13}px;font-weight:700;fill:${textC};letter-spacing:0.5px">${label}</text>
+          ${res ? `<text x="${mx + mw/2}" y="${my + mh*0.48}" text-anchor="middle"
+            style="font-family:'Jost',sans-serif;font-size:7.5px;font-weight:600;fill:${textC};opacity:0.85">${hora1}</text>` : ""}
+          ${res ? `<text x="${mx + mw/2}" y="${my + mh*0.68}" text-anchor="middle"
+            style="font-family:'Jost',sans-serif;font-size:8px;font-weight:500;fill:${textC}">${nombre1}</text>` : ""}
+          ${res ? `<text x="${mx + mw/2}" y="${my + mh*0.88}" text-anchor="middle"
+            style="font-family:'Jost',sans-serif;font-size:7.5px;fill:${textC};opacity:0.75">${pax1}</text>` : ""}
+          ${hasNota ? `<circle cx="${mx + mw - 7}" cy="${my + 7}" r="4" fill="#e65100" opacity="0.85"/>
+          <text x="${mx + mw - 7}" y="${my + 10}" text-anchor="middle" style="font-family:'Jost',sans-serif;font-size:6px;fill:#fff;font-weight:700">!</text>` : ""}
+        </g>`;
     }).join("");
-
-    const leyenda = `
-      <rect x="16" y="330" width="8" height="8" rx="2" fill="#e8e8e8" stroke="#c8c8c8" stroke-width="0.5"/>
-      <text x="28" y="337" style="font-family:'Jost',sans-serif;font-size:8px;fill:#bbb;font-weight:300">Ocupada</text>
-      <rect x="82" y="330" width="8" height="8" rx="2" fill="#f2f2f2" stroke="#e0e0e0" stroke-width="0.5"/>
-      <text x="94" y="337" style="font-family:'Jost',sans-serif;font-size:8px;fill:#bbb;font-weight:300">Libre</text>
-    `;
-    const separador = `<line x1="10" y1="${PAD + 1.15*U}" x2="${PAD + 5.8*U + 0.8*U/2 + 10}" y2="${PAD + 1.15*U}" stroke="#e8e8e8" stroke-width="0.8" stroke-dasharray="5 4"/>`;
 
     const tablaRows = resTurno.map(r => {
       const mesas = r.mesas && r.mesas.length > 0 ? r.mesas.map(getMesaNombreP).join("+") : r.mesa ? getMesaNombreP(r.mesa) : "—";
-      const estadoLabel = r.estado === "confirmada" ? "Conf." : r.estado === "tomada" ? "Tomada" : r.estado === "llego" ? "Llegó" : r.estado;
+      const estadoBadge = r.estado === "confirmada" ? "badge-conf" : r.estado === "tomada" ? "badge-tom" : r.estado === "llego" ? "badge-llego" : "badge-canc";
       return `<tr>
-        <td class="nom">${r.nombre}</td>
-        <td class="tel">${r.telefono || "—"}</td>
-        <td class="hr2">${r.hora}</td>
-        <td class="pax">${r.personas}</td>
-        <td class="mesa">${mesas}</td>
-        <td><span class="badge">${estadoLabel}</span></td>
-        <td class="nota">${r.notas || ""}</td>
+        <td class="nombre">${r.nombre}</td>
+        <td>${r.telefono || "—"}</td>
+        <td class="hora">${r.hora}</td>
+        <td style="text-align:center" class="pax">${r.personas}</td>
+        <td><strong>${mesas}</strong></td>
+        <td><span class="${estadoBadge}">${r.estado}</span></td>
+        <td style="color:#555;font-size:9px">${r.notas || ""}</td>
       </tr>`;
     }).join("");
 
@@ -755,33 +689,35 @@ export default function App() {
 <head>
   <meta charset="UTF-8"/>
   <title>Plano</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=Jost:wght@200;300&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,700;1,700&family=Cormorant+Garamond:wght@700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Jost', sans-serif; color: #1a1a1a; background: #fff; padding: 12mm 13mm; }
-    .header { display: flex; align-items: flex-end; border-bottom: .7px solid #333; padding-bottom: 7px; margin-bottom: 9px; }
-    .hdr-mid { width: 339px; flex-shrink: 0; }
-    .hdr-r { text-align: left; }
-    .fecha { font-size: 8px; font-weight: 300; color: #444; white-space: nowrap; }
-    .turno { font-size: 5.5px; font-weight: 200; letter-spacing: 2px; text-transform: uppercase; color: #aaa; margin-top: 1px; white-space: nowrap; }
-    .lbl { font-size: 5.5px; font-weight: 300; letter-spacing: 2px; text-transform: uppercase; color: #bbb; margin-bottom: 4px; }
-    .plano-box { width: 100%; height: 115mm; }
-    .plano-box svg { width: 100%; height: 100%; }
-    hr.div { border: none; border-top: .5px solid #e8e8e8; margin: 4px 0; }
+    body { font-family: 'Jost', Arial, sans-serif; color: #000; background: #fff; padding: 18px 24px; }
+    .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.5px solid #1b5e20; padding-bottom: 10px; margin-bottom: 16px; }
+    .header-logo { font-family: 'Lora', Georgia, serif; font-size: 20px; font-weight: 700; font-style: italic; color: #000; }
+    .header-logo .y { color: #2e7d32; }
+    .header-sub { font-size: 7px; letter-spacing: 3px; text-transform: uppercase; color: #888; margin-top: 3px; }
+    .header-right { text-align: right; }
+    .header-fecha { font-size: 12px; font-weight: 500; text-transform: capitalize; }
+    .header-turno { font-size: 8.5px; font-weight: 300; color: #2e7d32; letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+    .layout { display: flex; gap: 24px; align-items: flex-start; margin-bottom: 20px; }
+    .plano-wrap { flex: 0 0 auto; }
+    svg { display: block; }
+    .tabla-wrap { flex: 1; }
+    .section-title { font-family: 'Jost', sans-serif; font-size: 8px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: #4a7a4a; margin-bottom: 8px; }
     table { width: 100%; border-collapse: collapse; }
-    th { font-size: 6px; font-weight: 300; letter-spacing: 1.5px; text-transform: uppercase; color: #999; padding: 2.5px 4px; border-bottom: .7px solid #333; text-align: left; }
-    th.c { text-align: center; }
-    td { padding: 3px 4px; border-bottom: .4px solid #eee; vertical-align: middle; }
-    td.nom { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 10px; font-weight: 300; }
-    td.hr2 { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 10px; font-weight: 300; }
-    td.pax { font-family: 'Cormorant Garamond', serif; font-size: 10px; font-weight: 300; text-align: center; }
-    td.tel { font-size: 6.5px; color: #888; white-space: nowrap; font-weight: 300; }
-    td.mesa { font-size: 7px; font-weight: 300; color: #555; }
-    td.nota { font-size: 6px; color: #aaa; font-weight: 300; }
-    .badge { background: #f4f4f4; color: #777; border: .4px solid #e0e0e0; border-radius: 2px; padding: 1px 4px; font-size: 5.5px; letter-spacing: .6px; text-transform: uppercase; font-weight: 300; font-family: 'Jost', sans-serif; }
+    th { padding: 4px 7px; text-align: left; font-size: 7.5px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: #444; border-bottom: 1px solid #1b5e20; }
+    td { padding: 4px 7px; font-size: 9.5px; color: #000; border-bottom: 1px solid #ebebeb; line-height: 1.4; vertical-align: middle; }
+    td.nombre { font-family: 'Lora', Georgia, serif; font-weight: 700; font-size: 11px; font-style: italic; }
+    td.hora { font-family: 'Lora', Georgia, serif; font-size: 11px; font-weight: 700; font-style: italic; }
+    td.pax { font-family: 'Lora', Georgia, serif; font-size: 11px; font-weight: 700; }
+    .badge-conf  { background:#e8f5e9; color:#1b5e20; border:1px solid #81c784; border-radius:3px; padding:1px 6px; font-size:8px; letter-spacing:1px; text-transform:uppercase; }
+    .badge-tom   { background:#fff8e1; color:#e65100; border:1px solid #ffcc02; border-radius:3px; padding:1px 6px; font-size:8px; letter-spacing:1px; text-transform:uppercase; }
+    .badge-llego { background:#f3e5f5; color:#6a1b9a; border:1px solid #ce93d8; border-radius:3px; padding:1px 6px; font-size:8px; letter-spacing:1px; text-transform:uppercase; }
+    .badge-canc  { background:#ffebee; color:#c62828; border:1px solid #ef9a9a; border-radius:3px; padding:1px 6px; font-size:8px; letter-spacing:1px; text-transform:uppercase; }
     @media print {
       body { padding: 0; }
-      @page { size: A4 portrait; margin: 12mm 13mm; }
+      @page { size: A4 landscape; margin: 10mm 14mm; }
       html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
   </style>
@@ -789,53 +725,44 @@ export default function App() {
 <body>
   <div class="header">
     <div>
-      <img src="${logoUrl}" alt="Buenas y Santas" style="height:36px;width:auto;object-fit:contain;display:block"/>
+      <div class="header-logo">Buenas <span class="y">y</span> Santas</div>
+      <div class="header-sub">nueva cocina casera</div>
     </div>
-    <div class="hdr-mid"></div>
-    <div class="hdr-r">
-      <div class="fecha">${fechaLabel}</div>
-      ${turnoLabel ? `<div class="turno">${turnoLabel}</div>` : ""}
+    <div class="header-right">
+      <div class="header-fecha">${fechaLabel}</div>
+      ${turnoLabel ? `<div class="header-turno">${turnoLabel}</div>` : ""}
     </div>
   </div>
-
-  <div class="lbl">Plano de sala</div>
-
-  <div class="plano-box">
-    <svg viewBox="0 0 ${VW} ${VH}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
-      <rect width="${VW}" height="${VH}" fill="#fafafa" rx="5"/>
-      ${separador}
-      ${mesasSVG}
-      ${leyenda}
-    </svg>
+  <div class="layout">
+    <div class="plano-wrap">
+      <div class="section-title">Plano de sala</div>
+      <svg viewBox="0 0 ${VW} ${VH}" width="${VW * 0.72}" height="${VH * 0.72}" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="${VW}" height="${VH}" fill="#f4faf4" rx="12"/>
+        <line x1="${PAD + 0.2*U}" y1="${PAD + 1.15*U}" x2="${PAD + 6.5*U}" y2="${PAD + 1.15*U}" stroke="#c8e6c9" stroke-width="0.8" stroke-dasharray="5 5" opacity="0.7"/>
+        ${mesasSVG}
+      </svg>
+    </div>
+    <div class="tabla-wrap">
+      <div class="section-title">Reservas del turno — ${resTurno.length} reserva${resTurno.length !== 1 ? "s" : ""}</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Cliente</th><th>Teléfono</th><th>Hora</th><th style="text-align:center">Pax</th><th>Mesa</th><th>Estado</th><th>Notas</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tablaRows || '<tr><td colspan="7" style="padding:10px;text-align:center;color:#888;font-size:9px">No hay reservas</td></tr>'}
+        </tbody>
+      </table>
+    </div>
   </div>
-
-  <hr class="div"/>
-
-  <table>
-    <thead>
-      <tr>
-        <th style="width:23%">Cliente</th>
-        <th style="width:13%">Teléfono</th>
-        <th style="width:9%">Hora</th>
-        <th class="c" style="width:5%">Pax</th>
-        <th style="width:10%">Mesa</th>
-        <th style="width:10%">Estado</th>
-        <th>Notas</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${tablaRows || '<tr><td colspan="7" style="padding:10px;text-align:center;color:#aaa;font-size:8px">No hay reservas</td></tr>'}
-    </tbody>
-  </table>
   <script>window.onload = () => { window.print(); }<\/script>
 </body>
 </html>`;
-
     const w = window.open("", "_blank");
     w.document.write(html);
     w.document.close();
   };
-
 
   // Al elegir un cliente existente, autocompleta sus datos
   const seleccionarNombre = (nombre) => {
@@ -1367,7 +1294,7 @@ Buenas y Santas`;
           <button className="nav-btn" onClick={abrirNueva}>+ Nueva</button>
           <button className={`nav-btn ${vista === "pegar" ? "active" : ""}`} onClick={() => setVista("pegar")}>📋 Pegar WhatsApp</button>
           <button className={`nav-btn ${vista === "sheet" ? "active" : ""}`} onClick={() => setVista("sheet")}>📲 Nueva WhatsApp</button>
-          <button className={`nav-btn ${vista === "plano" ? "active" : ""}`} onClick={() => setVista("plano")}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline",verticalAlign:"middle",marginRight:4}}><rect x="3" y="9" width="18" height="3" rx="1"/><line x1="5" y1="12" x2="5" y2="19"/><line x1="19" y1="12" x2="19" y2="19"/><line x1="3" y1="19" x2="21" y2="19"/></svg> Plano</button>
+          <button className={`nav-btn ${vista === "plano" ? "active" : ""}`} onClick={() => setVista("plano")}>🗺 Plano</button>
         </nav>
         {/* Hamburger */}
         <button className="hamburger" onClick={() => setMenuOpen(o => !o)} aria-label="Menú">
@@ -1383,7 +1310,7 @@ Buenas y Santas`;
           <button className="nav-btn" onClick={() => { abrirNueva(); setMenuOpen(false); }}>+ Nueva reserva</button>
           <button className={`nav-btn ${vista === "pegar" ? "active" : ""}`} onClick={() => { setVista("pegar"); setMenuOpen(false); }}>📋 Pegar WhatsApp</button>
           <button className={`nav-btn ${vista === "sheet" ? "active" : ""}`} onClick={() => { setVista("sheet"); setMenuOpen(false); }}>📲 Nueva WhatsApp</button>
-          <button className={`nav-btn ${vista === "plano" ? "active" : ""}`} onClick={() => { setVista("plano"); setMenuOpen(false); }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline",verticalAlign:"middle",marginRight:4}}><rect x="3" y="9" width="18" height="3" rx="1"/><line x1="5" y1="12" x2="5" y2="19"/><line x1="19" y1="12" x2="19" y2="19"/><line x1="3" y1="19" x2="21" y2="19"/></svg> Plano</button>
+          <button className={`nav-btn ${vista === "plano" ? "active" : ""}`} onClick={() => { setVista("plano"); setMenuOpen(false); }}>🗺 Plano</button>
         </nav>
       )}
 
@@ -1483,7 +1410,7 @@ Buenas y Santas`;
                 <option value="cancelada">Canceladas</option>
                 <option value="llego">Llegaron</option>
               </select>
-              <button className="btn-outline" onClick={() => { setFiltroFecha(""); setFiltroTurno("todos"); }}>Ver todas las fechas</button>
+              <button className="btn-outline" onClick={() => setFiltroFecha("")}>Ver todas las fechas</button>
               <div className="turnos-wrap" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {[
                   { key: "todos", label: "Todos los turnos" },
@@ -1528,14 +1455,14 @@ Buenas y Santas`;
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid #c8e6c9" }}>
-                    {["Cliente", "Fecha", "Hora", "Personas", "Mesa", "Estado", "Observaciones", "Acciones", "Tomada por", "Mail / Cuando"].map(h => (
+                    {["Cliente", "Fecha", "Hora", "Personas", "Mesa", "Estado", "Observaciones", "Acciones", "Tomada por", "Mail", "Cuando"].map(h => (
                       <th key={h} style={{ padding: "14px 20px", textAlign: "left", fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", fontWeight: 400 }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {reservasFiltradas.length === 0 ? (
-                    <tr><td colSpan={10} style={{ padding: 40, textAlign: "center", color: "#4a7a4a", fontFamily: "'Jost', sans-serif", fontSize: 14 }}>No hay reservas con estos filtros.</td></tr>
+                    <tr><td colSpan={11} style={{ padding: 40, textAlign: "center", color: "#4a7a4a", fontFamily: "'Jost', sans-serif", fontSize: 14 }}>No hay reservas con estos filtros.</td></tr>
                   ) : (() => {
                     const sorted = [...reservasFiltradas].sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
                     const rows = [];
@@ -1559,12 +1486,12 @@ Buenas y Santas`;
                       const rowBg = tStatus.status === "completo" ? "#ffebee" : tStatus.status === "cuidado" ? "#fff3e0" : color.bg;
                       // Separator between groups (not before first)
                       if (gi > 0) {
-                        rows.push(<tr key={"sep_"+gi}><td colSpan={10} style={{ padding: 0, height: 28, background: "transparent", border: "none" }} /></tr>);
+                        rows.push(<tr key={"sep_"+gi}><td colSpan={11} style={{ padding: 0, height: 28, background: "transparent", border: "none" }} /></tr>);
                       }
                       // Turno header row with label + badge
                       rows.push(
                         <tr key={"turnohead_"+turnoKey}>
-                          <td colSpan={10} style={{ padding: "6px 20px 4px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
+                          <td colSpan={11} style={{ padding: "6px 20px 4px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                               <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "#4a7a4a", fontWeight: 600 }}>
                                 {color.label}
@@ -1592,16 +1519,16 @@ Buenas y Santas`;
                       grupo.reservas.forEach((r, idx) => {
                       rows.push(
                     <tr key={r.id} className="row-hover" style={{ borderBottom: "1px solid #c8e6c9", background: rowBg, opacity: r.estado === "llego" ? 0.22 : 1 }}>
-                      <td style={{ padding: "9px 20px" }}>
+                      <td style={{ padding: "16px 20px" }}>
                         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17 }}>{r.nombre}</p>
                         <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a", marginTop: 2 }}>{(() => {
                           return String(r.telefono || "").trim();
                         })()}</p>
                       </td>
-                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</td>
-                      <td style={{ padding: "9px 20px", fontFamily: "'Cormorant Garamond', serif", fontSize: 18, color: "#1b5e20" }}>{r.hora}</td>
-                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{r.personas} pax</td>
-                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>
+                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</td>
+                      <td style={{ padding: "16px 20px", fontFamily: "'Cormorant Garamond', serif", fontSize: 18, color: "#1b5e20" }}>{r.hora}</td>
+                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{r.personas} pax</td>
+                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                           {(r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []).map(m => (
                             <span key={m} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#2e7d32", color: "#fff", borderRadius: 4, padding: "2px 8px", fontSize: 12, fontFamily: "'Jost', sans-serif", width: "fit-content" }}>
@@ -1639,7 +1566,7 @@ Buenas y Santas`;
                           </select>
                         </div>
                       </td>
-                      <td style={{ padding: "9px 20px" }}>
+                      <td style={{ padding: "16px 20px" }}>
                         <select
                           value={r.estado}
                           onChange={e => cambiarEstado(r.id, e.target.value)}
@@ -1652,21 +1579,23 @@ Buenas y Santas`;
                           <option value="llego">Llegó</option>
                         </select>
                       </td>
-                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", maxWidth: 160 }}>
+                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", maxWidth: 160 }}>
                         {r.notas || "—"}
                       </td>
-                      <td style={{ padding: "9px 20px" }}>
+                      <td style={{ padding: "16px 20px" }}>
                         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                           <button className="btn-outline" style={{ padding: "6px 12px", fontSize: 11 }} onClick={() => abrirEditar(r)}>Editar</button>
                           <BtnWhatsApp reserva={r} tipo="confirmar" />
                         </div>
                       </td>
-                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>
+                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>
                         {r.tomadaPor || "—"}
                       </td>
-                      <td style={{ padding: "9px 20px" }}>
-                        <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>{r.email || "—"}</div>
-                        <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, color: "#9e9e9e", marginTop: 2 }}>{r.cuando || ""}</div>
+                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>
+                        {r.email || "—"}
+                      </td>
+                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a" }}>
+                        {r.cuando || "—"}
                       </td>
                     </tr>
                   );
@@ -1679,7 +1608,7 @@ Buenas y Santas`;
                         const mesasLibres = MESAS.filter(m => !todasOcupadas.includes(m));
                         rows.push(
                           <tr key={"footer_"+turnoKey}>
-                            <td colSpan={10} style={{ padding: "8px 20px 12px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
+                            <td colSpan={11} style={{ padding: "8px 20px 12px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
                               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                                 <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 1, color: "#4a7a4a", textTransform: "uppercase" }}>
                                   Mesas libres: {mesasLibres.length === 0 ? <span style={{ color: "#c62828" }}>ninguna</span> : mesasLibres.map(m => (
