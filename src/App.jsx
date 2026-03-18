@@ -316,7 +316,7 @@ export default function App() {
         const scriptUrl = "https://script.google.com/macros/s/AKfycbxr4Yb8O1Db5W0sEh9eywRa-4rUgjd72TMZC_WJjvyTiDBljmtzj3tu5JhqHqqV0-y0HA/exec";
         fetch(scriptUrl, {
           method: "POST",
-          body: JSON.stringify({ action: "moverAPasadas", nombre: nuevaReserva.nombre, fecha: nuevaReserva.fecha })
+          body: JSON.stringify({ action: "marcarComoImportada", nombre: nuevaReserva.nombre, fecha: nuevaReserva.fecha })
         }).catch(() => {});
         setPendingSheetIdx(null);
       }
