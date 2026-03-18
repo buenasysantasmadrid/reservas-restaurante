@@ -107,7 +107,7 @@ export default function App() {
       email: r.email || "", tomadaPor: r.tomadaPor || "", cuando: r.cuando || ""
     }));
 
-    const url = "https://script.google.com/macros/s/AKfycbxr4Yb8O1Db5W0sEh9eywRa-4rUgjd72TMZC_WJjvyTiDBljmtzj3tu5JhqHqqV0-y0HA/exec";
+    const url = "https://script.google.com/macros/s/AKfycbxslphHn0GNmCT8PQcmJHPzo4M9_bB1OABaiXEs5ugXAVxHtQNTF2v3u1HiYEi0lRrm/exec";
     fetch(url, { method: "POST", body: JSON.stringify(filas) })
       .then(res => { if (!res.ok) throw new Error(); })
       .then(async () => {
@@ -313,8 +313,7 @@ export default function App() {
       await fbSetReserva(nuevaReserva);
       if (pendingSheetIdx !== null) {
         setSheetFilas(fs => [fs[0], ...fs.slice(1).filter((_, idx) => idx + 1 !== pendingSheetIdx)]);
-        const scriptUrl = "https://script.google.com/macros/s/AKfycbxr4Yb8O1Db5W0sEh9eywRa-4rUgjd72TMZC_WJjvyTiDBljmtzj3tu5JhqHqqV0-y0HA/exec";
-        fetch(scriptUrl, {
+        fetch("https://script.google.com/macros/s/AKfycbxslphHn0GNmCT8PQcmJHPzo4M9_bB1OABaiXEs5ugXAVxHtQNTF2v3u1HiYEi0lRrm/exec", {
           method: "POST",
           body: JSON.stringify({ action: "marcarComoImportada", nombre: nuevaReserva.nombre, fecha: nuevaReserva.fecha })
         }).catch(() => {});
@@ -350,7 +349,7 @@ export default function App() {
     }));
 
     try {
-      const url = "https://script.google.com/macros/s/AKfycbxr4Yb8O1Db5W0sEh9eywRa-4rUgjd72TMZC_WJjvyTiDBljmtzj3tu5JhqHqqV0-y0HA/exec";
+      const url = "https://script.google.com/macros/s/AKfycbxslphHn0GNmCT8PQcmJHPzo4M9_bB1OABaiXEs5ugXAVxHtQNTF2v3u1HiYEi0lRrm/exec";
       const res = await fetch(url, { method: "POST", body: JSON.stringify(filas) });
       if (!res.ok) throw new Error("Error al conectar con Google Sheets");
       // Guardar clientes en Firestore
@@ -805,7 +804,7 @@ export default function App() {
     setSheetError("");
     setSheetFilas([]);
     try {
-      const url = "https://script.google.com/macros/s/AKfycbxr4Yb8O1Db5W0sEh9eywRa-4rUgjd72TMZC_WJjvyTiDBljmtzj3tu5JhqHqqV0-y0HA/exec";
+      const url = "https://script.google.com/macros/s/AKfycbxslphHn0GNmCT8PQcmJHPzo4M9_bB1OABaiXEs5ugXAVxHtQNTF2v3u1HiYEi0lRrm/exec";
       const res = await fetch(url);
       if (!res.ok) throw new Error("No se pudo conectar con Google Sheets");
       const json = await res.json();
