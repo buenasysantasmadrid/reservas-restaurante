@@ -448,6 +448,7 @@ export default function App() {
   };
 
   const imprimirReservas = () => {
+    const logoUrl = logoImg;
     const fechaLabel = filtroFecha
       ? new Date(filtroFecha + "T12:00").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
       : "Todas las fechas";
@@ -532,8 +533,7 @@ export default function App() {
 <body>
   <div class="header">
     <div>
-      <div class="header-logo">Buenas <span class="y">y</span> Santas</div>
-      <div class="header-subtitle">nueva cocina casera</div>
+      <img src="${logoUrl}" alt="Buenas y Santas" style="height:36px;width:auto;object-fit:contain;display:block"/>
     </div>
     <div class="header-right">
       <div class="header-fecha">${fechaLabel}</div>
@@ -565,6 +565,7 @@ export default function App() {
   };
 
   const imprimirPlano = () => {
+    const logoUrl = logoImg;
     const fechaLabel = filtroFecha
       ? new Date(filtroFecha + "T12:00").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
       : "Todas las fechas";
@@ -588,7 +589,6 @@ export default function App() {
       return getTurno(r.hora) === planoTurnoLocal;
     }).sort((a, b) => (a.hora || "").localeCompare(b.hora || ""));
 
-    // ── Mismos parámetros exactos que usa el plano en la app ────────────────
     const U = 60;
     const PAD = 10;
 
@@ -613,7 +613,6 @@ export default function App() {
       { id: 6,  cx: 5.8, cy:  4.8, w: 0.8, h: 0.8 },
     ];
 
-    // Mismos MERGE_GROUPS que la app (sin barras en impresión)
     const MERGE_GROUPS_P = [
       { ids: [8, 2, 18, 1], clampToFirst: true, clampHeight: 3.2, anchorBottom: true },
       { ids: [7, 17, 4, 3], clampToFirst: true, clampHeight: 3.2, anchorBottom: true },
@@ -661,14 +660,11 @@ export default function App() {
     const MESA_NOMBRE_P = { 30: "Barra 1", 31: "Barra 2" };
     const getMesaNombreP = (m) => MESA_NOMBRE_P[m] || String(m);
 
-    // viewBox ancho (680) para que las mesas queden pequeñas al escalar al ancho de página
-    // contenido real hasta x≈382, y hasta 322 (cy=4.8) + leyenda → viewBox height=349
     const VW = 680;
     const VH = 349;
 
     const mesasSVG = MESAS_POS_P.map(({ id, cx, cy, w, h }) => {
       if (secondaryMesasP.has(id)) return "";
-
       const res = mesaReservaP[id];
       const ocupada = !!res;
       const fill   = ocupada ? "#e8e8e8" : "#f2f2f2";
@@ -683,8 +679,7 @@ export default function App() {
       const anchorBottom = mergeGroup && !Array.isArray(mergeGroup) && mergeGroup.anchorBottom;
       const isMerged = mergeIds && mergeIds[0] === id;
 
-      let mw = w * U;
-      let mh = h * U;
+      let mw = w * U, mh = h * U;
       let mx = PAD + cx * U - (w * U) / 2;
       let my = PAD + cy * U - (h * U) / 2;
 
@@ -697,10 +692,8 @@ export default function App() {
           const sy = PAD + sec.cy * U - (sec.h * U) / 2;
           const x2 = Math.max(mx + mw, sx + sec.w * U);
           const y2 = Math.max(my + mh, sy + sec.h * U);
-          mx = Math.min(mx, sx);
-          my = Math.min(my, sy);
-          mw = x2 - mx;
-          mh = y2 - my;
+          mx = Math.min(mx, sx); my = Math.min(my, sy);
+          mw = x2 - mx; mh = y2 - my;
         });
         if (clampToFirst) {
           mx = origMx; mw = origMw; mh = origMh;
@@ -710,8 +703,7 @@ export default function App() {
             if (Math.abs(sec.cx - cx) < 0.7) {
               const sy = PAD + sec.cy * U - (sec.h * U) / 2;
               const y2 = Math.max(my + mh, sy + sec.h * U);
-              my = Math.min(my, sy);
-              mh = y2 - my;
+              my = Math.min(my, sy); mh = y2 - my;
             }
           });
           if (clampHeight) mh = Math.min(mh, clampHeight * U);
@@ -736,17 +728,14 @@ export default function App() {
       </g>`;
     }).join("");
 
-    // Leyenda justo debajo de la última fila (cy=4.8 → bottom=274+48=322 → y=330)
     const leyenda = `
       <rect x="16" y="330" width="8" height="8" rx="2" fill="#e8e8e8" stroke="#c8c8c8" stroke-width="0.5"/>
       <text x="28" y="337" style="font-family:'Jost',sans-serif;font-size:8px;fill:#bbb;font-weight:300">Ocupada</text>
       <rect x="82" y="330" width="8" height="8" rx="2" fill="#f2f2f2" stroke="#e0e0e0" stroke-width="0.5"/>
       <text x="94" y="337" style="font-family:'Jost',sans-serif;font-size:8px;fill:#bbb;font-weight:300">Libre</text>
     `;
-
     const separador = `<line x1="10" y1="${PAD + 1.15*U}" x2="${PAD + 5.8*U + 0.8*U/2 + 10}" y2="${PAD + 1.15*U}" stroke="#e8e8e8" stroke-width="0.8" stroke-dasharray="5 4"/>`;
 
-    // tabla
     const tablaRows = resTurno.map(r => {
       const mesas = r.mesas && r.mesas.length > 0 ? r.mesas.map(getMesaNombreP).join("+") : r.mesa ? getMesaNombreP(r.mesa) : "—";
       const estadoLabel = r.estado === "confirmada" ? "Conf." : r.estado === "tomada" ? "Tomada" : r.estado === "llego" ? "Llegó" : r.estado;
@@ -771,9 +760,6 @@ export default function App() {
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Jost', sans-serif; color: #1a1a1a; background: #fff; padding: 12mm 13mm; }
     .header { display: flex; align-items: flex-end; border-bottom: .7px solid #333; padding-bottom: 7px; margin-bottom: 9px; }
-    .logo { font-family: 'Cormorant Garamond', serif; font-size: 14px; font-weight: 300; font-style: italic; line-height: 1; white-space: nowrap; }
-    .logo .y { color: #888; }
-    .sub { font-size: 5px; font-weight: 200; letter-spacing: 3px; text-transform: uppercase; color: #bbb; margin-top: 2px; }
     .hdr-mid { width: 339px; flex-shrink: 0; }
     .hdr-r { text-align: left; }
     .fecha { font-size: 8px; font-weight: 300; color: #444; white-space: nowrap; }
@@ -803,8 +789,7 @@ export default function App() {
 <body>
   <div class="header">
     <div>
-      <div class="logo">Buenas <span class="y">y</span> Santas</div>
-      <div class="sub">nueva cocina casera</div>
+      <img src="${logoUrl}" alt="Buenas y Santas" style="height:36px;width:auto;object-fit:contain;display:block"/>
     </div>
     <div class="hdr-mid"></div>
     <div class="hdr-r">
@@ -1382,7 +1367,7 @@ Buenas y Santas`;
           <button className="nav-btn" onClick={abrirNueva}>+ Nueva</button>
           <button className={`nav-btn ${vista === "pegar" ? "active" : ""}`} onClick={() => setVista("pegar")}>📋 Pegar WhatsApp</button>
           <button className={`nav-btn ${vista === "sheet" ? "active" : ""}`} onClick={() => setVista("sheet")}>📲 Nueva WhatsApp</button>
-          <button className={`nav-btn ${vista === "plano" ? "active" : ""}`} onClick={() => setVista("plano")}>🗺 Plano</button>
+          <button className={`nav-btn ${vista === "plano" ? "active" : ""}`} onClick={() => setVista("plano")}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline",verticalAlign:"middle",marginRight:4}}><rect x="3" y="9" width="18" height="3" rx="1"/><line x1="5" y1="12" x2="5" y2="19"/><line x1="19" y1="12" x2="19" y2="19"/><line x1="3" y1="19" x2="21" y2="19"/></svg> Plano</button>
         </nav>
         {/* Hamburger */}
         <button className="hamburger" onClick={() => setMenuOpen(o => !o)} aria-label="Menú">
@@ -1398,7 +1383,7 @@ Buenas y Santas`;
           <button className="nav-btn" onClick={() => { abrirNueva(); setMenuOpen(false); }}>+ Nueva reserva</button>
           <button className={`nav-btn ${vista === "pegar" ? "active" : ""}`} onClick={() => { setVista("pegar"); setMenuOpen(false); }}>📋 Pegar WhatsApp</button>
           <button className={`nav-btn ${vista === "sheet" ? "active" : ""}`} onClick={() => { setVista("sheet"); setMenuOpen(false); }}>📲 Nueva WhatsApp</button>
-          <button className={`nav-btn ${vista === "plano" ? "active" : ""}`} onClick={() => { setVista("plano"); setMenuOpen(false); }}>🗺 Plano</button>
+          <button className={`nav-btn ${vista === "plano" ? "active" : ""}`} onClick={() => { setVista("plano"); setMenuOpen(false); }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline",verticalAlign:"middle",marginRight:4}}><rect x="3" y="9" width="18" height="3" rx="1"/><line x1="5" y1="12" x2="5" y2="19"/><line x1="19" y1="12" x2="19" y2="19"/><line x1="3" y1="19" x2="21" y2="19"/></svg> Plano</button>
         </nav>
       )}
 
@@ -1482,7 +1467,6 @@ Buenas y Santas`;
                 <h1 className="page-title" style={{ fontFamily: "'Lora', serif", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Reservas</h1>
               </div>
               <div className="header-actions" style={{ display: "flex", gap: 12 }}>
-                <button className="btn-outline" style={{ borderColor: "#81c784", color: "#2e7d32", fontSize: 11 }} onClick={archivarReservasPasadas}>📦 Archivar pasadas</button>
                 <button className="btn-outline" style={{ borderColor: "#81c784", color: "#2e7d32", fontSize: 11 }} onClick={imprimirReservas}>🖨 Imprimir</button>
                 <button className="btn-gold" onClick={abrirNueva}>+ Nueva reserva</button>
               </div>
@@ -1544,14 +1528,14 @@ Buenas y Santas`;
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid #c8e6c9" }}>
-                    {["Cliente", "Fecha", "Hora", "Personas", "Mesa", "Estado", "Observaciones", "Acciones", "Tomada por", "Mail", "Cuando"].map(h => (
+                    {["Cliente", "Fecha", "Hora", "Personas", "Mesa", "Estado", "Observaciones", "Acciones", "Tomada por", "Mail / Cuando"].map(h => (
                       <th key={h} style={{ padding: "14px 20px", textAlign: "left", fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", fontWeight: 400 }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {reservasFiltradas.length === 0 ? (
-                    <tr><td colSpan={11} style={{ padding: 40, textAlign: "center", color: "#4a7a4a", fontFamily: "'Jost', sans-serif", fontSize: 14 }}>No hay reservas con estos filtros.</td></tr>
+                    <tr><td colSpan={10} style={{ padding: 40, textAlign: "center", color: "#4a7a4a", fontFamily: "'Jost', sans-serif", fontSize: 14 }}>No hay reservas con estos filtros.</td></tr>
                   ) : (() => {
                     const sorted = [...reservasFiltradas].sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
                     const rows = [];
@@ -1575,12 +1559,12 @@ Buenas y Santas`;
                       const rowBg = tStatus.status === "completo" ? "#ffebee" : tStatus.status === "cuidado" ? "#fff3e0" : color.bg;
                       // Separator between groups (not before first)
                       if (gi > 0) {
-                        rows.push(<tr key={"sep_"+gi}><td colSpan={11} style={{ padding: 0, height: 28, background: "transparent", border: "none" }} /></tr>);
+                        rows.push(<tr key={"sep_"+gi}><td colSpan={10} style={{ padding: 0, height: 28, background: "transparent", border: "none" }} /></tr>);
                       }
                       // Turno header row with label + badge
                       rows.push(
                         <tr key={"turnohead_"+turnoKey}>
-                          <td colSpan={11} style={{ padding: "6px 20px 4px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
+                          <td colSpan={10} style={{ padding: "6px 20px 4px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                               <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "#4a7a4a", fontWeight: 600 }}>
                                 {color.label}
@@ -1608,16 +1592,16 @@ Buenas y Santas`;
                       grupo.reservas.forEach((r, idx) => {
                       rows.push(
                     <tr key={r.id} className="row-hover" style={{ borderBottom: "1px solid #c8e6c9", background: rowBg, opacity: r.estado === "llego" ? 0.22 : 1 }}>
-                      <td style={{ padding: "16px 20px" }}>
+                      <td style={{ padding: "9px 20px" }}>
                         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17 }}>{r.nombre}</p>
                         <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a", marginTop: 2 }}>{(() => {
                           return String(r.telefono || "").trim();
                         })()}</p>
                       </td>
-                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</td>
-                      <td style={{ padding: "16px 20px", fontFamily: "'Cormorant Garamond', serif", fontSize: 18, color: "#1b5e20" }}>{r.hora}</td>
-                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{r.personas} pax</td>
-                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>
+                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</td>
+                      <td style={{ padding: "9px 20px", fontFamily: "'Cormorant Garamond', serif", fontSize: 18, color: "#1b5e20" }}>{r.hora}</td>
+                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{r.personas} pax</td>
+                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                           {(r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []).map(m => (
                             <span key={m} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#2e7d32", color: "#fff", borderRadius: 4, padding: "2px 8px", fontSize: 12, fontFamily: "'Jost', sans-serif", width: "fit-content" }}>
@@ -1655,7 +1639,7 @@ Buenas y Santas`;
                           </select>
                         </div>
                       </td>
-                      <td style={{ padding: "16px 20px" }}>
+                      <td style={{ padding: "9px 20px" }}>
                         <select
                           value={r.estado}
                           onChange={e => cambiarEstado(r.id, e.target.value)}
@@ -1668,23 +1652,21 @@ Buenas y Santas`;
                           <option value="llego">Llegó</option>
                         </select>
                       </td>
-                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", maxWidth: 160 }}>
+                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", maxWidth: 160 }}>
                         {r.notas || "—"}
                       </td>
-                      <td style={{ padding: "16px 20px" }}>
+                      <td style={{ padding: "9px 20px" }}>
                         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                           <button className="btn-outline" style={{ padding: "6px 12px", fontSize: 11 }} onClick={() => abrirEditar(r)}>Editar</button>
                           <BtnWhatsApp reserva={r} tipo="confirmar" />
                         </div>
                       </td>
-                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>
+                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>
                         {r.tomadaPor || "—"}
                       </td>
-                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>
-                        {r.email || "—"}
-                      </td>
-                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a" }}>
-                        {r.cuando || "—"}
+                      <td style={{ padding: "9px 20px" }}>
+                        <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>{r.email || "—"}</div>
+                        <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, color: "#9e9e9e", marginTop: 2 }}>{r.cuando || ""}</div>
                       </td>
                     </tr>
                   );
@@ -1697,7 +1679,7 @@ Buenas y Santas`;
                         const mesasLibres = MESAS.filter(m => !todasOcupadas.includes(m));
                         rows.push(
                           <tr key={"footer_"+turnoKey}>
-                            <td colSpan={11} style={{ padding: "8px 20px 12px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
+                            <td colSpan={10} style={{ padding: "8px 20px 12px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
                               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                                 <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 1, color: "#4a7a4a", textTransform: "uppercase" }}>
                                   Mesas libres: {mesasLibres.length === 0 ? <span style={{ color: "#c62828" }}>ninguna</span> : mesasLibres.map(m => (
