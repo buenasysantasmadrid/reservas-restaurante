@@ -1468,14 +1468,14 @@ Buenas y Santas`;
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid #c8e6c9" }}>
-                    {["Cliente", "Fecha", "Hora", "Personas", "Mesa", "Estado", "Observaciones", "Acciones", "Tomada por", "Mail", "Cuando"].map(h => (
+                    {["Cliente", "Fecha", "Hora", "Personas", "Mesa", "Estado", "Observaciones", "Acciones", "Tomada por", "Mail / Cuando"].map(h => (
                       <th key={h} style={{ padding: "14px 20px", textAlign: "left", fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", fontWeight: 400 }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {reservasFiltradas.length === 0 ? (
-                    <tr><td colSpan={11} style={{ padding: 40, textAlign: "center", color: "#4a7a4a", fontFamily: "'Jost', sans-serif", fontSize: 14 }}>No hay reservas con estos filtros.</td></tr>
+                    <tr><td colSpan={10} style={{ padding: 40, textAlign: "center", color: "#4a7a4a", fontFamily: "'Jost', sans-serif", fontSize: 14 }}>No hay reservas con estos filtros.</td></tr>
                   ) : (() => {
                     const sorted = [...reservasFiltradas].sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
                     const rows = [];
@@ -1499,12 +1499,12 @@ Buenas y Santas`;
                       const rowBg = tStatus.status === "completo" ? "#ffebee" : tStatus.status === "cuidado" ? "#fff3e0" : color.bg;
                       // Separator between groups (not before first)
                       if (gi > 0) {
-                        rows.push(<tr key={"sep_"+gi}><td colSpan={11} style={{ padding: 0, height: 28, background: "transparent", border: "none" }} /></tr>);
+                        rows.push(<tr key={"sep_"+gi}><td colSpan={10} style={{ padding: 0, height: 14, background: "transparent", border: "none" }} /></tr>);
                       }
                       // Turno header row with label + badge
                       rows.push(
                         <tr key={"turnohead_"+turnoKey}>
-                          <td colSpan={11} style={{ padding: "6px 20px 4px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
+                          <td colSpan={10} style={{ padding: "6px 20px 4px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                               <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "#4a7a4a", fontWeight: 600 }}>
                                 {color.label}
@@ -1532,16 +1532,16 @@ Buenas y Santas`;
                       grupo.reservas.forEach((r, idx) => {
                       rows.push(
                     <tr key={r.id} className="row-hover" style={{ borderBottom: "1px solid #c8e6c9", background: rowBg, opacity: r.estado === "llego" ? 0.22 : 1 }}>
-                      <td style={{ padding: "16px 20px" }}>
+                      <td style={{ padding: "9px 20px" }}>
                         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17 }}>{r.nombre}</p>
                         <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a", marginTop: 2 }}>{(() => {
                           return String(r.telefono || "").trim();
                         })()}</p>
                       </td>
-                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</td>
-                      <td style={{ padding: "16px 20px", fontFamily: "'Cormorant Garamond', serif", fontSize: 18, color: "#1b5e20" }}>{r.hora}</td>
-                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{r.personas} pax</td>
-                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>
+                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</td>
+                      <td style={{ padding: "9px 20px", fontFamily: "'Cormorant Garamond', serif", fontSize: 18, color: "#1b5e20" }}>{r.hora}</td>
+                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{r.personas} pax</td>
+                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                           {(r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []).map(m => (
                             <span key={m} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#2e7d32", color: "#fff", borderRadius: 4, padding: "2px 8px", fontSize: 12, fontFamily: "'Jost', sans-serif", width: "fit-content" }}>
@@ -1579,7 +1579,7 @@ Buenas y Santas`;
                           </select>
                         </div>
                       </td>
-                      <td style={{ padding: "16px 20px" }}>
+                      <td style={{ padding: "9px 20px" }}>
                         <select
                           value={r.estado}
                           onChange={e => cambiarEstado(r.id, e.target.value)}
@@ -1592,23 +1592,21 @@ Buenas y Santas`;
                           <option value="llego">Llegó</option>
                         </select>
                       </td>
-                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", maxWidth: 160 }}>
+                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", maxWidth: 160 }}>
                         {r.notas || "—"}
                       </td>
-                      <td style={{ padding: "16px 20px" }}>
+                      <td style={{ padding: "9px 20px" }}>
                         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                           <button className="btn-outline" style={{ padding: "6px 12px", fontSize: 11 }} onClick={() => abrirEditar(r)}>Editar</button>
                           <BtnWhatsApp reserva={r} tipo="confirmar" />
                         </div>
                       </td>
-                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>
+                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>
                         {r.tomadaPor || "—"}
                       </td>
-                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>
-                        {r.email || "—"}
-                      </td>
-                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a" }}>
-                        {r.cuando || "—"}
+                      <td style={{ padding: "9px 20px" }}>
+                        <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>{r.email || "—"}</div>
+                        <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, color: "#9e9e9e", marginTop: 2 }}>{r.cuando || ""}</div>
                       </td>
                     </tr>
                   );
@@ -1621,7 +1619,7 @@ Buenas y Santas`;
                         const mesasLibres = MESAS.filter(m => !todasOcupadas.includes(m));
                         rows.push(
                           <tr key={"footer_"+turnoKey}>
-                            <td colSpan={11} style={{ padding: "8px 20px 12px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
+                            <td colSpan={10} style={{ padding: "8px 20px 12px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
                               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                                 <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 1, color: "#4a7a4a", textTransform: "uppercase" }}>
                                   Mesas libres: {mesasLibres.length === 0 ? <span style={{ color: "#c62828" }}>ninguna</span> : mesasLibres.map(m => (
@@ -1962,7 +1960,7 @@ Buenas y Santas`;
                             {guardando ? "⏳ Importando..." : "+ Importar"}
                           </button>
                         </td>
-                        {fila.map((celda, j) => {
+                        {(Array.isArray(fila) ? fila : Object.entries(fila).filter(([k]) => k !== "_sheetRowIndex").map(([,v]) => v)).map((celda, j) => {
                           const hdr = String(headers[j] || "").toLowerCase();
                           if (hdr.includes("import") || hdr.includes("hora") || hdr.includes("time")) return null;
                           // Columna C (índice 2): separar fecha y hora del string ISO
