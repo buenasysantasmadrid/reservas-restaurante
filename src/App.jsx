@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import logoImg from "./logo_buenasysantas.jpg";
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, doc, onSnapshot, setDoc, deleteDoc, writeBatch, getDocs } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
@@ -68,8 +67,6 @@ export default function App() {
   const [planoModal, setPlanoModal] = useState(null); // { reservaId, mesaId, nombre }
   const [confirmarWA, setConfirmarWA] = useState(false);
   const [pendingSheetIdx, setPendingSheetIdx] = useState(null);
-  const [pendingSheetRowIndex, setPendingSheetRowIndex] = useState(null); // fila real en Google Sheet
-  const sheetRowMapRef = React.useRef({}); // mapa i → rowIndex real en Sheet
   const [textoPegado, setTextoPegado] = useState("");
   const [interpretando, setInterpretando] = useState(false);
   const [datosInterpretados, setDatosInterpretados] = useState(null);
@@ -293,19 +290,6 @@ export default function App() {
     setConfirmarWA(true);
   };
 
-  // Mueve la fila importada de Hoja1 a Pasadas en Google Sheets
-  const moverFilaSheet = async (sheetRowIndex) => {
-    if (!sheetRowIndex) return;
-    try {
-      await fetch("https://script.google.com/macros/s/AKfycbxr4Yb8O1Db5W0sEh9eywRa-4rUgjd72TMZC_WJjvyTiDBljmtzj3tu5JhqHqqV0-y0HA/exec", {
-        method: "POST",
-        body: JSON.stringify({ action: "moverAPasadas", rowIndex: sheetRowIndex })
-      });
-    } catch (e) {
-      console.warn("moverFilaSheet error:", e);
-    }
-  };
-
   const confirmarYGuardar = async () => {
     setGuardando(true);
     const ahora = new Date();
@@ -321,9 +305,7 @@ export default function App() {
       await fbSetReserva(nuevaReserva);
       if (pendingSheetIdx !== null) {
         setSheetFilas(fs => [fs[0], ...fs.slice(1).filter((_, idx) => idx + 1 !== pendingSheetIdx)]);
-        moverFilaSheet(pendingSheetRowIndex); // mueve la fila real del Sheet a Pasadas
         setPendingSheetIdx(null);
-        setPendingSheetRowIndex(null);
       }
       toastMsg = "Reserva creada ✓";
     }
@@ -808,22 +790,17 @@ export default function App() {
       const json = await res.json();
       if (!Array.isArray(json) || json.length < 2) throw new Error("No hay datos en la hoja");
 
-      // Filtrar filas ya existentes y pasadas; guardar mapa de índice real del Sheet
-      const hoy = getTodayStr();
+      // Filtrar filas que ya existen en reservas (por nombre + fecha)
       const headers = json[0];
-      const rowMap = {};
-      const filasFiltradas = [];
-      json.slice(1).forEach((fila, i) => {
+      const filasFiltradas = json.slice(1).filter(fila => {
         const nombreFila = String(fila[0] || "").toLowerCase().trim();
         const raw = String(fila[2] || "").trim();
         const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
         const fechaFila = m ? `${m[1]}-${m[2]}-${m[3]}` : "";
-        if (fechaFila && fechaFila < hoy) return; // descartar pasadas
-        if (reservas.some(r => r.nombre.toLowerCase().trim() === nombreFila && r.fecha === fechaFila)) return;
-        rowMap[filasFiltradas.length] = i + 2; // +2: fila1=headers, filas Sheet empiezan en 2
-        filasFiltradas.push(fila); // fila sigue siendo array puro, sin tocar
+        return !reservas.some(r =>
+          r.nombre.toLowerCase().trim() === nombreFila && r.fecha === fechaFila
+        );
       });
-      sheetRowMapRef.current = rowMap;
 
       if (filasFiltradas.length === 0) throw new Error("No hay reservas nuevas pendientes de importar");
       setSheetFilas([json[0], ...filasFiltradas]);
@@ -1162,7 +1139,7 @@ Buenas y Santas`;
   if (!usuario) return (
     <div style={{ minHeight: "100vh", background: "#b8ddb8", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 24, padding: 24 }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      <img src={logoImg} alt="Buenas y Santas" style={{ height: 80, objectFit: "contain" }} onError={e => { e.target.style.display="none"; }} />
+      <img src="/src/logo_buenasysantas.jpg" alt="Buenas y Santas" style={{ height: 80, objectFit: "contain" }} onError={e => { e.target.style.display="none"; }} />
       <div style={{ textAlign: "center" }}>
         <div style={{ fontFamily: "'Lora', serif", fontSize: 28, fontWeight: 700, fontStyle: "italic", color: "#1b5e20" }}>Buenas <span style={{ color: "#555" }}>y</span> Santas</div>
         <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 3, color: "#5a8a5a", textTransform: "uppercase", marginTop: 4 }}>Gestión de Reservas</div>
@@ -1297,7 +1274,7 @@ Buenas y Santas`;
       {/* HEADER */}
       <header style={{ borderBottom: "1px solid #a5d6a7", background: "#ffffff", padding: "0 24px", position: "sticky", top: 0, zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between", height: 64, boxShadow: "0 2px 8px rgba(46,125,50,0.10)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <img src={logoImg} alt="Buenas y Santas" style={{ height: 44, width: "auto", objectFit: "contain" }} />
+          <img src="/src/logo_buenasysantas.jpg" alt="Buenas y Santas" style={{ height: 44, width: "auto", objectFit: "contain" }} />
           <span className="desktop-subtitle" style={{ color: "#c8e6c9", fontSize: 22 }}>|</span>
           <span className="desktop-subtitle" style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 3, color: "#6a9a6a", textTransform: "uppercase" }}>Gestión de Reservas</span>
         </div>
@@ -1407,6 +1384,7 @@ Buenas y Santas`;
                 <h1 className="page-title" style={{ fontFamily: "'Lora', serif", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Reservas</h1>
               </div>
               <div className="header-actions" style={{ display: "flex", gap: 12 }}>
+                <button className="btn-outline" style={{ borderColor: "#81c784", color: "#2e7d32", fontSize: 11 }} onClick={archivarReservasPasadas}>📦 Archivar pasadas</button>
                 <button className="btn-outline" style={{ borderColor: "#81c784", color: "#2e7d32", fontSize: 11 }} onClick={imprimirReservas}>🖨 Imprimir</button>
                 <button className="btn-gold" onClick={abrirNueva}>+ Nueva reserva</button>
               </div>
@@ -1423,7 +1401,7 @@ Buenas y Santas`;
                 <option value="cancelada">Canceladas</option>
                 <option value="llego">Llegaron</option>
               </select>
-              <button className="btn-outline" onClick={() => { setFiltroFecha(""); setFiltroTurno("todos"); }}>Ver todas las fechas</button>
+              <button className="btn-outline" onClick={() => setFiltroFecha("")}>Ver todas las fechas</button>
               <div className="turnos-wrap" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {[
                   { key: "todos", label: "Todos los turnos" },
@@ -1468,14 +1446,14 @@ Buenas y Santas`;
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid #c8e6c9" }}>
-                    {["Cliente", "Fecha", "Hora", "Personas", "Mesa", "Estado", "Observaciones", "Acciones", "Tomada por", "Mail / Cuando"].map(h => (
+                    {["Cliente", "Fecha", "Hora", "Personas", "Mesa", "Estado", "Observaciones", "Acciones", "Tomada por", "Mail", "Cuando"].map(h => (
                       <th key={h} style={{ padding: "14px 20px", textAlign: "left", fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", fontWeight: 400 }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {reservasFiltradas.length === 0 ? (
-                    <tr><td colSpan={10} style={{ padding: 40, textAlign: "center", color: "#4a7a4a", fontFamily: "'Jost', sans-serif", fontSize: 14 }}>No hay reservas con estos filtros.</td></tr>
+                    <tr><td colSpan={11} style={{ padding: 40, textAlign: "center", color: "#4a7a4a", fontFamily: "'Jost', sans-serif", fontSize: 14 }}>No hay reservas con estos filtros.</td></tr>
                   ) : (() => {
                     const sorted = [...reservasFiltradas].sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
                     const rows = [];
@@ -1499,12 +1477,12 @@ Buenas y Santas`;
                       const rowBg = tStatus.status === "completo" ? "#ffebee" : tStatus.status === "cuidado" ? "#fff3e0" : color.bg;
                       // Separator between groups (not before first)
                       if (gi > 0) {
-                        rows.push(<tr key={"sep_"+gi}><td colSpan={10} style={{ padding: 0, height: 14, background: "transparent", border: "none" }} /></tr>);
+                        rows.push(<tr key={"sep_"+gi}><td colSpan={11} style={{ padding: 0, height: 28, background: "transparent", border: "none" }} /></tr>);
                       }
                       // Turno header row with label + badge
                       rows.push(
                         <tr key={"turnohead_"+turnoKey}>
-                          <td colSpan={10} style={{ padding: "6px 20px 4px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
+                          <td colSpan={11} style={{ padding: "6px 20px 4px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                               <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "#4a7a4a", fontWeight: 600 }}>
                                 {color.label}
@@ -1532,16 +1510,16 @@ Buenas y Santas`;
                       grupo.reservas.forEach((r, idx) => {
                       rows.push(
                     <tr key={r.id} className="row-hover" style={{ borderBottom: "1px solid #c8e6c9", background: rowBg, opacity: r.estado === "llego" ? 0.22 : 1 }}>
-                      <td style={{ padding: "9px 20px" }}>
+                      <td style={{ padding: "16px 20px" }}>
                         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17 }}>{r.nombre}</p>
                         <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a", marginTop: 2 }}>{(() => {
                           return String(r.telefono || "").trim();
                         })()}</p>
                       </td>
-                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</td>
-                      <td style={{ padding: "9px 20px", fontFamily: "'Cormorant Garamond', serif", fontSize: 18, color: "#1b5e20" }}>{r.hora}</td>
-                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{r.personas} pax</td>
-                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>
+                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</td>
+                      <td style={{ padding: "16px 20px", fontFamily: "'Cormorant Garamond', serif", fontSize: 18, color: "#1b5e20" }}>{r.hora}</td>
+                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{r.personas} pax</td>
+                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                           {(r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []).map(m => (
                             <span key={m} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#2e7d32", color: "#fff", borderRadius: 4, padding: "2px 8px", fontSize: 12, fontFamily: "'Jost', sans-serif", width: "fit-content" }}>
@@ -1579,7 +1557,7 @@ Buenas y Santas`;
                           </select>
                         </div>
                       </td>
-                      <td style={{ padding: "9px 20px" }}>
+                      <td style={{ padding: "16px 20px" }}>
                         <select
                           value={r.estado}
                           onChange={e => cambiarEstado(r.id, e.target.value)}
@@ -1592,21 +1570,23 @@ Buenas y Santas`;
                           <option value="llego">Llegó</option>
                         </select>
                       </td>
-                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", maxWidth: 160 }}>
+                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", maxWidth: 160 }}>
                         {r.notas || "—"}
                       </td>
-                      <td style={{ padding: "9px 20px" }}>
+                      <td style={{ padding: "16px 20px" }}>
                         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                           <button className="btn-outline" style={{ padding: "6px 12px", fontSize: 11 }} onClick={() => abrirEditar(r)}>Editar</button>
                           <BtnWhatsApp reserva={r} tipo="confirmar" />
                         </div>
                       </td>
-                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>
+                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>
                         {r.tomadaPor || "—"}
                       </td>
-                      <td style={{ padding: "9px 20px" }}>
-                        <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>{r.email || "—"}</div>
-                        <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, color: "#9e9e9e", marginTop: 2 }}>{r.cuando || ""}</div>
+                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>
+                        {r.email || "—"}
+                      </td>
+                      <td style={{ padding: "16px 20px", fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a" }}>
+                        {r.cuando || "—"}
                       </td>
                     </tr>
                   );
@@ -1619,7 +1599,7 @@ Buenas y Santas`;
                         const mesasLibres = MESAS.filter(m => !todasOcupadas.includes(m));
                         rows.push(
                           <tr key={"footer_"+turnoKey}>
-                            <td colSpan={10} style={{ padding: "8px 20px 12px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
+                            <td colSpan={11} style={{ padding: "8px 20px 12px", background: rowBg, borderBottom: "1px solid #c8e6c9" }}>
                               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                                 <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 1, color: "#4a7a4a", textTransform: "uppercase" }}>
                                   Mesas libres: {mesasLibres.length === 0 ? <span style={{ color: "#c62828" }}>ninguna</span> : mesasLibres.map(m => (
@@ -1952,8 +1932,7 @@ Buenas y Santas`;
                               const d = importarFilaSheet(headers, fila);
                               setReservaEditando(null);
                               setForm(d);
-                              setPendingSheetIdx(i + 1);
-                              setPendingSheetRowIndex(sheetRowMapRef.current[i] || null);
+                              setPendingSheetIdx(i + 1); // +1 porque slice(1)
                               setModalAbierto(true);
                             }}>
                             {guardando ? "⏳ Importando..." : "+ Importar"}
