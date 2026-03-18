@@ -313,6 +313,14 @@ export default function App() {
       await fbSetReserva(nuevaReserva);
       if (pendingSheetIdx !== null) {
         setSheetFilas(fs => [fs[0], ...fs.slice(1).filter((_, idx) => idx + 1 !== pendingSheetIdx)]);
+        // Mover la fila de Hoja 1 a Pasadas en Google Sheets
+        // pendingSheetIdx es 1-based dentro del slice, +1 por la cabecera = fila real en la hoja
+        const rowIndex = pendingSheetIdx + 1;
+        const scriptUrl = "https://script.google.com/macros/s/AKfycbxr4Yb8O1Db5W0sEh9eywRa-4rUgjd72TMZC_WJjvyTiDBljmtzj3tu5JhqHqqV0-y0HA/exec";
+        fetch(scriptUrl, {
+          method: "POST",
+          body: JSON.stringify({ action: "moverAPasadas", rowIndex })
+        }).catch(() => {}); // silencioso, no bloquea el flujo
         setPendingSheetIdx(null);
       }
       toastMsg = "Reserva creada ✓";
