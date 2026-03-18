@@ -312,15 +312,12 @@ export default function App() {
       const nuevaReserva = { ...form, mesa: form.mesas.join("+"), id: nuevoId, cuando };
       await fbSetReserva(nuevaReserva);
       if (pendingSheetIdx !== null) {
-        setSheetFilas(fs => [fs[0], ...fs.slice(1).filter((_, idx) => idx + 1 !== pendingSheetIdx)]);
-        // Mover la fila de Hoja 1 a Pasadas en Google Sheets
-        // pendingSheetIdx es 1-based dentro del slice, +1 por la cabecera = fila real en la hoja
-        const rowIndex = pendingSheetIdx + 1;
+        setSheetFilas(fs => [fs[0], ...fs.slice(1).filter(({ realIdx }) => realIdx !== pendingSheetIdx)]);
         const scriptUrl = "https://script.google.com/macros/s/AKfycbxr4Yb8O1Db5W0sEh9eywRa-4rUgjd72TMZC_WJjvyTiDBljmtzj3tu5JhqHqqV0-y0HA/exec";
         fetch(scriptUrl, {
           method: "POST",
-          body: JSON.stringify({ action: "moverAPasadas", rowIndex })
-        }).catch(() => {}); // silencioso, no bloquea el flujo
+          body: JSON.stringify({ action: "moverAPasadas", rowIndex: pendingSheetIdx })
+        }).catch(() => {});
         setPendingSheetIdx(null);
       }
       toastMsg = "Reserva creada ✓";
@@ -817,7 +814,7 @@ export default function App() {
       // Filtrar filas ya existentes en reservas Y reservas pasadas
       const hoy = getTodayStr();
       const headers = json[0];
-      const filasFiltradas = json.slice(1).filter(fila => {
+      const filasFiltradas = json.slice(1).map((fila, idx) => ({ fila, realIdx: idx + 2 })).filter(({ fila }) => {
         const nombreFila = String(fila[0] || "").toLowerCase().trim();
         const raw = String(fila[2] || "").trim();
         const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -1945,7 +1942,7 @@ Buenas y Santas`;
                     </tr>
                   </thead>
                   <tbody>
-                    {sheetFilas.slice(1).map((fila, i) => (
+                    {sheetFilas.slice(1).map(({ fila, realIdx }, i) => (
                       <tr key={i} className="row-hover" style={{ borderBottom: "1px solid #c8e6c9" }}>
                         <td style={{ padding: "14px 16px" }}>
                           <button className="btn-gold" style={{ padding: "8px 16px", fontSize: 11, opacity: guardando ? 0.5 : 1, cursor: guardando ? "not-allowed" : "pointer" }}
@@ -1955,7 +1952,7 @@ Buenas y Santas`;
                               const d = importarFilaSheet(headers, fila);
                               setReservaEditando(null);
                               setForm(d);
-                              setPendingSheetIdx(i + 1); // +1 porque slice(1)
+                              setPendingSheetIdx(realIdx);
                               setModalAbierto(true);
                             }}>
                             {guardando ? "⏳ Importando..." : "+ Importar"}
