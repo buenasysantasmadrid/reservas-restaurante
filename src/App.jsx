@@ -69,6 +69,7 @@ export default function App() {
   const [confirmarWA, setConfirmarWA] = useState(false);
   const [pendingSheetIdx, setPendingSheetIdx] = useState(null);
   const [pendingSheetRowIndex, setPendingSheetRowIndex] = useState(null); // fila real en Google Sheet
+  const sheetRowMapRef = React.useRef({}); // mapa i → rowIndex real en Sheet
   const [textoPegado, setTextoPegado] = useState("");
   const [interpretando, setInterpretando] = useState(false);
   const [datosInterpretados, setDatosInterpretados] = useState(null);
@@ -807,26 +808,25 @@ export default function App() {
       const json = await res.json();
       if (!Array.isArray(json) || json.length < 2) throw new Error("No hay datos en la hoja");
 
-      // Filtrar filas ya existentes y pasadas; guardar índice real del Sheet en cada fila
+      // Filtrar filas ya existentes y pasadas; guardar mapa de índice real del Sheet
       const hoy = getTodayStr();
       const headers = json[0];
-      // Añadimos _sheetRowIndex a cada fila para saber su posición real en el Sheet
-      const filasFiltradas = json.slice(1)
-        .map((fila, i) => ({ fila, sheetRowIndex: i + 2 })) // +2: fila 1=headers, filas empiezan en 2
-        .filter(({ fila }) => {
-          const nombreFila = String(fila[0] || "").toLowerCase().trim();
-          const raw = String(fila[2] || "").trim();
-          const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
-          const fechaFila = m ? `${m[1]}-${m[2]}-${m[3]}` : "";
-          if (fechaFila && fechaFila < hoy) return false; // descartar pasadas
-          return !reservas.some(r =>
-            r.nombre.toLowerCase().trim() === nombreFila && r.fecha === fechaFila
-          );
-        });
+      const rowMap = {};
+      const filasFiltradas = [];
+      json.slice(1).forEach((fila, i) => {
+        const nombreFila = String(fila[0] || "").toLowerCase().trim();
+        const raw = String(fila[2] || "").trim();
+        const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        const fechaFila = m ? `${m[1]}-${m[2]}-${m[3]}` : "";
+        if (fechaFila && fechaFila < hoy) return; // descartar pasadas
+        if (reservas.some(r => r.nombre.toLowerCase().trim() === nombreFila && r.fecha === fechaFila)) return;
+        rowMap[filasFiltradas.length] = i + 2; // +2: fila1=headers, filas Sheet empiezan en 2
+        filasFiltradas.push(fila); // fila sigue siendo array puro, sin tocar
+      });
+      sheetRowMapRef.current = rowMap;
 
       if (filasFiltradas.length === 0) throw new Error("No hay reservas nuevas pendientes de importar");
-      // sheetFilas[0] = headers, resto = filas con _sheetRowIndex incrustado
-      setSheetFilas([json[0], ...filasFiltradas.map(({ fila, sheetRowIndex }) => ({ ...fila, _sheetRowIndex: sheetRowIndex }))]);
+      setSheetFilas([json[0], ...filasFiltradas]);
     } catch (e) {
       setSheetError(e.message || "Error al conectar con Google Sheets");
     } finally {
@@ -1949,18 +1949,17 @@ Buenas y Santas`;
                             disabled={guardando}
                             onClick={() => {
                               if (guardando) return;
-                              const filaData = Array.isArray(fila) ? fila : Object.values(fila).filter(v => typeof v !== "number");
-                              const d = importarFilaSheet(headers, filaData);
+                              const d = importarFilaSheet(headers, fila);
                               setReservaEditando(null);
                               setForm(d);
                               setPendingSheetIdx(i + 1);
-                              setPendingSheetRowIndex(fila._sheetRowIndex || null); // índice real del Sheet
+                              setPendingSheetRowIndex(sheetRowMapRef.current[i] || null);
                               setModalAbierto(true);
                             }}>
                             {guardando ? "⏳ Importando..." : "+ Importar"}
                           </button>
                         </td>
-                        {(Array.isArray(fila) ? fila : Object.entries(fila).filter(([k]) => k !== "_sheetRowIndex").map(([,v]) => v)).map((celda, j) => {
+                        {fila.map((celda, j) => {
                           const hdr = String(headers[j] || "").toLowerCase();
                           if (hdr.includes("import") || hdr.includes("hora") || hdr.includes("time")) return null;
                           // Columna C (índice 2): separar fecha y hora del string ISO
