@@ -2516,7 +2516,17 @@ Buenas y Santas`;
                           <td style={{ padding: "10px 16px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{r.personas} pax</td>
                           <td style={{ padding: "10px 16px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{mesas}</td>
                           <td style={{ padding: "10px 16px" }}>
-                            <span className={`badge badge-${r.estado}`}>{r.estado}</span>
+                            <select
+                              value={r.estado}
+                              onChange={e => cambiarEstado(r.id, e.target.value)}
+                              className={`badge badge-${r.estado}`}
+                              style={{ cursor: "pointer", border: "none", appearance: "none", paddingRight: 8 }}
+                            >
+                              <option value="tomada">Tomada</option>
+                              <option value="confirmada">Confirmada</option>
+                              <option value="cancelada">Cancelada</option>
+                              <option value="llego">Llegó</option>
+                            </select>
                           </td>
                           <td style={{ padding: "10px 16px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", maxWidth: 200 }}>{r.notas || "—"}</td>
                           <td style={{ padding: "10px 16px" }}>
