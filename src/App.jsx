@@ -88,6 +88,7 @@ export default function App() {
   const [turnoPersonalizado, setTurnoPersonalizado] = useState(null); // { desde, hasta } when active
   const [hoveredMesa, setHoveredMesa] = useState(null);
   const [guardando, setGuardando] = useState(false);
+  const [confirmarSalida, setConfirmarSalida] = useState(null); // callback a ejecutar si confirma salir
 
   // Auto-archivar al abrir la app si son las 4am o más
   useEffect(() => {
@@ -293,6 +294,16 @@ export default function App() {
     setReservaEditando(null);
     setForm({ nombre: "", telefono: "", email: "", fecha: "", hora: "", personas: "", mesas: [], notas: "", estado: "tomada", tomadaPor: "", prefijo: "+34" });
     setModalAbierto(true);
+  };
+
+  const formTieneDatos = () => !reservaEditando && modalAbierto && (form.nombre || form.telefono || form.fecha || form.hora || form.personas);
+
+  const navegarConGuardia = (accion) => {
+    if (formTieneDatos()) {
+      setConfirmarSalida(() => accion);
+    } else {
+      accion();
+    }
   };
 
   const abrirEditar = (r) => {
@@ -1329,11 +1340,11 @@ Buenas y Santas`;
         </div>
         {/* Desktop nav */}
         <nav className="desktop-nav" style={{ display: "flex", gap: 4 }}>
-          <button className={`nav-btn ${vista === "reservas" ? "active" : ""}`} onClick={() => setVista("reservas")}>Reservas</button>
+          <button className={`nav-btn ${vista === "reservas" ? "active" : ""}`} onClick={() => navegarConGuardia(() => setVista("reservas"))}>Reservas</button>
+          <button className={`nav-btn ${vista === "plano" ? "active" : ""}`} onClick={() => navegarConGuardia(() => setVista("plano"))}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline",verticalAlign:"middle",marginRight:4}}><rect x="3" y="9" width="18" height="3" rx="1"/><line x1="5" y1="12" x2="5" y2="19"/><line x1="19" y1="12" x2="19" y2="19"/><line x1="3" y1="19" x2="21" y2="19"/></svg> Plano</button>
           <button className="nav-btn" onClick={abrirNueva}>+ Nueva</button>
-          <button className={`nav-btn ${vista === "pegar" ? "active" : ""}`} onClick={() => setVista("pegar")}>📋 Pegar WhatsApp</button>
-          <button className={`nav-btn ${vista === "sheet" ? "active" : ""}`} onClick={() => setVista("sheet")}>📲 Nueva WhatsApp</button>
-          <button className={`nav-btn ${vista === "plano" ? "active" : ""}`} onClick={() => setVista("plano")}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline",verticalAlign:"middle",marginRight:4}}><rect x="3" y="9" width="18" height="3" rx="1"/><line x1="5" y1="12" x2="5" y2="19"/><line x1="19" y1="12" x2="19" y2="19"/><line x1="3" y1="19" x2="21" y2="19"/></svg> Plano</button>
+          <button className={`nav-btn ${vista === "pegar" ? "active" : ""}`} onClick={() => navegarConGuardia(() => setVista("pegar"))}>📋 Pegar WhatsApp</button>
+          <button className={`nav-btn ${vista === "sheet" ? "active" : ""}`} onClick={() => navegarConGuardia(() => setVista("sheet"))}>📲 Nueva WhatsApp</button>
         </nav>
         {/* Hamburger */}
         <button className="hamburger" onClick={() => setMenuOpen(o => !o)} aria-label="Menú">
@@ -1345,11 +1356,11 @@ Buenas y Santas`;
       {/* Mobile drawer */}
       {menuOpen && (
         <nav className="mobile-nav-drawer">
-          <button className={`nav-btn ${vista === "reservas" ? "active" : ""}`} onClick={() => { setVista("reservas"); setMenuOpen(false); }}>Reservas</button>
+          <button className={`nav-btn ${vista === "reservas" ? "active" : ""}`} onClick={() => { navegarConGuardia(() => { setVista("reservas"); setMenuOpen(false); }); }}>Reservas</button>
+          <button className={`nav-btn ${vista === "plano" ? "active" : ""}`} onClick={() => { navegarConGuardia(() => { setVista("plano"); setMenuOpen(false); }); }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline",verticalAlign:"middle",marginRight:4}}><rect x="3" y="9" width="18" height="3" rx="1"/><line x1="5" y1="12" x2="5" y2="19"/><line x1="19" y1="12" x2="19" y2="19"/><line x1="3" y1="19" x2="21" y2="19"/></svg> Plano</button>
           <button className="nav-btn" onClick={() => { abrirNueva(); setMenuOpen(false); }}>+ Nueva reserva</button>
-          <button className={`nav-btn ${vista === "pegar" ? "active" : ""}`} onClick={() => { setVista("pegar"); setMenuOpen(false); }}>📋 Pegar WhatsApp</button>
-          <button className={`nav-btn ${vista === "sheet" ? "active" : ""}`} onClick={() => { setVista("sheet"); setMenuOpen(false); }}>📲 Nueva WhatsApp</button>
-          <button className={`nav-btn ${vista === "plano" ? "active" : ""}`} onClick={() => { setVista("plano"); setMenuOpen(false); }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline",verticalAlign:"middle",marginRight:4}}><rect x="3" y="9" width="18" height="3" rx="1"/><line x1="5" y1="12" x2="5" y2="19"/><line x1="19" y1="12" x2="19" y2="19"/><line x1="3" y1="19" x2="21" y2="19"/></svg> Plano</button>
+          <button className={`nav-btn ${vista === "pegar" ? "active" : ""}`} onClick={() => { navegarConGuardia(() => { setVista("pegar"); setMenuOpen(false); }); }}>📋 Pegar WhatsApp</button>
+          <button className={`nav-btn ${vista === "sheet" ? "active" : ""}`} onClick={() => { navegarConGuardia(() => { setVista("sheet"); setMenuOpen(false); }); }}>📲 Nueva WhatsApp</button>
         </nav>
       )}
 
@@ -2501,7 +2512,6 @@ Buenas y Santas`;
                   </thead>
                   <tbody>
                     {[...reservasTurno].sort((a, b) => (a.hora || "").localeCompare(b.hora || "")).map(r => {
-                      const mesas = r.mesas && r.mesas.length > 0 ? r.mesas.map(getMesaNombre).join("+") : r.mesa ? getMesaNombre(r.mesa) : "—";
                       const raw = String(r.telefono || "").trim();
                       const prefijo = String(r.prefijo || "").trim();
                       const preDigits = prefijo.replace(/\D/g, "");
@@ -2509,12 +2519,38 @@ Buenas y Santas`;
                       const tel = preDigits ? preDigits + numDigits : "34" + numDigits;
                       const firstName = r.nombre.split(" ")[0];
                       const msg = encodeURIComponent(`Hola ${firstName}!\n\nTe escribimos porque en este momento *tenemos una mesa disponible.*\nSi te interesa venir antes de tu horario, respóndenos a este mensaje y te la guardamos.\nDe lo contrario, nos vemos a la hora de tu reserva\n\n \n¡Buenas y santas!`);
+                      const turnoR = getTurno(r.hora);
+                      const mesasOcupadasEnTurno = reservas.filter(x => x.id !== r.id && getTurno(x.hora) === turnoR && x.fecha === r.fecha && x.estado !== "cancelada").flatMap(x => x.mesas || (x.mesa ? [x.mesa] : []));
+                      const mesasActuales = r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : [];
                       return (
                         <tr key={r.id} style={{ borderBottom: "1px solid #c8e6c9" }}>
                           <td style={{ padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontSize: 17, color: "#1b5e20" }}>{r.hora}</td>
                           <td style={{ padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontSize: 16, color: "#1a2e1a" }}>{r.nombre}</td>
                           <td style={{ padding: "10px 16px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{r.personas} pax</td>
-                          <td style={{ padding: "10px 16px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{mesas}</td>
+                          <td style={{ padding: "10px 16px" }}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                              {mesasActuales.map(m => (
+                                <span key={m} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#2e7d32", color: "#fff", borderRadius: 4, padding: "2px 8px", fontSize: 12, fontFamily: "'Jost', sans-serif", width: "fit-content" }}>
+                                  {getMesaNombre(m)}
+                                  <button type="button" onClick={() => fbSetReserva({ ...r, mesas: mesasActuales.filter(v => v !== m) })}
+                                    style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 13, padding: 0, lineHeight: 1 }}>×</button>
+                                </span>
+                              ))}
+                              <select
+                                style={{ fontSize: 11, padding: "3px 6px", border: "1px solid #a5d6a7", borderRadius: 4, background: "#fff", color: "#2e7d32", fontFamily: "'Jost', sans-serif", cursor: "pointer", marginTop: 2 }}
+                                value=""
+                                onChange={e => {
+                                  const val = parseInt(e.target.value);
+                                  if (!val) return;
+                                  const curr = r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : [];
+                                  if (!curr.includes(val) && curr.length < 8) fbSetReserva({ ...r, mesas: [...curr, val] });
+                                }}
+                              >
+                                <option value="">+ mesa</option>
+                                {getMesasDisponibles(mesasActuales, mesasOcupadasEnTurno).map(m => <option key={m} value={m}>{getMesaNombre(m)}</option>)}
+                              </select>
+                            </div>
+                          </td>
                           <td style={{ padding: "10px 16px" }}>
                             <select
                               value={r.estado}
@@ -2542,6 +2578,17 @@ Buenas y Santas`;
                     })}
                   </tbody>
                 </table>
+                {/* Botones asignar/borrar mesas del turno */}
+                <div style={{ padding: "12px 16px", borderTop: "1px solid #c8e6c9", display: "flex", gap: 8 }}>
+                  <button
+                    onClick={() => asignarMesasTurno(filtroFecha, planoTurno)}
+                    style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "#2e7d32", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer", fontWeight: 500 }}
+                  >✦ Asignar mesas</button>
+                  <button
+                    onClick={() => borrarMesasTurno(filtroFecha, planoTurno)}
+                    style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "none", color: "#b71c1c", border: "1px solid #ef9a9a", borderRadius: 4, cursor: "pointer", fontWeight: 500 }}
+                  >✕ Borrar mesas</button>
+                </div>
               </div>
             )}
           </div>
@@ -2648,6 +2695,33 @@ Buenas y Santas`;
               ))}
             </div>
             <button className="btn-outline" style={{ marginTop: 10, width: "100%", color: "#888", borderColor: "#ccc", fontSize: 11 }} onClick={() => setPlanoModal(null)}>Salir</button>
+          </div>
+        </div>
+      )}
+
+      {confirmarSalida && (
+        <div className="overlay" style={{ zIndex: 70 }}>
+          <div className="modal" style={{ maxWidth: 420, textAlign: "center", padding: "48px 40px" }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+            <h2 style={{ fontFamily: "'Lora', serif", fontSize: 24, fontWeight: 700, color: "#1a1a1a", marginBottom: 12 }}>
+              ¿Has pasado la reserva?
+            </h2>
+            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 14, color: "#4a7a4a", marginBottom: 32, lineHeight: 1.6 }}>
+              Tienes una reserva en curso. Si sales ahora se perderán los datos.
+            </p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+              <button className="btn-outline" onClick={() => setConfirmarSalida(null)}>
+                Volver
+              </button>
+              <button className="btn-gold" onClick={guardarReserva}>
+                Tomar reserva
+              </button>
+              <button
+                onClick={() => { setModalAbierto(false); confirmarSalida(); setConfirmarSalida(null); }}
+                style={{ padding: "12px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", background: "#fff", color: "#c62828", border: "1.5px solid #ef9a9a", borderRadius: 4 }}>
+                Salir sin guardar
+              </button>
+            </div>
           </div>
         </div>
       )}
