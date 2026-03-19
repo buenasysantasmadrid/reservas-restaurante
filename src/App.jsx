@@ -816,8 +816,12 @@ export default function App() {
       const filasFiltradas = json.slice(1).filter(fila => {
         const nombreFila = String(fila[0] || "").toLowerCase().trim();
         const raw = String(fila[2] || "").trim();
-        const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
-        const fechaFila = m ? `${m[1]}-${m[2]}-${m[3]}` : "";
+        // Soporta "YYYY-MM-DD..." y "DD/MM/YYYY ..."
+        let fechaFila = "";
+        const mISO = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        const mES  = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+        if (mISO) fechaFila = `${mISO[1]}-${mISO[2]}-${mISO[3]}`;
+        else if (mES) fechaFila = `${mES[3]}-${mES[2]}-${mES[1]}`;
         if (fechaFila && fechaFila < hoy) return false;
         return !reservas.some(r =>
           r.nombre.toLowerCase().trim() === nombreFila && r.fecha === fechaFila
@@ -842,14 +846,20 @@ export default function App() {
     const notas    = String(fila[4] || "");
     const email    = String(fila[5] || "");
 
-    // Parsear "2026-03-11T14:30:00.000Z" directamente sin Date para evitar problemas de zona horaria
+    // Parsear "2026-03-11T14:30:00.000Z" o "22/03/2026 15:15:00" sin usar Date para evitar problemas de zona horaria
     let fechaFmt = "";
     let horaFmt = "";
     if (raw) {
-      const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-      if (m) {
-        fechaFmt = `${m[1]}-${m[2]}-${m[3]}`;
-        horaFmt  = `${m[4]}:${m[5]}`;
+      // Formato ISO: 2026-03-22T15:15:00.000Z
+      const mISO = raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+      // Formato español de Google Sheets: 22/03/2026 15:15:00
+      const mES  = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
+      if (mISO) {
+        fechaFmt = `${mISO[1]}-${mISO[2]}-${mISO[3]}`;
+        horaFmt  = `${mISO[4]}:${mISO[5]}`;
+      } else if (mES) {
+        fechaFmt = `${mES[3]}-${mES[2]}-${mES[1]}`;
+        horaFmt  = `${mES[4]}:${mES[5]}`;
       }
     }
 
