@@ -2623,6 +2623,7 @@ Buenas y Santas`;
 
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {[
+                { value: "tomada",     label: "Tomada",     bg: "#fff8e1", color: "#f57f17", border: "#ffcc02" },
                 { value: "confirmada", label: "Confirmada", bg: "#e8f5e9", color: "#1b5e20", border: "#81c784" },
                 { value: "llego",      label: "Llegó",      bg: "#f3e5f5", color: "#6a1b9a", border: "#ce93d8" },
                 { value: "cancelada",  label: "Cancelada",   bg: "#ffebee", color: "#c62828", border: "#ef9a9a" },
