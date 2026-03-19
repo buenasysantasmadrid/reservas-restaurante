@@ -125,6 +125,7 @@ export default function App() {
   }, [fbCargando]); // run once data is loaded
 
   // ── Firestore: listen to reservas in real time ───────────────────────────
+  const sincronizarTimer = useRef(null);
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "reservas"), async (snap) => {
       if (snap.empty && !seededRef.current) {
@@ -141,7 +142,8 @@ export default function App() {
       const nuevasReservas = snap.docs.map(d => d.data());
       setReservas(nuevasReservas);
       setFbCargando(false);
-      sincronizarActuales(nuevasReservas);
+      if (sincronizarTimer.current) clearTimeout(sincronizarTimer.current);
+      sincronizarTimer.current = setTimeout(() => sincronizarActuales(nuevasReservas), 2000);
     }, (err) => {
       console.error("Firestore reservas error:", err);
       setFbCargando(false);
