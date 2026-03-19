@@ -138,8 +138,10 @@ export default function App() {
         return; // the commit will trigger another snapshot
       }
       seededRef.current = true;
-      setReservas(snap.docs.map(d => d.data()));
+      const nuevasReservas = snap.docs.map(d => d.data());
+      setReservas(nuevasReservas);
       setFbCargando(false);
+      sincronizarActuales(nuevasReservas);
     }, (err) => {
       console.error("Firestore reservas error:", err);
       setFbCargando(false);
@@ -181,6 +183,13 @@ export default function App() {
     const key = cliente.email || cliente.nombre.replace(/\s+/g, "_");
     try { await setDoc(doc(db, "clientes", key), cliente); }
     catch (e) { console.error("fbSetCliente:", e); }
+  };
+
+  const sincronizarActuales = (listaReservas) => {
+    fetch("https://script.google.com/macros/s/AKfycbxslphHn0GNmCT8PQcmJHPzo4M9_bB1OABaiXEs5ugXAVxHtQNTF2v3u1HiYEi0lRrm/exec", {
+      method: "POST",
+      body: JSON.stringify({ action: "actualizarActuales", reservas: listaReservas })
+    }).catch(() => {});
   };
 
   const showToast = (msg, tipo = "ok") => {
