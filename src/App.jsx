@@ -2614,7 +2614,6 @@ Buenas y Santas`;
                     );
                   })()}
                   <div style={{ display: "flex", gap: 8 }}>
-                  <div style={{ display: "flex", gap: 8 }}>
                   <button
                     onClick={() => asignarMesasTurno(filtroFecha, planoTurno)}
                     style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "#2e7d32", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer", fontWeight: 500 }}
