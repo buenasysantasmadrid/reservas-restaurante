@@ -268,7 +268,7 @@ export default function App() {
         : filtroTurno === "mediodia" ? (turno === "t1" || turno === "t2")
         : filtroTurno === turno;
     }
-    const hideCancelada = filtroTurno !== "todos" && r.estado === "cancelada";
+    const hideCancelada = (filtroTurno !== "todos" && r.estado === "cancelada") || (filtroFecha && r.estado === "cancelada");
     return matchFecha && matchEstado && matchBusqueda && matchTurno && !hideCancelada;
   });
 
