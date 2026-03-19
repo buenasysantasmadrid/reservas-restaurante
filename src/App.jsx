@@ -2040,7 +2040,7 @@ Buenas y Santas`;
 
       {/* ── MODAL NUEVA / EDITAR RESERVA ── */}
       {modalAbierto && (
-        <div className="overlay" onClick={e => e.target === e.currentTarget && setModalAbierto(false)}>
+        <div className="overlay" onClick={e => { if (e.target === e.currentTarget) { navegarConGuardia(() => setModalAbierto(false)); } }}>
           <div className="modal" style={{ padding: "24px 28px" }}>
             <h2 style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", marginBottom: 16 }}>
               {reservaEditando ? "Editar reserva" : "Nueva reserva"}
@@ -2073,8 +2073,22 @@ Buenas y Santas`;
                 <label style={{ fontSize: 9, marginBottom: 3 }}>Teléfono</label>
                 <div style={{ display: "flex", gap: 6 }}>
                   <input className="input-field" value={form.prefijo ?? "+34"} onChange={e => setForm(f => ({ ...f, prefijo: e.target.value }))} autoComplete="off" style={{ width: 64, padding: "7px 8px", fontSize: 13 }} placeholder="+34" />
-                  <input className="input-field" value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} autoComplete="off" style={{ padding: "7px 10px", fontSize: 13 }} />
+                  <input className="input-field" value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value.replace(/\s/g, "") }))} autoComplete="off" style={{ padding: "7px 10px", fontSize: 13 }} />
                 </div>
+                {form.telefono && (() => {
+                  const digits = form.telefono.replace(/\D/g, "");
+                  if (digits.length !== 9) {
+                    return (
+                      <div style={{ marginTop: 5, padding: "4px 10px", borderRadius: 5, background: "#fff3e0", border: "1px solid #ffcc80", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 12 }}>⚠️</span>
+                        <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#e65100", fontWeight: 700, letterSpacing: 0.5 }}>
+                          {digits.length < 9 ? "Número de teléfono corto" : "Número de teléfono largo"}
+                        </span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
               <div>
                 <label style={{ fontSize: 9, marginBottom: 3 }}>Email</label>
@@ -2157,7 +2171,7 @@ Buenas y Santas`;
             </div>
 
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 14, alignItems: "center" }}>
-              <button className="btn-outline" style={{ padding: "8px 16px", fontSize: 11 }} onClick={() => setModalAbierto(false)}>Cancelar</button>
+              <button className="btn-outline" style={{ padding: "8px 16px", fontSize: 11 }} onClick={() => navegarConGuardia(() => setModalAbierto(false))}>Cancelar</button>
               {form.telefono && (
                 <BtnWhatsApp reserva={form} style={{ padding: "8px 16px" }} conTexto={true} />
               )}
@@ -2579,7 +2593,28 @@ Buenas y Santas`;
                   </tbody>
                 </table>
                 {/* Botones asignar/borrar mesas del turno */}
-                <div style={{ padding: "12px 16px", borderTop: "1px solid #c8e6c9", display: "flex", gap: 8 }}>
+                <div style={{ padding: "12px 16px", borderTop: "1px solid #c8e6c9" }}>
+                  {(() => {
+                    const mesasOcupadas = reservasTurno.flatMap(r => r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []);
+                    const mesasLibres = MESAS.filter(m => !mesasOcupadas.includes(m) && m !== 30 && m !== 31);
+                    return (
+                      <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", fontWeight: 600 }}>
+                          Mesas libres ({mesasLibres.length}):
+                        </span>
+                        {mesasLibres.length === 0
+                          ? <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#b71c1c", fontWeight: 700 }}>Ninguna</span>
+                          : mesasLibres.map(m => (
+                            <span key={m} style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, background: "#e8f5e9", border: "1px solid #81c784", borderRadius: 4, padding: "2px 8px", color: "#2e7d32", fontWeight: 500 }}>
+                              {getMesaNombre(m)}
+                            </span>
+                          ))
+                        }
+                      </div>
+                    );
+                  })()}
+                  <div style={{ display: "flex", gap: 8 }}>
+                  <div style={{ display: "flex", gap: 8 }}>
                   <button
                     onClick={() => asignarMesasTurno(filtroFecha, planoTurno)}
                     style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "#2e7d32", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer", fontWeight: 500 }}
@@ -2588,6 +2623,7 @@ Buenas y Santas`;
                     onClick={() => borrarMesasTurno(filtroFecha, planoTurno)}
                     style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "none", color: "#b71c1c", border: "1px solid #ef9a9a", borderRadius: 4, cursor: "pointer", fontWeight: 500 }}
                   >✕ Borrar mesas</button>
+                  </div>
                 </div>
               </div>
             )}
