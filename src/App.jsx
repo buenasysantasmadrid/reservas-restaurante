@@ -1981,7 +1981,12 @@ Buenas y Santas`;
                             const s = String(celda);
                             const m = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
                             const fechaStr = m ? `${m[3]}/${m[2]}/${m[1]}` : s;
-                            const horaStr  = m ? `${m[4]}:${m[5]}` : "";
+                            let horaStr = m ? `${m[4]}:${m[5]}` : "";
+                            if (m) {
+                              let h = parseInt(m[4]) + 1;
+                              if (h >= 24) h = 0;
+                              horaStr = `${String(h).padStart(2,"0")}:${m[5]}`;
+                            }
                             return (
                               <td key={j} style={{ padding: "14px 16px", fontFamily: "'Cormorant Garamond', serif", fontSize: 16, color: "#1a2e1a" }}>
                                 <div>{fechaStr}</div>
