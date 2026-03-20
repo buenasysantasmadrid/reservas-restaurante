@@ -1078,15 +1078,18 @@ export default function App() {
       let horaRaw = "";
 
       const lineaHoraInicio = texto.match(/Hora de inicio de la reserva\s*:\s*(.+)/i);
-      if (lineaHoraInicio) {
+      if (lineaHoraInicio && lineaHoraInicio[1].trim()) {
         const resto = lineaHoraInicio[1];
         const mHora = resto.match(/Hora\s*:\s*(\d{1,2}:\d{2})/i);
         if (mHora) horaRaw = mHora[1];
         fechaRaw = resto.replace(/Hora\s*:.*$/i, "").trim();
-      } else {
-        // Buscar "Día:" separado
+      }
+      // Si no se encontró fecha/hora en la misma línea, buscar Día: y Hora: por separado
+      if (!fechaRaw) {
         const mDia = texto.match(/D[ií]a\s*:\s*(.+)/i);
         if (mDia) fechaRaw = mDia[1].trim();
+      }
+      if (!horaRaw) {
         const mHora = texto.match(/Hora\s*:\s*(\d{1,2}:\d{2})/i);
         if (mHora) horaRaw = mHora[1];
       }
