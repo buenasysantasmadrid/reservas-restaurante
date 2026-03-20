@@ -697,10 +697,13 @@ export default function App() {
       if (secondaryMesasP.has(id)) return "";
       const res = mesaReservaP[id];
       const ocupada = !!res;
-      const fill = ocupada ? "#e8e8e8" : "#f2f2f2";
-      const stroke = ocupada ? "#c8c8c8" : "#e0e0e0";
-      const strokeW = ocupada ? 0.7 : 0.6;
-      const textC = ocupada ? "#555" : "#c0c0c0";
+      const sinConfirmar = res && res.estado === "tomada";
+      const llego = res && res.estado === "llego";
+      const fill   = llego ? "#f5f5f5" : sinConfirmar ? "#e8e8e8" : ocupada ? "#c8c8c8" : "#f2f2f2";
+      const stroke = llego ? "#ddd"    : sinConfirmar ? "#999"    : ocupada ? "#888"    : "#ddd";
+      const strokeW = ocupada ? 0.9 : 0.6;
+      const strokeDash = sinConfirmar ? `stroke-dasharray="3 2"` : "";
+      const textC  = llego ? "#ccc"   : sinConfirmar ? "#555"    : ocupada ? "#333"    : "#bbb";
       const mergeGroup = res ? reservaMergeGroupP[res.id] : null;
       const mergeIds = mergeGroup ? (Array.isArray(mergeGroup) ? mergeGroup : mergeGroup.ids) : null;
       const clampToFirst = mergeGroup && !Array.isArray(mergeGroup) && mergeGroup.clampToFirst;
@@ -729,11 +732,11 @@ export default function App() {
       const label = getMesaNombreP(id);
       const lineH = isMerged ? mh*0.22 : (res ? mh*0.28 : mh/2+4);
       return `<g>
-        <rect x="${mx}" y="${my}" width="${mw}" height="${mh}" rx="5" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}"/>
+        <rect x="${mx}" y="${my}" width="${mw}" height="${mh}" rx="5" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}" ${strokeDash}/>
         <text x="${mx+mw/2}" y="${my+lineH}" text-anchor="middle" style="font-family:'Cormorant Garamond',serif;font-size:14px;font-style:italic;fill:${textC};font-weight:300">${label}</text>
-        ${res?`<text x="${mx+mw/2}" y="${my+mh*(isMerged?0.38:0.48)}" text-anchor="middle" style="font-family:'Jost',sans-serif;font-size:7.5px;fill:#666;font-weight:300">${res.hora}</text>`:""}
-        ${res?`<text x="${mx+mw/2}" y="${my+mh*(isMerged?0.58:0.68)}" text-anchor="middle" style="font-family:'Jost',sans-serif;font-size:8px;fill:#555;font-weight:300">${res.nombre.split(" ")[0]}</text>`:""}
-        ${res?`<text x="${mx+mw/2}" y="${my+mh*(isMerged?0.80:0.88)}" text-anchor="middle" style="font-family:'Jost',sans-serif;font-size:7.5px;fill:#888;font-weight:300">${res.personas}p</text>`:""}
+        ${res?`<text x="${mx+mw/2}" y="${my+mh*(isMerged?0.38:0.48)}" text-anchor="middle" style="font-family:'Jost',sans-serif;font-size:7.5px;fill:#555;font-weight:300">${res.hora}</text>`:""}
+        ${res?`<text x="${mx+mw/2}" y="${my+mh*(isMerged?0.58:0.68)}" text-anchor="middle" style="font-family:'Jost',sans-serif;font-size:8px;fill:#444;font-weight:300">${res.nombre.split(" ")[0]}</text>`:""}
+        ${res?`<text x="${mx+mw/2}" y="${my+mh*(isMerged?0.80:0.88)}" text-anchor="middle" style="font-family:'Jost',sans-serif;font-size:7.5px;fill:#666;font-weight:300">${res.personas}p</text>`:""}
       </g>`;
     }).join("");
 
@@ -742,7 +745,7 @@ export default function App() {
       <text x="28" y="337" style="font-family:'Jost',sans-serif;font-size:8px;fill:#bbb;font-weight:300">Ocupada</text>
       <rect x="82" y="330" width="8" height="8" rx="2" fill="#f2f2f2" stroke="#e0e0e0" stroke-width="0.5"/>
       <text x="94" y="337" style="font-family:'Jost',sans-serif;font-size:8px;fill:#bbb;font-weight:300">Libre</text>`;
-    const separador = `<line x1="10" y1="${PAD+1.15*U}" x2="${PAD+5.8*U+0.8*U/2+10}" y2="${PAD+1.15*U}" stroke="#e8e8e8" stroke-width="0.8" stroke-dasharray="5 4"/>`;
+    const separador = `<line x1="10" y1="${PAD+1.15*U}" x2="382" y2="${PAD+1.15*U}" stroke="#d0d0d0" stroke-width="0.8" stroke-dasharray="5 4"/>`;
 
     const tablaRows = resTurno.map(r => {
       const mesas = r.mesas&&r.mesas.length>0 ? r.mesas.map(getMesaNombreP).join("+") : r.mesa ? getMesaNombreP(r.mesa) : "—";
@@ -760,52 +763,66 @@ export default function App() {
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=Jost:wght@200;300&display=swap" rel="stylesheet"/>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Jost',sans-serif;color:#1a1a1a;background:#fff;padding:12mm 13mm}
-  .header{display:flex;align-items:flex-end;border-bottom:.7px solid #333;padding-bottom:7px;margin-bottom:9px}
-  .hdr-mid{width:339px;flex-shrink:0}
-  .hdr-r{text-align:left}
-  .fecha{font-size:8px;font-weight:300;color:#444;white-space:nowrap}
-  .turno{font-size:5.5px;font-weight:200;letter-spacing:2px;text-transform:uppercase;color:#aaa;margin-top:1px;white-space:nowrap}
-  .lbl{font-size:5.5px;font-weight:300;letter-spacing:2px;text-transform:uppercase;color:#bbb;margin-bottom:4px}
-  .plano-box{width:100%;height:115mm}.plano-box svg{width:100%;height:100%}
-  hr.div{border:none;border-top:.5px solid #e8e8e8;margin:4px 0}
+  body{font-family:'Jost',sans-serif;color:#1a1a1a;background:#fff;padding:10mm 12mm}
+  .header{display:flex;align-items:flex-end;border-bottom:.7px solid #333;padding-bottom:6px;margin-bottom:9px}
+  .hdr-mid{flex:1}
+  .hdr-r{text-align:right}
+  .fecha{font-size:9px;font-weight:600;color:#000;white-space:nowrap;font-family:'Jost',sans-serif}
+  .turno{font-size:7px;font-weight:400;letter-spacing:2px;text-transform:uppercase;color:#000;margin-top:1px;white-space:nowrap;font-family:'Jost',sans-serif}
+  .body{display:flex;gap:0;align-items:flex-start}
+  .plano-col{width:50%;flex-shrink:0;padding-right:12px;border-right:.5px solid #e0e0e0}
+  .lista-col{flex:1;padding-left:12px}
+  .lbl{font-size:6px;font-weight:300;letter-spacing:2px;text-transform:uppercase;color:#bbb;margin-bottom:3px}
   table{width:100%;border-collapse:collapse}
-  th{font-size:6px;font-weight:300;letter-spacing:1.5px;text-transform:uppercase;color:#999;padding:2.5px 4px;border-bottom:.7px solid #333;text-align:left}
+  th{font-size:6px;font-weight:300;letter-spacing:1.5px;text-transform:uppercase;color:#999;padding:2px 3px;border-bottom:.7px solid #333;text-align:left}
   th.c{text-align:center}
-  td{padding:3px 4px;border-bottom:.4px solid #eee;vertical-align:middle}
+  td{padding:2.5px 3px;border-bottom:.4px solid #eee;vertical-align:middle}
   td.nom{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:10px;font-weight:300}
-  td.hr2{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:10px;font-weight:300}
+  td.hr2{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:10px;font-weight:300;white-space:nowrap}
   td.pax{font-family:'Cormorant Garamond',serif;font-size:10px;font-weight:300;text-align:center}
-  td.tel{font-size:6.5px;color:#888;white-space:nowrap;font-weight:300}
+  td.tel{font-size:7px;color:#888;white-space:nowrap;font-weight:300}
   td.mesa{font-size:7px;font-weight:300;color:#555}
-  td.nota{font-size:6px;color:#aaa;font-weight:300}
-  .badge{background:#f4f4f4;color:#777;border:.4px solid #e0e0e0;border-radius:2px;padding:1px 4px;font-size:5.5px;letter-spacing:.6px;text-transform:uppercase;font-weight:300;font-family:'Jost',sans-serif}
-  @media print{body{padding:0}@page{size:A4 portrait;margin:12mm 13mm}html{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+  td.nota{font-size:7px;color:#aaa;font-weight:300}
+  .badge{background:#f4f4f4;color:#777;border:.4px solid #e0e0e0;border-radius:2px;padding:1px 3px;font-size:6px;letter-spacing:.5px;text-transform:uppercase;font-weight:300;font-family:'Jost',sans-serif}
+  .leyenda{display:flex;gap:10px;margin-top:4px;flex-wrap:wrap}
+  .ley-item{display:flex;align-items:center;gap:3px;font-size:6px;color:#888;font-family:'Jost',sans-serif}
+  .ley-box{width:7px;height:7px;border-radius:1px;flex-shrink:0}
+  @media print{body{padding:0}@page{size:A4 landscape;margin:10mm 12mm}html{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style></head><body>
   <div class="header">
-    <div><img src="${logoUrl}" alt="Buenas y Santas" style="height:36px;width:auto;object-fit:contain;display:block"/></div>
+    <div><img src="${logoUrl}" alt="Buenas y Santas" style="height:32px;width:auto;object-fit:contain;display:block"/></div>
     <div class="hdr-mid"></div>
     <div class="hdr-r">
       <div class="fecha">${fechaLabel}</div>
       ${turnoLabel ? `<div class="turno">${turnoLabel}</div>` : ""}
     </div>
   </div>
-  <div class="lbl">Plano de sala</div>
-  <div class="plano-box">
-    <svg viewBox="0 0 680 349" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
-      <rect width="680" height="349" fill="#fafafa" rx="5"/>
-      ${separador}${mesasSVG}${leyenda}
-    </svg>
+  <div class="body">
+    <div class="plano-col">
+      <div class="lbl">Plano de sala</div>
+      <svg viewBox="0 0 392 332" style="width:100%;display:block;border-radius:4px" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+        <rect width="392" height="332" fill="#f9f9f9" rx="4"/>
+        ${separador}${mesasSVG}
+      </svg>
+      <div class="leyenda">
+        <div class="ley-item"><div class="ley-box" style="background:#c8c8c8;border:1px solid #888"></div>Confirmada</div>
+        <div class="ley-item"><div class="ley-box" style="background:#e8e8e8;border:1px dashed #999"></div>Sin confirmar</div>
+        <div class="ley-item"><div class="ley-box" style="background:#f5f5f5;border:1px solid #ccc"></div>Llegó</div>
+        <div class="ley-item"><div class="ley-box" style="background:#f2f2f2;border:1px solid #ddd"></div>Libre</div>
+      </div>
+    </div>
+    <div class="lista-col">
+      <div class="lbl">Reservas</div>
+      <table>
+        <thead><tr>
+          <th style="width:22%">Cliente</th><th style="width:13%">Teléfono</th>
+          <th style="width:8%">Hora</th><th class="c" style="width:5%">Pax</th>
+          <th style="width:10%">Mesa</th><th style="width:9%">Estado</th><th>Notas</th>
+        </tr></thead>
+        <tbody>${tablaRows||'<tr><td colspan="7" style="padding:10px;text-align:center;color:#aaa;font-size:8px">No hay reservas</td></tr>'}</tbody>
+      </table>
+    </div>
   </div>
-  <hr class="div"/>
-  <table>
-    <thead><tr>
-      <th style="width:23%">Cliente</th><th style="width:13%">Teléfono</th>
-      <th style="width:9%">Hora</th><th class="c" style="width:5%">Pax</th>
-      <th style="width:10%">Mesa</th><th style="width:10%">Estado</th><th>Notas</th>
-    </tr></thead>
-    <tbody>${tablaRows||'<tr><td colspan="7" style="padding:10px;text-align:center;color:#aaa;font-size:8px">No hay reservas</td></tr>'}</tbody>
-  </table>
   <script>window.onload=()=>{window.print();}<\/script>
 </body></html>`;
 
