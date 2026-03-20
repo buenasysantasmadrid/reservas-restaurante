@@ -549,7 +549,7 @@ export default function App() {
       }).join("");
 
       return turnoHead + reservaRows;
-    }).join(`<tr class="gap"><td colspan="6"></td></tr>`);
+    }).join(`<tr class="gap"><td colspan="6"></td></tr><tr class="gap"><td colspan="6"></td></tr>`);
 
     const html = `<!DOCTYPE html>
 <html lang="es">
@@ -574,7 +574,7 @@ export default function App() {
     td.hora { font-family: 'Lora', Georgia, serif; font-size: 12px; font-weight: 700; font-style: italic; }
     td.pax { font-family: 'Lora', Georgia, serif !important; font-size: 12px !important; font-weight: 700 !important; }
     .turno-head td { font-family: 'Jost', Arial, sans-serif; font-size: 8px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: #444; padding: 5px 8px 3px; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; background: #f5f5f5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .gap td { border: none; padding: 2px 0; background: #fff !important; }
+    .gap td { border: none; padding: 8px 0; background: #fff !important; }
     @media print {
       body { padding: 0; }
       @page { size: A4 landscape; margin: 14mm 16mm; }
@@ -699,8 +699,8 @@ export default function App() {
       const ocupada = !!res;
       const sinConfirmar = res && res.estado === "tomada";
       const llego = res && res.estado === "llego";
-      const fill   = llego ? "#f5f5f5" : sinConfirmar ? "#e8e8e8" : ocupada ? "#c8c8c8" : "#f2f2f2";
-      const stroke = llego ? "#ddd"    : sinConfirmar ? "#999"    : ocupada ? "#888"    : "#ddd";
+      const fill   = llego ? "#f0f0f0" : sinConfirmar ? "#e0e0e0" : ocupada ? "#c8c8c8" : "#d8d8d8";
+      const stroke = llego ? "#bbb"    : sinConfirmar ? "#999"    : ocupada ? "#888"    : "#aaa";
       const strokeW = ocupada ? 0.9 : 0.6;
       const strokeDash = sinConfirmar ? `stroke-dasharray="3 2"` : "";
       const textC  = llego ? "#ccc"   : sinConfirmar ? "#555"    : ocupada ? "#333"    : "#bbb";
@@ -778,13 +778,13 @@ export default function App() {
   th{font-size:8px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#000;padding:3px 4px;border-bottom:.7px solid #333;text-align:left}
   th.c{text-align:center}
   td{padding:3.5px 4px;border-bottom:.4px solid #eee;vertical-align:middle;color:#000}
-  td.nom{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:12px;font-weight:400;color:#000}
-  td.hr2{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:12px;font-weight:400;white-space:nowrap;color:#000}
-  td.pax{font-family:'Cormorant Garamond',serif;font-size:12px;font-weight:400;text-align:center;color:#000}
-  td.tel{font-size:9px;color:#000;white-space:nowrap;font-weight:300}
-  td.mesa{font-size:9px;color:#000;font-weight:300}
-  td.nota{font-size:9px;color:#000;font-weight:300}
-  .badge{background:#f0f0f0;color:#000;border:.5px solid #bbb;border-radius:2px;padding:1px 4px;font-size:7px;letter-spacing:.5px;text-transform:uppercase;font-weight:500;font-family:'Jost',sans-serif}
+  td.nom{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13px;font-weight:400;color:#000}
+  td.hr2{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13px;font-weight:400;white-space:nowrap;color:#000}
+  td.pax{font-family:'Cormorant Garamond',serif;font-size:13px;font-weight:400;text-align:center;color:#000}
+  td.tel{font-size:10px;color:#000;white-space:nowrap;font-weight:300}
+  td.mesa{font-size:10px;color:#000;font-weight:300}
+  td.nota{font-size:10px;color:#000;font-weight:300}
+  .badge{background:#f0f0f0;color:#000;border:.5px solid #bbb;border-radius:2px;padding:1px 4px;font-size:8px;letter-spacing:.5px;text-transform:uppercase;font-weight:500;font-family:'Jost',sans-serif}
   @media print{body{padding:0}@page{size:A4 portrait;margin:10mm 12mm}html{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style></head><body>
   <div class="header">
@@ -2128,7 +2128,11 @@ Buenas y Santas`;
                   style={{ padding: "7px 10px", fontSize: 13 }}
                 />
                 <datalist id="lista-clientes">
-                  {nombresClientes.map(n => <option key={n} value={n} />)}
+                  {nombresClientes.map(n => {
+                    const cliente = reservas.find(r => r.nombre === n) || clientesArchivados.find(c => c.nombre === n);
+                    const tel = cliente?.telefono ? ` · ${cliente.telefono}` : "";
+                    return <option key={n} value={n} label={`${n}${tel}`} />;
+                  })}
                 </datalist>
               </div>
 
