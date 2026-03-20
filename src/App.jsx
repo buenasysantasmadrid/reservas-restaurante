@@ -75,6 +75,7 @@ export default function App() {
   const [planoModal, setPlanoModal] = useState(null); // { reservaId, mesaId, nombre }
   const [confirmarWA, setConfirmarWA] = useState(false);
   const [pendingSheetIdx, setPendingSheetIdx] = useState(null);
+  const [pendingPegar, setPendingPegar] = useState(false);
   const [textoPegado, setTextoPegado] = useState("");
   const [interpretando, setInterpretando] = useState(false);
   const [datosInterpretados, setDatosInterpretados] = useState(null);
@@ -89,14 +90,6 @@ export default function App() {
   const [hoveredMesa, setHoveredMesa] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [confirmarSalida, setConfirmarSalida] = useState(null); // callback a ejecutar si confirma salir
-  const [confirmarSalidaPagina, setConfirmarSalidaPagina] = useState(null); // guardia para pegar/sheet
-  // Estado independiente para el plano (no compartido con reservas)
-  const [planoFecha, setPlanoFecha] = useState(getTodayStr());
-  const [planoTurnoFiltro, setPlanoTurnoFiltro] = useState("t1");
-  const [planoTurnoPersonalizado, setPlanoTurnoPersonalizado] = useState(null);
-  const [planoTurnoModalAbierto, setPlanoTurnoModalAbierto] = useState(false);
-  const [planoTurnoDesde, setPlanoTurnoDesde] = useState("13:30");
-  const [planoTurnoHasta, setPlanoTurnoHasta] = useState("16:00");
 
   // Auto-archivar al abrir la app si son las 4am o más
   useEffect(() => {
@@ -309,10 +302,6 @@ export default function App() {
   const navegarConGuardia = (accion) => {
     if (formTieneDatos()) {
       setConfirmarSalida(() => accion);
-    } else if (vista === "pegar" && textoPegado.trim()) {
-      setConfirmarSalidaPagina(() => accion);
-    } else if (vista === "sheet" && sheetFilas.length > 1) {
-      setConfirmarSalidaPagina(() => accion);
     } else {
       accion();
     }
@@ -342,7 +331,7 @@ export default function App() {
       await fbSetReserva(updated);
       toastMsg = "Reserva actualizada ✓";
     } else {
-      const nuevoId = Date.now() + Math.floor(Math.random() * 10000);
+      const nuevoId = Date.now() * 1000 + Math.floor(Math.random() * 1000);
       const nuevaReserva = { ...form, mesa: form.mesas.join("+"), id: nuevoId, cuando };
       await fbSetReserva(nuevaReserva);
       if (pendingSheetIdx !== null) {
@@ -358,6 +347,12 @@ export default function App() {
     showToast(toastMsg);
     setConfirmarWA(false);
     setModalAbierto(false);
+    if (pendingPegar) {
+      setTextoPegado("");
+      setDatosInterpretados(null);
+      setPendingPegar(false);
+      setVista("pegar");
+    }
     if (vista === "sheet") setVista("sheet");
     setTimeout(() => setGuardando(false), 800);
   };
@@ -611,22 +606,22 @@ export default function App() {
 
   const imprimirPlano = () => {
     const logoUrl = logoImg;
-    const fechaLabel = planoFecha
-      ? new Date(planoFecha + "T12:00").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+    const fechaLabel = filtroFecha
+      ? new Date(filtroFecha + "T12:00").toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
       : "Todas las fechas";
 
     const turnoLabelMap = { t1: "1º Turno Mediodía", t2: "2º Turno Mediodía", noche: "Noche" };
-    const turnoLabel = planoTurnoFiltro === "todos" ? "Todos los turnos"
-      : planoTurnoFiltro === "mediodia" ? "Mediodía"
-      : turnoLabelMap[planoTurnoFiltro] || (planoTurnoFiltro === "custom" && planoTurnoPersonalizado ? `Turno ${planoTurnoPersonalizado.desde} – ${planoTurnoPersonalizado.hasta}` : "");
+    const turnoLabel = filtroTurno === "todos" ? "Todos los turnos"
+      : filtroTurno === "mediodia" ? "Mediodía"
+      : turnoLabelMap[filtroTurno] || (filtroTurno === "custom" && turnoPersonalizado ? `Turno ${turnoPersonalizado.desde} – ${turnoPersonalizado.hasta}` : "");
 
-    const planoTurnoLocal = planoTurnoFiltro === "custom" ? "custom" : (planoTurnoFiltro === "todos" || planoTurnoFiltro === "mediodia") ? "t1" : planoTurnoFiltro;
+    const planoTurnoLocal = filtroTurno === "custom" ? "custom" : (filtroTurno === "todos" || filtroTurno === "mediodia") ? "t1" : filtroTurno;
     const resTurno = reservas.filter(r => {
-      if (!planoFecha || r.fecha !== planoFecha) return false;
+      if (!filtroFecha || r.fecha !== filtroFecha) return false;
       if (r.estado === "cancelada") return false;
-      if (planoTurnoLocal === "custom" && planoTurnoPersonalizado) {
-        const [hD, mD] = planoTurnoPersonalizado.desde.split(":").map(Number);
-        const [hH, mH] = planoTurnoPersonalizado.hasta.split(":").map(Number);
+      if (planoTurnoLocal === "custom" && turnoPersonalizado) {
+        const [hD, mD] = turnoPersonalizado.desde.split(":").map(Number);
+        const [hH, mH] = turnoPersonalizado.hasta.split(":").map(Number);
         const [hR, mR] = (r.hora || "00:00").split(":").map(Number);
         const minsR = hR * 60 + mR;
         return minsR >= hD * 60 + mD && minsR <= hH * 60 + mH;
@@ -1020,6 +1015,7 @@ export default function App() {
               };
               setDatosInterpretados(parsed);
               setForm(f => ({ ...f, ...parsed, mesas: [], estado: "tomada" }));
+              setPendingPegar(true);
               setModalAbierto(true);
               setInterpretando(false);
               return;
@@ -1104,6 +1100,7 @@ export default function App() {
 
       setDatosInterpretados(parsed);
       setForm(f => ({ ...f, ...parsed, mesas: [], estado: "tomada" }));
+      setPendingPegar(true);
       setModalAbierto(true);
     } catch (e) {
       showToast("No se pudo interpretar el mensaje", "error");
@@ -1464,18 +1461,6 @@ Buenas y Santas`;
             {/* Filtros */}
             <div className="filtros-wrap" style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap", alignItems: "center" }}>
               <input type="date" className="input-field" style={{ width: 180 }} value={filtroFecha} onChange={e => setFiltroFecha(e.target.value)} />
-              <button
-                onClick={() => setFiltroFecha(getTodayStr())}
-                style={{
-                  padding: "8px 14px", fontSize: 11, cursor: "pointer",
-                  fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase",
-                  border: `1px solid ${filtroFecha === getTodayStr() ? "#1b5e20" : "#81c784"}`,
-                  background: filtroFecha === getTodayStr() ? "#1b5e20" : "none",
-                  color: filtroFecha === getTodayStr() ? "#fff" : "#2e7d32",
-                  borderRadius: 4, transition: "all 0.2s", fontWeight: 500
-                }}>
-                Hoy
-              </button>
               <input type="text" className="input-field" style={{ width: 220 }} placeholder="Buscar cliente..." value={busqueda} onChange={e => setBusqueda(e.target.value)} />
               <select className="input-field" style={{ width: 160 }} value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}>
                 <option value="todas">Todos los estados</option>
@@ -1935,14 +1920,7 @@ Buenas y Santas`;
 
       {/* ── PEGAR MENSAJE ── */}
       {vista === "pegar" && (
-        <div
-          style={{ padding: "40px", maxWidth: 800, margin: "0 auto", position: "relative", zIndex: 1 }}
-          onClick={e => {
-            if (e.target === e.currentTarget && textoPegado.trim()) {
-              setConfirmarSalidaPagina(() => () => { setTextoPegado(""); });
-            }
-          }}
-        >
+        <div style={{ padding: "40px", maxWidth: 800, margin: "0 auto", position: "relative", zIndex: 1 }}>
           <div style={{ marginBottom: 32 }}>
             <h1 style={{ fontFamily: "'Lora', serif", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Pegar mensaje</h1>
           </div>
@@ -1978,14 +1956,7 @@ Buenas y Santas`;
 
       {/* ── GOOGLE SHEET ── */}
       {vista === "sheet" && (
-        <div
-          style={{ padding: "40px", maxWidth: 900, margin: "0 auto", position: "relative", zIndex: 1 }}
-          onClick={e => {
-            if (e.target === e.currentTarget && sheetFilas.length > 1) {
-              setConfirmarSalidaPagina(() => () => { setSheetFilas([]); });
-            }
-          }}
-        >
+        <div style={{ padding: "40px", maxWidth: 900, margin: "0 auto", position: "relative", zIndex: 1 }}>
           <div style={{ marginBottom: 32 }}>
             <h1 style={{ fontFamily: "'Lora', serif", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Nueva WhatsApp</h1>
           </div>
@@ -2280,13 +2251,13 @@ Buenas y Santas`;
         const VW = SVG_COLS * U + PAD * 2;
         const VH = SVG_ROWS * U + PAD * 2;
 
-        const planoTurno = planoTurnoFiltro === "custom" ? "custom" : (planoTurnoFiltro === "todos" || planoTurnoFiltro === "mediodia") ? "t1" : planoTurnoFiltro;
+        const planoTurno = filtroTurno === "custom" ? "custom" : (filtroTurno === "todos" || filtroTurno === "mediodia") ? "t1" : filtroTurno;
         const reservasTurno = reservas.filter(r => {
-          if (!planoFecha || r.fecha !== planoFecha) return false;
+          if (!filtroFecha || r.fecha !== filtroFecha) return false;
           if (r.estado === "cancelada") return false;
-          if (planoTurno === "custom" && planoTurnoPersonalizado) {
-            const [hD, mD] = planoTurnoPersonalizado.desde.split(":").map(Number);
-            const [hH, mH] = planoTurnoPersonalizado.hasta.split(":").map(Number);
+          if (planoTurno === "custom" && turnoPersonalizado) {
+            const [hD, mD] = turnoPersonalizado.desde.split(":").map(Number);
+            const [hH, mH] = turnoPersonalizado.hasta.split(":").map(Number);
             const [hR, mR] = (r.hora || "00:00").split(":").map(Number);
             const minsR = hR * 60 + mR;
             return minsR >= hD * 60 + mD && minsR <= hH * 60 + mH;
@@ -2460,26 +2431,14 @@ Buenas y Santas`;
             {/* Filtros */}
             <div style={{ display: "flex", gap: 12, marginBottom: 28, flexWrap: "wrap", alignItems: "center" }}>
               <input type="date" className="input-field" style={{ width: 180 }}
-                value={planoFecha} onChange={e => setPlanoFecha(e.target.value)} />
-              <button
-                onClick={() => setPlanoFecha(getTodayStr())}
-                style={{
-                  padding: "8px 14px", fontSize: 11, cursor: "pointer",
-                  fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase",
-                  border: `1px solid ${planoFecha === getTodayStr() ? "#1b5e20" : "#81c784"}`,
-                  background: planoFecha === getTodayStr() ? "#1b5e20" : "none",
-                  color: planoFecha === getTodayStr() ? "#fff" : "#2e7d32",
-                  borderRadius: 4, transition: "all 0.2s", fontWeight: 500
-                }}>
-                Hoy
-              </button>
+                value={filtroFecha} onChange={e => setFiltroFecha(e.target.value)} />
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {[
                   { key: "t1",    label: "1º Turno" },
                   { key: "t2",    label: "2º Turno" },
                   { key: "noche", label: "Noche" },
                 ].map(t => (
-                  <button key={t.key} onClick={() => setPlanoTurnoFiltro(t.key)}
+                  <button key={t.key} onClick={() => setFiltroTurno(t.key)}
                     style={{ padding: "8px 14px", fontSize: 11, cursor: "pointer", fontFamily: "'Jost', sans-serif",
                       letterSpacing: 1, textTransform: "uppercase",
                       border: `1px solid ${planoTurno === t.key ? "#1b5e20" : "#81c784"}`,
@@ -2490,15 +2449,15 @@ Buenas y Santas`;
                   </button>
                 ))}
                 <button
-                  onClick={() => setPlanoTurnoModalAbierto(true)}
+                  onClick={() => setTurnoModalAbierto(true)}
                   style={{ padding: "8px 14px", fontSize: 11, cursor: "pointer", fontFamily: "'Jost', sans-serif",
                     letterSpacing: 1, textTransform: "uppercase",
                     border: `1px solid ${planoTurno === "custom" ? "#1b5e20" : "#81c784"}`,
                     background: planoTurno === "custom" ? "#1b5e20" : "none",
                     color: planoTurno === "custom" ? "#fff" : "#2e7d32",
                     borderRadius: 4, transition: "all 0.2s" }}>
-                  {planoTurno === "custom" && planoTurnoPersonalizado
-                    ? `${planoTurnoPersonalizado.desde} – ${planoTurnoPersonalizado.hasta}`
+                  {planoTurno === "custom" && turnoPersonalizado
+                    ? `${turnoPersonalizado.desde} – ${turnoPersonalizado.hasta}`
                     : "Turno?"}
                 </button>
               </div>
@@ -2556,7 +2515,7 @@ Buenas y Santas`;
                   );
                 })()}
               </div>
-              {!planoFecha && (
+              {!filtroFecha && (
                 <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#9e9e9e", marginTop: 12 }}>
                   Selecciona una fecha para ver la ocupación.
                 </p>
@@ -2564,7 +2523,7 @@ Buenas y Santas`;
             </div>
 
             {/* ── LISTADO DEBAJO DEL PLANO ── */}
-            {planoFecha && reservasTurno.length > 0 && (
+            {filtroFecha && reservasTurno.length > 0 && (
               <div className="card" style={{ marginTop: 16, overflow: "hidden" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
@@ -2665,11 +2624,11 @@ Buenas y Santas`;
                   })()}
                   <div style={{ display: "flex", gap: 8 }}>
                   <button
-                    onClick={() => asignarMesasTurno(planoFecha, planoTurno)}
+                    onClick={() => asignarMesasTurno(filtroFecha, planoTurno)}
                     style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "#2e7d32", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer", fontWeight: 500 }}
                   >✦ Asignar mesas</button>
                   <button
-                    onClick={() => borrarMesasTurno(planoFecha, planoTurno)}
+                    onClick={() => borrarMesasTurno(filtroFecha, planoTurno)}
                     style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "none", color: "#b71c1c", border: "1px solid #ef9a9a", borderRadius: 4, cursor: "pointer", fontWeight: 500 }}
                   >✕ Borrar mesas</button>
                   </div>
@@ -2680,34 +2639,6 @@ Buenas y Santas`;
         );
       })()}
 
-
-      {/* ── MODAL TURNO PERSONALIZADO (PLANO) ── */}
-      {planoTurnoModalAbierto && (
-        <div className="overlay" style={{ zIndex: 60 }} onClick={e => e.target === e.currentTarget && setPlanoTurnoModalAbierto(false)}>
-          <div className="modal" style={{ maxWidth: 360, padding: "36px 32px", textAlign: "center" }}>
-            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", marginBottom: 8 }}>Filtro personalizado</p>
-            <h2 style={{ fontFamily: "'Lora', serif", fontSize: 24, fontWeight: 700, color: "#1a1a1a", marginBottom: 28 }}>¿Qué turno?</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 28 }}>
-              <div>
-                <label style={{ marginBottom: 8 }}>Desde</label>
-                <select className="input-field" value={planoTurnoDesde} onChange={e => setPlanoTurnoDesde(e.target.value)}>
-                  {HORARIOS.map(h => <option key={h} value={h}>{h}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={{ marginBottom: 8 }}>Hasta</label>
-                <select className="input-field" value={planoTurnoHasta} onChange={e => setPlanoTurnoHasta(e.target.value)}>
-                  {HORARIOS.map(h => <option key={h} value={h}>{h}</option>)}
-                </select>
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-              <button className="btn-outline" onClick={() => setPlanoTurnoModalAbierto(false)}>Cancelar</button>
-              <button className="btn-gold" onClick={() => { setPlanoTurnoPersonalizado({ desde: planoTurnoDesde, hasta: planoTurnoHasta }); setPlanoTurnoFiltro("custom"); setPlanoTurnoModalAbierto(false); }}>Ver plano</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── MODAL TURNO PERSONALIZADO ── */}
       {turnoModalAbierto && (
@@ -2808,30 +2739,6 @@ Buenas y Santas`;
               ))}
             </div>
             <button className="btn-outline" style={{ marginTop: 10, width: "100%", color: "#888", borderColor: "#ccc", fontSize: 11 }} onClick={() => setPlanoModal(null)}>Salir</button>
-          </div>
-        </div>
-      )}
-
-      {confirmarSalidaPagina && (
-        <div className="overlay" style={{ zIndex: 70 }}>
-          <div className="modal" style={{ maxWidth: 420, textAlign: "center", padding: "48px 40px" }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
-            <h2 style={{ fontFamily: "'Lora', serif", fontSize: 24, fontWeight: 700, color: "#1a1a1a", marginBottom: 12 }}>
-              ¿Salir sin guardar?
-            </h2>
-            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 14, color: "#4a7a4a", marginBottom: 32, lineHeight: 1.6 }}>
-              {vista === "pegar" ? "Tienes un mensaje sin interpretar. Si sales ahora se perderá." : "Tienes reservas cargadas. Si sales ahora se perderán."}
-            </p>
-            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-              <button className="btn-outline" onClick={() => setConfirmarSalidaPagina(null)}>
-                Volver
-              </button>
-              <button
-                onClick={() => { confirmarSalidaPagina(); setConfirmarSalidaPagina(null); }}
-                style={{ padding: "12px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", background: "#fff", color: "#c62828", border: "1.5px solid #ef9a9a", borderRadius: 4 }}>
-                Salir sin guardar
-              </button>
-            </div>
           </div>
         </div>
       )}
