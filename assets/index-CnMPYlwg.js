@@ -3067,41 +3067,39 @@ This typically indicates that your device does not have a healthy Internet conne
         ${ge?`<text x="${ft+Lt/2}" y="${Le+We*(gr?.38:.48)}" text-anchor="middle" style="font-family:'Jost',sans-serif;font-size:7.5px;fill:#555;font-weight:300">${ge.hora}</text>`:""}
         ${ge?`<text x="${ft+Lt/2}" y="${Le+We*(gr?.58:.68)}" text-anchor="middle" style="font-family:'Jost',sans-serif;font-size:8px;fill:#444;font-weight:300">${ge.nombre.split(" ")[0]}</text>`:""}
         ${ge?`<text x="${ft+Lt/2}" y="${Le+We*(gr?.8:.88)}" text-anchor="middle" style="font-family:'Jost',sans-serif;font-size:7.5px;fill:#666;font-weight:300">${ge.personas}p</text>`:""}
-      </g>`}).join(""),ie=`<line x1="10" y1="${j+1.15*q}" x2="382" y2="${j+1.15*q}" stroke="#d0d0d0" stroke-width="0.8" stroke-dasharray="5 4"/>`,ze=ee.map(H=>{const te=H.mesas&&H.mesas.length>0?H.mesas.map(b).join("+"):H.mesa?b(H.mesa):"—",be=H.estado==="confirmada"?"Conf.":H.estado==="tomada"?"Tomada":H.estado==="llego"?"Llegó":H.estado;return`<tr>
+      </g>`}).join(""),ie=`<line x1="10" y1="${j+1.15*q}" x2="${j+5.8*q+.8*q/2+10}" y2="${j+1.15*q}" stroke="#d0d0d0" stroke-width="0.8" stroke-dasharray="5 4"/>`,ze=ee.map(H=>{const te=H.mesas&&H.mesas.length>0?H.mesas.map(b).join("+"):H.mesa?b(H.mesa):"—",be=H.estado==="confirmada"?"Conf.":H.estado==="tomada"?"Tomada":H.estado==="llego"?"Llegó":H.estado;return`<tr>
         <td class="nom">${H.nombre}</td><td class="tel">${H.telefono||"—"}</td>
         <td class="hr2">${H.hora}</td><td class="pax">${H.personas}</td>
         <td class="mesa">${te}</td><td><span class="badge">${be}</span></td>
         <td class="nota">${H.notas||""}</td>
       </tr>`}).join(""),fe=`<!DOCTYPE html>
 <html lang="es"><head><meta charset="UTF-8"/><title>Plano</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=Jost:wght@200;300&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=Jost:wght@200;300;400&display=swap" rel="stylesheet"/>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Jost',sans-serif;color:#1a1a1a;background:#fff;padding:10mm 12mm}
+  body{font-family:'Jost',sans-serif;color:#000;background:#fff;padding:10mm 12mm}
   .header{display:flex;align-items:flex-end;border-bottom:.7px solid #333;padding-bottom:6px;margin-bottom:9px}
   .hdr-mid{flex:1}
   .hdr-r{text-align:right}
   .fecha{font-size:9px;font-weight:600;color:#000;white-space:nowrap;font-family:'Jost',sans-serif}
   .turno{font-size:7px;font-weight:400;letter-spacing:2px;text-transform:uppercase;color:#000;margin-top:1px;white-space:nowrap;font-family:'Jost',sans-serif}
-  .body{display:flex;gap:0;align-items:flex-start}
-  .plano-col{width:50%;flex-shrink:0;padding-right:12px;border-right:.5px solid #e0e0e0}
-  .lista-col{flex:1;padding-left:12px}
   .lbl{font-size:6px;font-weight:300;letter-spacing:2px;text-transform:uppercase;color:#bbb;margin-bottom:3px}
+  .leyenda{display:flex;gap:12px;margin-top:5px;flex-wrap:wrap}
+  .ley-item{display:flex;align-items:center;gap:3px;font-size:7px;color:#555;font-family:'Jost',sans-serif}
+  .ley-box{width:8px;height:8px;border-radius:1px;flex-shrink:0}
+  hr.div{border:none;border-top:.5px solid #ddd;margin:8px 0}
   table{width:100%;border-collapse:collapse}
-  th{font-size:6px;font-weight:300;letter-spacing:1.5px;text-transform:uppercase;color:#999;padding:2px 3px;border-bottom:.7px solid #333;text-align:left}
+  th{font-size:8px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#000;padding:3px 4px;border-bottom:.7px solid #333;text-align:left}
   th.c{text-align:center}
-  td{padding:2.5px 3px;border-bottom:.4px solid #eee;vertical-align:middle}
-  td.nom{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:10px;font-weight:300}
-  td.hr2{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:10px;font-weight:300;white-space:nowrap}
-  td.pax{font-family:'Cormorant Garamond',serif;font-size:10px;font-weight:300;text-align:center}
-  td.tel{font-size:7px;color:#888;white-space:nowrap;font-weight:300}
-  td.mesa{font-size:7px;font-weight:300;color:#555}
-  td.nota{font-size:7px;color:#aaa;font-weight:300}
-  .badge{background:#f4f4f4;color:#777;border:.4px solid #e0e0e0;border-radius:2px;padding:1px 3px;font-size:6px;letter-spacing:.5px;text-transform:uppercase;font-weight:300;font-family:'Jost',sans-serif}
-  .leyenda{display:flex;gap:10px;margin-top:4px;flex-wrap:wrap}
-  .ley-item{display:flex;align-items:center;gap:3px;font-size:6px;color:#888;font-family:'Jost',sans-serif}
-  .ley-box{width:7px;height:7px;border-radius:1px;flex-shrink:0}
-  @media print{body{padding:0}@page{size:A4 landscape;margin:10mm 12mm}html{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+  td{padding:3.5px 4px;border-bottom:.4px solid #eee;vertical-align:middle;color:#000}
+  td.nom{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:12px;font-weight:400;color:#000}
+  td.hr2{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:12px;font-weight:400;white-space:nowrap;color:#000}
+  td.pax{font-family:'Cormorant Garamond',serif;font-size:12px;font-weight:400;text-align:center;color:#000}
+  td.tel{font-size:9px;color:#000;white-space:nowrap;font-weight:300}
+  td.mesa{font-size:9px;color:#000;font-weight:300}
+  td.nota{font-size:9px;color:#000;font-weight:300}
+  .badge{background:#f0f0f0;color:#000;border:.5px solid #bbb;border-radius:2px;padding:1px 4px;font-size:7px;letter-spacing:.5px;text-transform:uppercase;font-weight:500;font-family:'Jost',sans-serif}
+  @media print{body{padding:0}@page{size:A4 portrait;margin:10mm 12mm}html{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style></head><body>
   <div class="header">
     <div><img src="${y}" alt="Buenas y Santas" style="height:32px;width:auto;object-fit:contain;display:block"/></div>
@@ -3111,32 +3109,26 @@ This typically indicates that your device does not have a healthy Internet conne
       ${F?`<div class="turno">${F}</div>`:""}
     </div>
   </div>
-  <div class="body">
-    <div class="plano-col">
-      <div class="lbl">Plano de sala</div>
-      <svg viewBox="0 0 392 332" style="width:100%;display:block;border-radius:4px" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
-        <rect width="392" height="332" fill="#f9f9f9" rx="4"/>
-        ${ie}${oe}
-      </svg>
-      <div class="leyenda">
-        <div class="ley-item"><div class="ley-box" style="background:#c8c8c8;border:1px solid #888"></div>Confirmada</div>
-        <div class="ley-item"><div class="ley-box" style="background:#e8e8e8;border:1px dashed #999"></div>Sin confirmar</div>
-        <div class="ley-item"><div class="ley-box" style="background:#f5f5f5;border:1px solid #ccc"></div>Llegó</div>
-        <div class="ley-item"><div class="ley-box" style="background:#f2f2f2;border:1px solid #ddd"></div>Libre</div>
-      </div>
-    </div>
-    <div class="lista-col">
-      <div class="lbl">Reservas</div>
-      <table>
-        <thead><tr>
-          <th style="width:22%">Cliente</th><th style="width:13%">Teléfono</th>
-          <th style="width:8%">Hora</th><th class="c" style="width:5%">Pax</th>
-          <th style="width:10%">Mesa</th><th style="width:9%">Estado</th><th>Notas</th>
-        </tr></thead>
-        <tbody>${ze||'<tr><td colspan="7" style="padding:10px;text-align:center;color:#aaa;font-size:8px">No hay reservas</td></tr>'}</tbody>
-      </table>
-    </div>
+  <div class="lbl">Plano de sala</div>
+  <svg viewBox="0 0 430 332" style="width:100%;display:block;border-radius:4px" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+    <rect width="430" height="332" fill="#f9f9f9" rx="4"/>
+    ${ie}${oe}
+  </svg>
+  <div class="leyenda">
+    <div class="ley-item"><div class="ley-box" style="background:#c8c8c8;border:1px solid #888"></div>Confirmada</div>
+    <div class="ley-item"><div class="ley-box" style="background:#e8e8e8;border:1px dashed #999"></div>Sin confirmar</div>
+    <div class="ley-item"><div class="ley-box" style="background:#f5f5f5;border:1px solid #ccc"></div>Llegó</div>
+    <div class="ley-item"><div class="ley-box" style="background:#f2f2f2;border:1px solid #ddd"></div>Libre</div>
   </div>
+  <hr class="div"/>
+  <table>
+    <thead><tr>
+      <th style="width:22%">Cliente</th><th style="width:13%">Teléfono</th>
+      <th style="width:8%">Hora</th><th class="c" style="width:5%">Pax</th>
+      <th style="width:10%">Mesa</th><th style="width:9%">Estado</th><th>Notas</th>
+    </tr></thead>
+    <tbody>${ze||'<tr><td colspan="7" style="padding:10px;text-align:center;color:#aaa;font-size:8px">No hay reservas</td></tr>'}</tbody>
+  </table>
   <script>window.onload=()=>{window.print();}<\/script>
 </body></html>`,we=window.open("","_blank");we.document.write(fe),we.document.close()},pi=async()=>{ai(!0),vo(""),Lr([]);try{const O=await fetch("https://script.google.com/macros/s/AKfycbxslphHn0GNmCT8PQcmJHPzo4M9_bB1OABaiXEs5ugXAVxHtQNTF2v3u1HiYEi0lRrm/exec");if(!O.ok)throw new Error("No se pudo conectar con Google Sheets");const L=await O.json();if(!Array.isArray(L)||L.length<2)throw new Error("No hay datos en la hoja");const F=Rt(),z=L[0],ee=L.slice(1).filter(q=>{const j=String(q[0]||"").toLowerCase().trim(),Z=String(q[2]||"").trim();let K="";const se=Z.match(/^(\d{4})-(\d{2})-(\d{2})/),B=Z.match(/^(\d{2})\/(\d{2})\/(\d{4})/);return se?K=`${se[1]}-${se[2]}-${se[3]}`:B&&(K=`${B[3]}-${B[2]}-${B[1]}`),K&&K<F?!1:!n.some(he=>he.nombre.toLowerCase().trim()===j&&he.fecha===K)});if(ee.length===0)throw new Error("No hay reservas nuevas pendientes de importar");Lr([L[0],...ee])}catch(y){vo(y.message||"Error al conectar con Google Sheets")}finally{ai(!1)}},ul=(y,O)=>{const L=String(O[0]||""),F=String(O[1]||""),z=String(O[2]||"").trim(),ee=O[3],q=String(O[4]||""),j=String(O[5]||"");let Z="",K="";if(z){const le=z.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/),b=z.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);if(le){let oe=parseInt(le[4])+1,ie=parseInt(le[3]),ze=le[2],fe=le[1];oe>=24&&(oe=0,ie+=1),Z=`${fe}-${ze}-${String(ie).padStart(2,"0")}`,K=`${String(oe).padStart(2,"0")}:${le[5]}`}else b&&(Z=`${b[3]}-${b[2]}-${b[1]}`,K=`${b[4]}:${b[5]}`)}let se="+34",B=F.trim();const he=F.replace(/\D/g,"");if(B.startsWith("+")){const le=B.match(/^(\+\d{1,3})\s*(.*)/);le&&(se=le[1],B=le[2].trim())}else if(he.length>9){const b=[["54",2],["55",2],["44",2],["33",2],["49",2],["39",2],["34",2],["1",1]].find(([oe])=>he.startsWith(oe));b&&(se="+"+b[0],B=he.slice(b[0].length))}return{nombre:L,telefono:B,prefijo:se,email:j,fecha:Z,hora:K,personas:parseInt(ee)||"",notas:q,mesas:[],estado:"tomada",tomadaPor:""}},Po=()=>{if(Ne.trim()){tn(!0),oi(null);try{const y=Ne,O=we=>{for(const H of we){const te=y.match(H);if(te&&te[1]&&te[1].trim())return te[1].trim()}return""},L={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12,ene:1,abr:4,ago:8,oct2:10},F={enero:1,febrero:2,marzo:3,abril:4,mayo:5,junio:6,julio:7,agosto:8,septiembre:9,octubre:10,noviembre:11,diciembre:12},z=we=>{if(!we)return"";let H=we.match(/(\d{4})-(\d{2})-(\d{2})/);if(H)return we.slice(0,10);if(H=we.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/),H)return`${H[3]}-${String(H[2]).padStart(2,"0")}-${String(H[1]).padStart(2,"0")}`;if(H=we.match(/(\d{1,2})\s+de\s+([a-záéíóúü]+)(?:\s+(?:de\s+)?(\d{4}))?/i),H){const te=F[H[2].toLowerCase()];if(te)return`${H[3]||new Date().getFullYear()}-${String(te).padStart(2,"0")}-${String(H[1]).padStart(2,"0")}`}if(H=we.match(/(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})/),H){const te=L[H[2].toLowerCase()]||L[H[2].toLowerCase().replace(/[^a-z]/g,"")];if(te)return`${H[3]}-${String(te).padStart(2,"0")}-${String(H[1]).padStart(2,"0")}`}return""},ee=y.trim().split(/\r?\n/);for(const we of ee){const H=we.split(/\t/).map(te=>te.trim());if(H.length>=7){const te=H[2]||"",be=H[3]||"";if(/^\d{1,2}:\d{2}$/.test(te)&&/^\d+$/.test(be)){const kt=H[0]||"",tt=H[2]||"",ge=H[3]||"",dt=H[4]||"",nt=H[5]||"34",$e=(H[6]||"").replace(/\D/g,""),vt=H[7]||"",pr=z(kt),mr=tt.replace(/^(\d):/,"0$1:"),Br="+"+nt.replace(/\D/g,"");let rt=$e;const Pe=nt.replace(/\D/g,"");if(rt.startsWith(Pe)&&rt.length>Pe.length+7&&(rt=rt.slice(Pe.length)),dt||rt||pr){const Ve={nombre:dt,telefono:rt,prefijo:Br,email:"",fecha:pr,hora:mr,personas:parseInt(ge)||2,notas:"",tomadaPor:vt};oi(Ve),g(ht=>({...ht,...Ve,mesas:[],estado:"tomada"})),Re(!0),V(!0),tn(!1);return}}}}const q=O([/(?:\d+\.\s*)?Nombre\s*:\s*(.+)/i,/^Nombre\s*:\s*(.+)/im]);let j=O([/(?:\d+\.\s*)?N[úu]mero de Tel[eé]fono\s*:\s*(.+)/i,/Tel[eé]fono\s*:\s*(.+)/i,/Phone\s*:\s*(.+)/i]).replace(/\D/g,"");j.startsWith("34")&&j.length===11&&(j=j.slice(2));const Z=O([/(?:\d+\.\s*)?Mail\s*:\s*(.+)/i,/(?:\d+\.\s*)?E-?mail\s*:\s*(.+)/i]),K=O([/(?:\d+\.\s*)?[¿¡]?Cu[aá]ntas personas\??[¿¡]?\s*:\s*(.+)/i,/Personas\s*:\s*(.+)/i,/Pax\s*:\s*(.+)/i]),se=parseInt(K)||2,B=O([/(?:\d+\.\s*)?Comentarios\s*:\s*(.+)/i,/(?:\d+\.\s*)?Observaciones\s*:\s*(.+)/i,/Notas\s*:\s*(.+)/i]),he=B&&!B.includes("@")&&B.trim().length>0?B.trim():"";let le="",b="";const oe=y.match(/Hora de inicio de la reserva\s*:\s*(.+)/i);if(oe&&oe[1].trim()){const we=oe[1],H=we.match(/Hora\s*:\s*(\d{1,2}:\d{2})/i);H&&(b=H[1]),le=we.replace(/Hora\s*:.*$/i,"").trim()}if(!le){const we=y.match(/D[ií]a\s*:\s*(.+)/i);we&&(le=we[1].trim())}if(!b){const we=y.match(/Hora\s*:\s*(\d{1,2}:\d{2})/i);we&&(b=we[1])}if(!le){const we=y.match(/(\d{1,2}\s+[A-Za-z]{3}\s+\d{4})/);we&&(le=we[1])}const ie=z(le),ze=b?b.replace(/^(\d):/,"0$1:"):"",fe={nombre:q,telefono:j,email:Z,fecha:ie,hora:ze,personas:se,notas:he};if(!q&&!j&&!ie){At("No se encontraron datos en el mensaje","error"),tn(!1);return}oi(fe),g(we=>({...we,...fe,mesas:[],estado:"tomada"})),Re(!0),V(!0)}catch{At("No se pudo interpretar el mensaje","error")}tn(!1)}},fr=(y,O="nueva")=>{const L=String(y.telefono||"").trim(),F=String(y.prefijo||"").trim();let z;if(F){const j=F.replace(/\D/g,""),Z=L.replace(/\D/g,"");z=j+Z}else{const j=L.replace(/\D/g,"");L.startsWith("+")||j.length>9?z=j:z="34"+j}const ee=y.nombre.split(" ")[0];let q;if(O==="confirmar")q=`Hola ${ee}!
 Necesitamos por favor que *CONFIRMES* tu reserva para hoy para *${y.personas}* personas a las *${y.hora}* hs.
