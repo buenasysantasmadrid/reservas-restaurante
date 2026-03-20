@@ -2057,8 +2057,14 @@ Buenas y Santas`;
                   onChange={e => {
                     const val = e.target.value;
                     setForm(f => ({ ...f, nombre: val }));
-                    const existente = reservas.find(r => r.nombre === val) || clientesArchivados.find(c => c.nombre === val);
-                    if (existente) setForm(f => ({ ...f, nombre: existente.nombre, telefono: existente.telefono || "", email: existente.email || "", prefijo: existente.prefijo || "+34" }));
+                  }}
+                  onBlur={e => {
+                    const val = e.target.value;
+                    const esDelDesplegable = nombresClientes.includes(val);
+                    if (esDelDesplegable) {
+                      const existente = reservas.find(r => r.nombre === val) || clientesArchivados.find(c => c.nombre === val);
+                      if (existente) setForm(f => ({ ...f, nombre: existente.nombre, telefono: existente.telefono || "", email: existente.email || "", prefijo: existente.prefijo || "+34" }));
+                    }
                   }}
                   placeholder="Escribe o busca un cliente..."
                   autoComplete="off"
