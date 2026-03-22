@@ -2039,7 +2039,7 @@ Buenas y Santas`;
               style={{ display: "flex", alignItems: "center", gap: 10, opacity: sheetCargando ? 0.6 : 1 }}>
               {sheetCargando
                 ? <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: "spin 1s linear infinite" }}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>Cargando...</>
-                : "Cargar mesa"}
+                : "Cargar nueva reserva WhatsApp"}
             </button>
           </div>
 
@@ -2116,6 +2116,7 @@ Buenas y Santas`;
           })()}
 
           {/* ── Pegar mensaje WhatsApp ── */}
+          <div style={{ height: 80 }} />{/* espacio equivalente a ~5 líneas */}
           <div className="card" style={{ padding: 32 }}>
             <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", marginBottom: 16, fontWeight: 600 }}>Pegar mensaje</p>
             <textarea
@@ -3079,7 +3080,10 @@ Buenas y Santas`;
             // fallback tarjeta simple
             const sw = 90, sh = 90;
             return (
-              <div draggable onDragStart={e => { e.dataTransfer.setData("reservaId", String(r.id)); e.dataTransfer.effectAllowed="move"; setAsignarDragReservaId(r.id); }} onDragEnd={() => setAsignarDragReservaId(null)}
+              <div draggable
+                onPointerDown={() => setAsignarDragReservaId(r.id)}
+                onDragStart={e => { e.dataTransfer.setData("reservaId", String(r.id)); e.dataTransfer.effectAllowed="move"; }}
+                onDragEnd={() => setAsignarDragReservaId(null)}
                 style={{ cursor:"grab", opacity:isDragging?0.5:1, userSelect:"none" }}>
                 <svg width={sw} height={sh} viewBox={`0 0 ${sw} ${sh}`}>
                   <rect x={1} y={1} width={sw-2} height={sh-2} rx={7} fill={sinMesa?"#e0e0e0":"#e8f5e9"} stroke={sinMesa?"#888":"#81c784"} strokeWidth={1.5}/>
@@ -3119,30 +3123,31 @@ Buenas y Santas`;
             }
           }
 
-          // Forzar orientación vertical: si la mesa es más ancha que alta, rotar 90°
+          // Forzar orientación vertical: si la mesa es más ancha que alta, intercambiar dimensiones
           const needsRotation = rw2 > rh2 * 1.1;
           const dispW = needsRotation ? rh2 : rw2;
           const dispH = needsRotation ? rw2 : rh2;
 
           // Escalar al mismo tamaño físico que el plano: 1 unidad = U2 px
-          const SCALE_MINI = 74 / 60; // U2 / UP_FULL
+          const SCALE_MINI = 74 / 60;
           const PAD_MINI = 4, INFO_H = 46;
           const scale = SCALE_MINI;
           const mesaW = Math.round(dispW * scale);
-          const mesaH = needsRotation && mesasMostrar.length > 1
-            ? Math.round(rw2 * scale) + (mesasMostrar.length - 1) * 2  // mesas apiladas
-            : Math.round(dispH * scale);
+          const mesaH = Math.round(dispH * scale);
           const svgW = Math.max(mesaW + PAD_MINI * 2, 90);
           const svgH = mesaH + PAD_MINI * 2 + INFO_H + 4;
-          // offX/offY usando dispW/dispH (ya rotado)
-          const offX = PAD_MINI + (svgW - PAD_MINI*2 - mesaW)/2 - (needsRotation ? ry2 : rx2) * scale;
-          const offY = INFO_H + PAD_MINI - (needsRotation ? rx2 : ry2) * scale;
+          const rectX = PAD_MINI + (svgW - PAD_MINI*2 - mesaW)/2;
+          const rectY = INFO_H + PAD_MINI;
 
           const cf = sinMesa ? "#e0e0e0" : isDragging ? "#fff3e0" : "#e8f5e9";
           const cs = sinMesa ? "#888" : isDragging ? "#f9a825" : "#81c784";
 
           return (
-            <div key={r.id} draggable onDragStart={e => { e.dataTransfer.setData("reservaId", String(r.id)); e.dataTransfer.effectAllowed="move"; setAsignarDragReservaId(r.id); }} onDragEnd={() => setAsignarDragReservaId(null)}
+            <div key={r.id}
+              draggable
+              onPointerDown={() => setAsignarDragReservaId(r.id)}
+              onDragStart={e => { e.dataTransfer.setData("reservaId", String(r.id)); e.dataTransfer.effectAllowed="move"; }}
+              onDragEnd={() => setAsignarDragReservaId(null)}
               style={{ cursor:"grab", opacity:isDragging?0.5:1, userSelect:"none" }}
               title={`${r.nombre} · ${r.hora} · ${pax} pax${mesasR.length>0?" · "+mesasR.join("+"):""}`}>
               <svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`}>
@@ -3160,44 +3165,17 @@ Buenas y Santas`;
                   style={{fontFamily:"'Jost',sans-serif",fontSize:16,fill:"#111",fontWeight:700}}>
                   {pax}p
                 </text>
-                {/* Mesa fusionada — mismo tamaño físico que el plano, siempre vertical */}
-                {needsRotation && mesasMostrar.length > 1 ? (
-                  // Dibujar mesas individuales apiladas verticalmente
-                  (() => {
-                    const indivW = Math.round(rh2 * scale); // cada mesa es cuadrada: rh2 = alto original = ancho rotado
-                    const indivH = Math.round(rw2 / mesasMostrar.length * scale);
-                    return mesasMostrar.map((mid, idx) => {
-                      const bx = PAD_MINI + (svgW - PAD_MINI*2 - indivW)/2;
-                      const by = INFO_H + PAD_MINI + idx * (indivH + 2);
-                      const lbl = MESA_NOMBRE[mid] || String(mid);
-                      return (
-                        <g key={mid}>
-                          <rect x={bx+1} y={by+2} width={indivW} height={indivH} rx={5} fill="rgba(0,0,0,0.05)"/>
-                          <rect x={bx} y={by} width={indivW} height={indivH} rx={5}
-                            fill={cf} stroke={cs} strokeWidth={sinMesa?2:1.5} strokeDasharray={sinMesa?"5 3":"none"}/>
-                          {mesasR.length > 0 && (
-                            <text x={bx+indivW/2} y={by+indivH/2+4} textAnchor="middle"
-                              style={{fontFamily:"'Cormorant Garamond',serif",fontSize:Math.max(9,indivW*0.22),fontWeight:700,fill:"#1b5e20"}}>
-                              {lbl}
-                            </text>
-                          )}
-                        </g>
-                      );
-                    });
-                  })()
-                ) : (
-                  <>
-                    <rect x={offX + (needsRotation ? ry2 : rx2)*scale + 1} y={offY + (needsRotation ? rx2 : ry2)*scale + 2} width={dispW*scale} height={dispH*scale} rx={6} fill="rgba(0,0,0,0.05)"/>
-                    <rect x={offX + (needsRotation ? ry2 : rx2)*scale} y={offY + (needsRotation ? rx2 : ry2)*scale} width={dispW*scale} height={dispH*scale} rx={6}
-                      fill={cf} stroke={cs} strokeWidth={sinMesa?2:1.5} strokeDasharray={sinMesa?"5 3":"none"}/>
-                    {mesasR.length > 0 && (
-                      <text x={offX + (needsRotation ? ry2 : rx2)*scale + dispW*scale/2} y={offY + (needsRotation ? rx2 : ry2)*scale + dispH*scale * (mesasMostrar.length>1?0.28:0.5)+4}
-                        textAnchor="middle"
-                        style={{fontFamily:"'Cormorant Garamond',serif",fontSize:Math.max(10,dispW*scale*0.22),fontWeight:700,fill:"#1b5e20"}}>
-                        {mesasR.map(m => MESA_NOMBRE[m]||String(m)).join("+")}
-                      </text>
-                    )}
-                  </>
+                {/* Mesa fusionada — UN SOLO RECT, siempre vertical */}
+                <rect x={rectX+1} y={rectY+2} width={mesaW} height={mesaH} rx={6} fill="rgba(0,0,0,0.05)"/>
+                <rect x={rectX} y={rectY} width={mesaW} height={mesaH} rx={6}
+                  fill={cf} stroke={cs} strokeWidth={sinMesa?2:1.5} strokeDasharray={sinMesa?"5 3":"none"}/>
+                {/* Número(s) de mesa — solo si está asignada */}
+                {mesasR.length > 0 && (
+                  <text x={rectX + mesaW/2} y={rectY + mesaH * (mesasMostrar.length>1?0.35:0.55)+4}
+                    textAnchor="middle"
+                    style={{fontFamily:"'Cormorant Garamond',serif",fontSize:Math.max(10,mesaW*0.22),fontWeight:700,fill:"#1b5e20"}}>
+                    {mesasR.map(m => MESA_NOMBRE[m]||String(m)).join("+")}
+                  </text>
                 )}
               </svg>
               {mesasR.length > 0 && (
