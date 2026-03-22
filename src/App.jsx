@@ -105,7 +105,9 @@ export default function App() {
   // Modo asignación manual drag & drop
   const [modoAsignarMesas, setModoAsignarMesas] = useState(false);
   const [asignarDragReservaId, setAsignarDragReservaId] = useState(null);
-  const [asignarPendiente, setAsignarPendiente] = useState({}); // { reservaId: [mesaIds] } cambios locales sin guardar
+  const [asignarPendiente, setAsignarPendiente] = useState({});
+  // Modal confirmación ajuste mesas 6 pax
+  const [confirmarAjuste6, setConfirmarAjuste6] = useState(null); // { fecha, turno, count6 }
 
   // Auto-archivar al abrir la app si son las 4am o más
   useEffect(() => {
@@ -447,10 +449,17 @@ export default function App() {
     1: [{internas:[3]}, {internas:[10]}, {internas:[11]}, {internas:[4]}, {internas:[5]}, {internas:[15]}, {internas:[7]}, {internas:[17]}, {internas:[8]}, {internas:[18]}, {internas:[1]}, {internas:[2]}, {internas:[6]}, {internas:[16]}],
   };
 
-  const asignarMesasTurno = async (fecha, turno) => {
+  const asignarMesasTurno = async (fecha, turno, ajuste6 = null) => {
     // Get all reservas for this fecha+turno, excluding canceladas
     const reservasTurno = reservas.filter(r => r.fecha === fecha && getTurno(r.hora) === turno && r.estado !== "cancelada");
     if (reservasTurno.length === 0) return;
+
+    // Si hay reservas de 6 pax y no se ha decidido aún, mostrar modal
+    const reservas6 = reservasTurno.filter(r => Number(r.personas) === 6 && !(r.mesas && r.mesas.length > 0) && !r.mesa);
+    if (reservas6.length > 0 && ajuste6 === null) {
+      setConfirmarAjuste6({ fecha, turno, count6: reservas6.length });
+      return;
+    }
 
     // Sort by personas desc, then hora asc
     const porAsignar = [...reservasTurno].sort((a, b) => { const pd = (b.personas || 0) - (a.personas || 0); return pd !== 0 ? pd : (a.hora || "").localeCompare(b.hora || ""); });
@@ -464,6 +473,27 @@ export default function App() {
       if (curr.length > 0) {
         asignaciones[r.id] = curr;
         curr.forEach(m => mesasUsadas.add(m));
+      }
+    }
+
+    // Si ajuste6 = true: pre-asignar reservas de 6 pax con lógica especial
+    if (ajuste6) {
+      const mesas6Especiales = [[8, 18], [7, 17]];
+      let idx6 = 0;
+      const reservas6Sin = reservasTurno
+        .filter(r => Number(r.personas) === 6 && !asignaciones[r.id])
+        .sort((a, b) => (a.hora || "").localeCompare(b.hora || ""));
+      for (const r of reservas6Sin) {
+        if (idx6 < mesas6Especiales.length) {
+          const mesas = mesas6Especiales[idx6];
+          // Solo si están libres
+          if (mesas.every(m => !mesasUsadas.has(m))) {
+            asignaciones[r.id] = mesas;
+            mesas.forEach(m => mesasUsadas.add(m));
+            idx6++;
+          }
+        }
+        // Las restantes de 6 pax se asignan con lógica normal (caen al second pass)
       }
     }
 
@@ -3255,6 +3285,53 @@ Buenas y Santas`;
                 Salir sin guardar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL AJUSTE MESAS 6 PAX ── */}
+      {confirmarAjuste6 && (
+        <div className="overlay" style={{ zIndex: 65 }}>
+          <div className="modal" style={{ maxWidth: 420, textAlign: "center", padding: "40px 36px" }}>
+            <div style={{ fontSize: 32, marginBottom: 14 }}>🪑</div>
+            <h2 style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", marginBottom: 10 }}>
+              ¿Ajustar mesas de 6?
+            </h2>
+            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a", lineHeight: 1.7, marginBottom: 16 }}>
+              Hay <strong>{confirmarAjuste6.count6}</strong> reserva{confirmarAjuste6.count6 > 1 ? "s" : ""} de 6 pax sin mesa en este turno.
+            </p>
+            <div style={{ background: "#f1f8f1", border: "1px solid #c8e6c9", borderRadius: 8, padding: "14px 20px", marginBottom: 24, textAlign: "left" }}>
+              <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#2e7d32", marginBottom: 8, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase" }}>Lógica especial para 6 pax:</p>
+              <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#1a2e1a", lineHeight: 1.8, margin: 0 }}>
+                1ª reserva → mesas <strong>8 + 18</strong><br/>
+                2ª reserva → mesas <strong>7 + 17</strong><br/>
+                {confirmarAjuste6.count6 > 2 && <span style={{ color: "#6a9a6a" }}>Resto → asignación normal</span>}
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button className="btn-outline"
+                onClick={() => {
+                  const { fecha, turno } = confirmarAjuste6;
+                  setConfirmarAjuste6(null);
+                  asignarMesasTurno(fecha, turno, false);
+                }}
+                style={{ fontSize: 12, padding: "10px 18px" }}>
+                No, asignar normal
+              </button>
+              <button
+                onClick={() => {
+                  const { fecha, turno } = confirmarAjuste6;
+                  setConfirmarAjuste6(null);
+                  asignarMesasTurno(fecha, turno, true);
+                }}
+                style={{ padding: "10px 22px", fontFamily: "'Jost', sans-serif", fontSize: 12, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", borderRadius: 4, background: "#2e7d32", color: "#fff", border: "none", fontWeight: 600 }}>
+                ✓ Sí, ajustar
+              </button>
+            </div>
+            <button className="btn-outline" style={{ marginTop: 14, fontSize: 11, color: "#888", borderColor: "#ccc" }}
+              onClick={() => setConfirmarAjuste6(null)}>
+              Cancelar
+            </button>
           </div>
         </div>
       )}
