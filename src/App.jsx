@@ -2522,8 +2522,22 @@ Buenas y Santas`;
             : (res ? "pointer" : "default");
 
           return (
-            <g key={id} style={{ cursor: cursorStyle, opacity }}
+            <g key={id} style={{ cursor: !res && !modoReasignar ? "cell" : cursorStyle, opacity }}
               onClick={handleClick}
+              onDoubleClick={() => {
+                if (res || modoReasignar) return; // solo mesas vacías
+                // Usar la fecha del plano y la mesa como punto de partida
+                const mesaLabel = MESA_NOMBRE[id] || String(id);
+                setReservaEditando(null);
+                setForm({
+                  nombre: "", telefono: "", email: "",
+                  fecha: planoFecha,
+                  hora: "", personas: "",
+                  mesas: [id], notas: "", estado: "tomada",
+                  tomadaPor: "", prefijo: "+34"
+                });
+                setModalAbierto(true);
+              }}
               onMouseEnter={!modoReasignar && res && res.notas ? (e) => {
                 const svgEl = e.currentTarget.closest("svg");
                 const svgRect = svgEl.getBoundingClientRect();
