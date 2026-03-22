@@ -107,7 +107,8 @@ export default function App() {
   const [asignarDragReservaId, setAsignarDragReservaId] = useState(null);
   const [asignarPendiente, setAsignarPendiente] = useState({});
   // Modal confirmación ajuste mesas 6 pax
-  const [confirmarAjuste6, setConfirmarAjuste6] = useState(null); // { fecha, turno, count6 }
+  const [confirmarAjuste6, setConfirmarAjuste6] = useState(null);
+  const [modalWaTodos, setModalWaTodos] = useState(null); // { fecha } o null
   // Pregunta 2 o 3 mesas al asignar reserva de 6 pax en drag&drop
   const [pregunta6pax, setPregunta6pax] = useState(null); // { reservaId, mesaDestino }
 
@@ -1634,7 +1635,7 @@ Buenas y Santas`;
                       const { turno, fecha, turnoKey } = grupo;
                       const color = TURNO_COLORES[turno];
                       const tStatus = getTurnoStatus(fecha, turno);
-                      const rowBg = tStatus.status === "completo" ? "#ffebee" : tStatus.status === "cuidado" ? "#fff3e0" : color.bg;
+                      const rowBg = color.bg;
                       // Separator between groups (not before first)
                       if (gi > 0) {
                         rows.push(<tr key={"sep_"+gi}><td colSpan={11} style={{ padding: 0, height: 14, background: "transparent", border: "none" }} /></tr>);
@@ -1653,12 +1654,12 @@ Buenas y Santas`;
                                 </span>
                               )}
                               {tStatus.status === "cuidado" && (
-                                <span style={{ background: "#e65100", color: "#fff", fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", padding: "2px 10px", borderRadius: 3 }}>
+                                <span style={{ background: "#e65100", color: "#fff", fontFamily: "'Jost', sans-serif", fontSize: 16, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", padding: "4px 16px", borderRadius: 4 }}>
                                   ⚠ CUIDADO
                                 </span>
                               )}
                               {tStatus.status === "completo" && (
-                                <span style={{ background: "#b71c1c", color: "#fff", fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", padding: "2px 10px", borderRadius: 3 }}>
+                                <span style={{ background: "#b71c1c", color: "#fff", fontFamily: "'Jost', sans-serif", fontSize: 16, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", padding: "4px 16px", borderRadius: 4 }}>
                                   🔴 COMPLETO
                                 </span>
                               )}
@@ -1670,8 +1671,7 @@ Buenas y Santas`;
                       grupo.reservas.forEach((r, idx) => {
                       const esLlego = r.estado === "llego";
                       const turnoKey2 = getTurno(r.hora);
-                      const lightBg = tStatus.status === "completo" ? "#ffecec" : tStatus.status === "cuidado" ? "#fff4e5" :
-                        turnoKey2 === "t1" ? "#f0faf0" : turnoKey2 === "t2" ? "#e6f5e6" : "#d8edd8";
+                      const lightBg = turnoKey2 === "t1" ? "#f0faf0" : turnoKey2 === "t2" ? "#e6f5e6" : "#d8edd8";
                       const trBg = esLlego ? "transparent" : lightBg;
                       rows.push(
                     <tr key={r.id} className="row-hover" style={{ borderBottom: "1px solid #e8f5e9", background: trBg }}>
@@ -1790,12 +1790,7 @@ Buenas y Santas`;
                                     ✕ Borrar mesas
                                   </button>
                                   <button
-                                    onClick={() => {
-                                      const conTel = todasReservasTurno.filter(x => x.telefono && x.estado !== "cancelada");
-                                      if (conTel.length === 0) return showToast("No hay teléfonos en este turno", "error");
-                                      conTel.forEach((r, i) => setTimeout(() => enviarWhatsApp(r, "confirmar"), i * 600));
-                                      showToast(`Abriendo ${conTel.length} WhatsApp...`);
-                                    }}
+                                  onClick={() => setModalWaTodos({ fecha })}
                                     style={{ padding: "4px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "#25D366", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer", fontWeight: 500 }}
                                     onMouseEnter={e => e.currentTarget.style.background="#1ebe5a"}
                                     onMouseLeave={e => e.currentTarget.style.background="#25D366"}
@@ -1831,14 +1826,14 @@ Buenas y Santas`;
                 return grupos.map((grupo, gi) => {
                   const color = TURNO_COLORES[grupo.turno];
                   const tStatus = getTurnoStatus(grupo.fecha, grupo.turno);
-                  const rowBg = tStatus.status === "completo" ? "#ffebee" : tStatus.status === "cuidado" ? "#fff3e0" : color.bg;
+                  const rowBg = color.bg;
                   return (
                     <div key={grupo.turnoKey} style={{ marginBottom: 20 }}>
                       <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "#4a7a4a", padding: "10px 4px 6px", fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
                         {color.label}
                         {tStatus.status === "ok" && <span style={{ fontWeight: 400, color: "#6a9a6a" }}>· {tStatus.mesas} mesas</span>}
-                        {tStatus.status === "cuidado" && <span style={{ background: "#e65100", color: "#fff", fontSize: 10, fontWeight: 700, letterSpacing: 1, padding: "1px 8px", borderRadius: 3 }}>⚠ CUIDADO</span>}
-                        {tStatus.status === "completo" && <span style={{ background: "#b71c1c", color: "#fff", fontSize: 10, fontWeight: 700, letterSpacing: 1, padding: "1px 8px", borderRadius: 3 }}>🔴 COMPLETO</span>}
+                        {tStatus.status === "cuidado" && <span style={{ background: "#e65100", color: "#fff", fontSize: 14, fontWeight: 700, letterSpacing: 1, padding: "3px 12px", borderRadius: 4 }}>⚠ CUIDADO</span>}
+                        {tStatus.status === "completo" && <span style={{ background: "#b71c1c", color: "#fff", fontSize: 14, fontWeight: 700, letterSpacing: 1, padding: "3px 12px", borderRadius: 4 }}>🔴 COMPLETO</span>}
                       </div>
                       {grupo.reservas.map(r => (
                         <div key={r.id} style={{ background: rowBg, border: "1px solid #c8e6c9", borderRadius: 8, padding: 16, marginBottom: 10, opacity: r.estado === "llego" ? 0.22 : 1 }}>
@@ -1927,12 +1922,7 @@ Buenas y Santas`;
                                 style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "none", color: "#b71c1c", border: "1px solid #ef9a9a", borderRadius: 4, cursor: "pointer" }}>
                                 ✕ Borrar mesas
                               </button>
-                              <button onClick={() => {
-                                const conTel = reservas.filter(x => x.fecha === grupo.fecha && getTurno(x.hora) === grupo.turno && x.estado !== "cancelada" && x.telefono);
-                                if (conTel.length === 0) return showToast("No hay teléfonos en este turno", "error");
-                                conTel.forEach((r, i) => setTimeout(() => enviarWhatsApp(r, "confirmar"), i * 600));
-                                showToast(`Abriendo ${conTel.length} WhatsApp...`);
-                              }}
+                              <button onClick={() => setModalWaTodos({ fecha: grupo.fecha })}
                                 style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "#25D366", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer" }}>
                                 📲 WA a todos
                               </button>
@@ -3641,6 +3631,61 @@ Buenas y Santas`;
             </div>
             <button className="btn-outline" style={{ marginTop: 14, fontSize: 11, color: "#888", borderColor: "#ccc" }}
               onClick={() => setConfirmarAjuste6(null)}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL WA A TODOS: SELECCIONAR TURNO ── */}
+      {modalWaTodos && (
+        <div className="overlay" style={{ zIndex: 65 }}>
+          <div className="modal" style={{ maxWidth: 400, textAlign: "center", padding: "36px 32px" }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>📲</div>
+            <h2 style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", marginBottom: 8 }}>
+              WhatsApp a todos
+            </h2>
+            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a", marginBottom: 28 }}>
+              ¿A qué turno quieres enviar?
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {[
+                { label: "1º Turno Mediodía", turno: "t1" },
+                { label: "2º Turno Mediodía", turno: "t2" },
+                { label: "Noche", turno: "noche" },
+                { label: "Todos los turnos", turno: "todos" },
+              ].map(op => {
+                const fecha = modalWaTodos.fecha;
+                const conTel = reservas.filter(x =>
+                  x.fecha === fecha &&
+                  x.estado !== "cancelada" &&
+                  x.telefono &&
+                  (op.turno === "todos" || getTurno(x.hora) === op.turno)
+                );
+                return (
+                  <button key={op.turno}
+                    onClick={() => {
+                      if (conTel.length === 0) { showToast("No hay teléfonos en este turno", "error"); return; }
+                      conTel.forEach((r, i) => setTimeout(() => enviarWhatsApp(r, "confirmar"), i * 600));
+                      showToast(`Abriendo ${conTel.length} WhatsApp...`);
+                      setModalWaTodos(null);
+                    }}
+                    style={{
+                      padding: "12px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13,
+                      letterSpacing: 1, textTransform: "uppercase", cursor: conTel.length === 0 ? "default" : "pointer",
+                      background: conTel.length === 0 ? "#f5f5f5" : "#25D366",
+                      color: conTel.length === 0 ? "#aaa" : "#fff",
+                      border: "none", borderRadius: 6, fontWeight: 600,
+                      opacity: conTel.length === 0 ? 0.5 : 1
+                    }}>
+                    {op.label}
+                    {conTel.length > 0 && <span style={{ fontSize: 11, marginLeft: 8, opacity: 0.85 }}>({conTel.length})</span>}
+                  </button>
+                );
+              })}
+            </div>
+            <button className="btn-outline" style={{ marginTop: 16, fontSize: 11, color: "#888", borderColor: "#ccc" }}
+              onClick={() => setModalWaTodos(null)}>
               Cancelar
             </button>
           </div>
