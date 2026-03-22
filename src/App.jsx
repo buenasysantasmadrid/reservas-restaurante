@@ -337,14 +337,28 @@ export default function App() {
     setGuardando(true);
     const ahora = new Date();
     const cuando = `${String(ahora.getDate()).padStart(2,"0")}/${String(ahora.getMonth()+1).padStart(2,"0")}/${ahora.getFullYear()} ${String(ahora.getHours()).padStart(2,"0")}:${String(ahora.getMinutes()).padStart(2,"0")}`;
+
+    // Calcular estado automático solo para nuevas reservas
+    const calcularEstadoAuto = () => {
+      if (form.fecha && form.hora) {
+        const [hR, mR] = form.hora.split(":").map(Number);
+        const fechaHoraReserva = new Date(`${form.fecha}T${String(hR).padStart(2,"0")}:${String(mR).padStart(2,"0")}:00`);
+        const diffMs = fechaHoraReserva - ahora;
+        const diffHoras = diffMs / (1000 * 60 * 60);
+        return diffHoras > 6 ? "tomada" : "confirmada";
+      }
+      return "tomada";
+    };
+
     let toastMsg;
     if (reservaEditando) {
       const updated = { ...form, id: reservaEditando };
       await fbSetReserva(updated);
       toastMsg = "Reserva actualizada ✓";
     } else {
+      const estadoAuto = calcularEstadoAuto();
       const nuevoId = Date.now() * 1000 + Math.floor(Math.random() * 1000);
-      const nuevaReserva = { ...form, mesa: form.mesas.join("+"), id: nuevoId, cuando };
+      const nuevaReserva = { ...form, estado: estadoAuto, mesa: form.mesas.join("+"), id: nuevoId, cuando };
       await fbSetReserva(nuevaReserva);
       if (pendingSheetIdx !== null) {
         setSheetFilas(fs => [fs[0], ...fs.slice(1).filter((_, idx) => idx + 1 !== pendingSheetIdx)]);
@@ -1610,20 +1624,25 @@ Buenas y Santas`;
                       );
                       // Rows for this group
                       grupo.reservas.forEach((r, idx) => {
+                      const esLlego = r.estado === "llego";
+                      const turnoKey2 = getTurno(r.hora);
+                      const lightBg = tStatus.status === "completo" ? "#fff5f5" : tStatus.status === "cuidado" ? "#fffbf0" :
+                        turnoKey2 === "t1" ? "#fafffe" : turnoKey2 === "t2" ? "#f8fdf8" : "#f6fbf6";
+                      const trBg = esLlego ? "transparent" : lightBg;
                       rows.push(
-                    <tr key={r.id} className="row-hover" style={{ borderBottom: "1px solid #c8e6c9", background: rowBg, opacity: r.estado === "llego" ? 0.22 : 1 }}>
+                    <tr key={r.id} className="row-hover" style={{ borderBottom: "1px solid #e8f5e9", background: trBg }}>
                       <td style={{ padding: "9px 20px" }}>
-                        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17 }}>{r.nombre}</p>
-                        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a", marginTop: 2 }}>{(() => {
+                        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17, color: "#111" }}>{r.nombre}</p>
+                        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#555", marginTop: 2 }}>{(() => {
                           return String(r.telefono || "").trim();
                         })()}</p>
                       </td>
-                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>
+                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#222" }}>
                         <div>{new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { weekday: "long" }).toUpperCase()}</div>
-                        <div style={{ fontSize: 11, color: "#6a9a6a" }}>{new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</div>
+                        <div style={{ fontSize: 11, color: "#666" }}>{new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</div>
                       </td>
                       <td style={{ padding: "9px 20px", fontFamily: "'Cormorant Garamond', serif", fontSize: 18, color: "#1b5e20" }}>{r.hora}</td>
-                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{r.personas} pax</td>
+                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#222" }}>{r.personas} pax</td>
                       <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                           {(r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []).map(m => (
@@ -1675,7 +1694,7 @@ Buenas y Santas`;
                           <option value="llego">Llegó</option>
                         </select>
                       </td>
-                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", maxWidth: 160 }}>
+                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#222", maxWidth: 160 }}>
                         {r.notas || "—"}
                       </td>
                       <td style={{ padding: "9px 20px" }}>
@@ -1684,12 +1703,12 @@ Buenas y Santas`;
                           <BtnWhatsApp reserva={r} tipo="confirmar" />
                         </div>
                       </td>
-                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>
+                      <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#222" }}>
                         {r.tomadaPor || "—"}
                       </td>
                       <td style={{ padding: "9px 20px" }}>
-                        <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>{r.email || "—"}</div>
-                        <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, color: "#9e9e9e", marginTop: 2 }}>{r.cuando || ""}</div>
+                        <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#222" }}>{r.email || "—"}</div>
+                        <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, color: "#888", marginTop: 2 }}>{r.cuando || ""}</div>
                       </td>
                     </tr>
                   );
@@ -2104,63 +2123,7 @@ Buenas y Santas`;
             </h2>
             <div className="modal-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
 
-              {/* Cliente con búsqueda por texto + datalist */}
-              <div style={{ gridColumn: "1/-1" }}>
-                <label style={{ fontSize: 9, marginBottom: 3 }}>Cliente *</label>
-                <input
-                  className="input-field"
-                  list="lista-clientes"
-                  value={form.nombre}
-                  onChange={e => {
-                    const val = e.target.value;
-                    setForm(f => ({ ...f, nombre: val }));
-                  }}
-                  onBlur={e => {
-                    const val = e.target.value;
-                    const esDelDesplegable = nombresClientes.includes(val);
-                    if (esDelDesplegable) {
-                      const existente = reservas.find(r => r.nombre === val) || clientesArchivados.find(c => c.nombre === val);
-                      if (existente) setForm(f => ({ ...f, nombre: existente.nombre, telefono: existente.telefono || "", email: existente.email || "", prefijo: existente.prefijo || "+34" }));
-                    }
-                  }}
-                  placeholder="Escribe o busca un cliente..."
-                  autoComplete="off"
-                  style={{ padding: "7px 10px", fontSize: 13 }}
-                />
-                <datalist id="lista-clientes">
-                  {nombresClientes.map(n => {
-                    const cliente = reservas.find(r => r.nombre === n) || clientesArchivados.find(c => c.nombre === n);
-                    const tel = cliente?.telefono ? ` · ${cliente.telefono}` : "";
-                    return <option key={n} value={n} label={`${n}${tel}`} />;
-                  })}
-                </datalist>
-              </div>
-
-              <div>
-                <label style={{ fontSize: 9, marginBottom: 3 }}>Teléfono</label>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <input className="input-field" value={form.prefijo ?? "+34"} onChange={e => setForm(f => ({ ...f, prefijo: e.target.value }))} autoComplete="off" style={{ width: 64, padding: "7px 8px", fontSize: 13 }} placeholder="+34" />
-                  <input className="input-field" value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value.replace(/\s/g, "") }))} autoComplete="off" style={{ padding: "7px 10px", fontSize: 13 }} />
-                </div>
-                {form.telefono && (() => {
-                  const digits = form.telefono.replace(/\D/g, "");
-                  if (digits.length !== 9) {
-                    return (
-                      <div style={{ marginTop: 5, padding: "4px 10px", borderRadius: 5, background: "#fff3e0", border: "1px solid #ffcc80", display: "inline-flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ fontSize: 12 }}>⚠️</span>
-                        <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#e65100", fontWeight: 700, letterSpacing: 0.5 }}>
-                          {digits.length < 9 ? "Número de teléfono corto" : "Número de teléfono largo"}
-                        </span>
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
-              </div>
-              <div>
-                <label style={{ fontSize: 9, marginBottom: 3 }}>Email</label>
-                <input className="input-field" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} autoComplete="off" style={{ padding: "7px 10px", fontSize: 13 }} />
-              </div>
+              {/* Fila 1: Fecha y Hora */}
               <div>
                 <label style={{ fontSize: 9, marginBottom: 3 }}>Fecha *</label>
                 <input type="date" className="input-field" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} autoComplete="off" style={{ padding: "7px 10px", fontSize: 13 }} />
@@ -2172,6 +2135,8 @@ Buenas y Santas`;
                   {HORARIOS.map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
               </div>
+
+              {/* Fila 2: Nº personas y Tomada por */}
               <div>
                 <label style={{ fontSize: 9, marginBottom: 3 }}>Nº de personas *</label>
                 <input
@@ -2207,16 +2172,6 @@ Buenas y Santas`;
                   );
                 })()}
               </div>
-
-              <div>
-                <label style={{ fontSize: 9, marginBottom: 3 }}>Estado</label>
-                <select className="input-field" value={form.estado} onChange={e => setForm(f => ({ ...f, estado: e.target.value }))} style={{ padding: "7px 10px", fontSize: 13 }}>
-                  <option value="tomada">Tomada</option>
-                  <option value="confirmada">Confirmada</option>
-                  <option value="cancelada">Cancelada</option>
-                  <option value="llego">Llegó</option>
-                </select>
-              </div>
               <div>
                 <label style={{ fontSize: 9, marginBottom: 3 }}>Tomada por *</label>
                 <select
@@ -2231,6 +2186,67 @@ Buenas y Santas`;
                   ))}
                 </select>
               </div>
+
+              {/* Fila 3: Cliente */}
+              <div style={{ gridColumn: "1/-1" }}>
+                <label style={{ fontSize: 9, marginBottom: 3 }}>Cliente *</label>
+                <input
+                  className="input-field"
+                  list="lista-clientes"
+                  value={form.nombre}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setForm(f => ({ ...f, nombre: val }));
+                  }}
+                  onBlur={e => {
+                    const val = e.target.value;
+                    const esDelDesplegable = nombresClientes.includes(val);
+                    if (esDelDesplegable) {
+                      const existente = reservas.find(r => r.nombre === val) || clientesArchivados.find(c => c.nombre === val);
+                      if (existente) setForm(f => ({ ...f, nombre: existente.nombre, telefono: existente.telefono || "", email: existente.email || "", prefijo: existente.prefijo || "+34" }));
+                    }
+                  }}
+                  placeholder="Escribe o busca un cliente..."
+                  autoComplete="off"
+                  style={{ padding: "7px 10px", fontSize: 13 }}
+                />
+                <datalist id="lista-clientes">
+                  {nombresClientes.map(n => {
+                    const cliente = reservas.find(r => r.nombre === n) || clientesArchivados.find(c => c.nombre === n);
+                    const tel = cliente?.telefono ? ` · ${cliente.telefono}` : "";
+                    return <option key={n} value={n} label={`${n}${tel}`} />;
+                  })}
+                </datalist>
+              </div>
+
+              {/* Fila 4: Prefijo+Teléfono y Mail */}
+              <div>
+                <label style={{ fontSize: 9, marginBottom: 3 }}>Teléfono</label>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <input className="input-field" value={form.prefijo ?? "+34"} onChange={e => setForm(f => ({ ...f, prefijo: e.target.value }))} autoComplete="off" style={{ width: 64, padding: "7px 8px", fontSize: 13 }} placeholder="+34" />
+                  <input className="input-field" value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value.replace(/\s/g, "") }))} autoComplete="off" style={{ padding: "7px 10px", fontSize: 13 }} />
+                </div>
+                {form.telefono && (() => {
+                  const digits = form.telefono.replace(/\D/g, "");
+                  if (digits.length !== 9) {
+                    return (
+                      <div style={{ marginTop: 5, padding: "4px 10px", borderRadius: 5, background: "#fff3e0", border: "1px solid #ffcc80", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 12 }}>⚠️</span>
+                        <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#e65100", fontWeight: 700, letterSpacing: 0.5 }}>
+                          {digits.length < 9 ? "Número de teléfono corto" : "Número de teléfono largo"}
+                        </span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+              <div>
+                <label style={{ fontSize: 9, marginBottom: 3 }}>Email</label>
+                <input className="input-field" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} autoComplete="off" style={{ padding: "7px 10px", fontSize: 13 }} />
+              </div>
+
+              {/* Fila 5: Observaciones */}
               <div style={{ gridColumn: "1/-1" }}>
                 <label style={{ fontSize: 9, marginBottom: 3 }}>Observaciones</label>
                 <textarea className="input-field" value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} rows={2} style={{ resize: "vertical", padding: "7px 10px", fontSize: 13 }} />
@@ -2613,8 +2629,9 @@ Buenas y Santas`;
                       const turnoR = getTurno(r.hora);
                       const mesasOcupadasEnTurno = reservas.filter(x => x.id !== r.id && getTurno(x.hora) === turnoR && x.fecha === r.fecha && x.estado !== "cancelada").flatMap(x => x.mesas || (x.mesa ? [x.mesa] : []));
                       const mesasActuales = r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : [];
+                      const planoBg = r.estado === "llego" ? "transparent" : "#f4fcf4";
                       return (
-                        <tr key={r.id} style={{ borderBottom: "1px solid #c8e6c9" }}>
+                        <tr key={r.id} style={{ borderBottom: "1px solid #d6edd6", background: planoBg }}>
                           <td style={{ padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontSize: 17, color: "#1b5e20" }}>{r.hora}</td>
                           <td style={{ padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontSize: 16, color: "#1a2e1a" }}>{r.nombre}</td>
                           <td style={{ padding: "10px 16px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{r.personas} pax</td>
@@ -2657,12 +2674,15 @@ Buenas y Santas`;
                           </td>
                           <td style={{ padding: "10px 16px", fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", maxWidth: 200 }}>{r.notas || "—"}</td>
                           <td style={{ padding: "10px 16px" }}>
-                            {r.telefono && (
-                              <a href={`https://wa.me/${tel}?text=${msg}`} target="_blank" rel="noreferrer"
-                                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, background: "#25d366", borderRadius: 6, color: "#fff", textDecoration: "none" }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                              </a>
-                            )}
+                            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                              <button className="btn-outline" style={{ padding: "5px 10px", fontSize: 11 }} onClick={() => abrirEditar(r)}>Editar</button>
+                              {r.telefono && (
+                                <a href={`https://wa.me/${tel}?text=${msg}`} target="_blank" rel="noreferrer"
+                                  style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, background: "#25d366", borderRadius: 6, color: "#fff", textDecoration: "none" }}>
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                </a>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
