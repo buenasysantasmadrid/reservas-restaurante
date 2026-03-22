@@ -108,6 +108,8 @@ export default function App() {
   const [asignarPendiente, setAsignarPendiente] = useState({});
   // Modal confirmación ajuste mesas 6 pax
   const [confirmarAjuste6, setConfirmarAjuste6] = useState(null); // { fecha, turno, count6 }
+  // Pregunta 2 o 3 mesas al asignar reserva de 6 pax en drag&drop
+  const [pregunta6pax, setPregunta6pax] = useState(null); // { reservaId, mesaDestino }
 
   // Auto-archivar al abrir la app si son las 4am o más
   useEffect(() => {
@@ -1773,7 +1775,7 @@ Buenas y Santas`;
                                     onMouseEnter={e => e.currentTarget.style.background="#1b5e20"}
                                     onMouseLeave={e => e.currentTarget.style.background="#2e7d32"}
                                   >
-                                    ✦ Asignar mesas
+                                    ✦ Modificar mesas
                                   </button>
                                   <button
                                     onClick={() => borrarMesasTurno(fecha, turno)}
@@ -1915,7 +1917,7 @@ Buenas y Santas`;
                             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                               <button onClick={() => asignarMesasTurno(grupo.fecha, grupo.turno)}
                                 style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "#2e7d32", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer" }}>
-                                ✦ Asignar mesas
+                                ✦ Modificar mesas
                               </button>
                               <button onClick={() => borrarMesasTurno(grupo.fecha, grupo.turno)}
                                 style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "none", color: "#b71c1c", border: "1px solid #ef9a9a", borderRadius: 4, cursor: "pointer" }}>
@@ -2603,7 +2605,7 @@ Buenas y Santas`;
                     letterSpacing: 2, textTransform: "uppercase", cursor: "pointer", borderRadius: 4,
                     background: "#2e7d32", color: "#fff", border: "none", fontWeight: 600
                   }}>
-                  ✦ Asignar mesas
+                  ✦ Modificar mesas
                 </button>
                 <button className="btn-outline" style={{ borderColor: "#81c784", color: "#2e7d32", fontSize: 11 }} onClick={imprimirPlano}>🖨 Imprimir plano</button>
               </div>
@@ -2825,7 +2827,7 @@ Buenas y Santas`;
                   <button
                     onClick={() => asignarMesasTurno(planoFecha, planoTurno)}
                     style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "#2e7d32", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer", fontWeight: 500 }}
-                  >✦ Asignar mesas</button>
+                  >✦ Modificar mesas</button>
                   <button
                     onClick={() => borrarMesasTurno(planoFecha, planoTurno)}
                     style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "none", color: "#b71c1c", border: "1px solid #ef9a9a", borderRadius: 4, cursor: "pointer", fontWeight: 500 }}
@@ -2898,25 +2900,27 @@ Buenas y Santas`;
           setAsignarPendiente(p => ({ ...p, [reservaId]: [] }));
         };
 
-        // Al soltar en una mesa del plano: auto-asignar mesas contiguas según pax
-        const onDropEnMesa = (mesaDestino) => {
-          if (!asignarDragReservaId) return;
-          const r = reservasTurno2.find(x => x.id === asignarDragReservaId);
-          if (!r) return;
-          const pax = Math.min(r.personas || 1, 8);
-          const opciones = MESA_CONFIG[pax] || MESA_CONFIG[1];
+        // Helper: elegir mesas según pax y mesaDestino con n mesas explícito
+        const elegirMesas = (r, mesaDestino, nMesas) => {
+          const pax = nMesas || Math.min(r.personas || 1, 8);
+          // Para 6 pax con nMesas explícito, usar config específico
+          let opciones;
+          if (r.personas === 6 && nMesas === 2) {
+            opciones = [{internas:[8,18]},{internas:[7,17]},{internas:[1,2]},{internas:[12,13]},{internas:[3,4]},{internas:[5,15]},{internas:[6,16]},{internas:[10,11]}];
+          } else if (r.personas === 6 && nMesas === 3) {
+            opciones = MESA_CONFIG[6] || [];
+          } else {
+            opciones = MESA_CONFIG[Math.min(r.personas||1,8)] || MESA_CONFIG[1];
+          }
           const ocupadasPorOtros = new Set(
             reservasTurno2.filter(x => x.id !== r.id).flatMap(x => getMesasDeReserva(x))
           );
-
-          // 1. Grupo que contenga mesaDestino (en cualquier posición) Y esté libre
           let mesasElegidas = null;
           for (const op of opciones) {
             if (op.internas.includes(mesaDestino) && op.internas.every(m => !ocupadasPorOtros.has(m))) {
               mesasElegidas = op.internas; break;
             }
           }
-          // 2. Cualquier grupo libre (sin importar mesaDestino)
           if (!mesasElegidas) {
             for (const op of opciones) {
               if (op.internas.every(m => !ocupadasPorOtros.has(m))) {
@@ -2924,28 +2928,37 @@ Buenas y Santas`;
               }
             }
           }
-          // 3. Fallback parcial: grupo con mesaDestino aunque alguna otra mesa esté ocupada
           if (!mesasElegidas) {
             for (const op of opciones) {
-              if (op.internas.includes(mesaDestino)) {
-                mesasElegidas = op.internas; break;
-              }
+              if (op.internas.includes(mesaDestino)) { mesasElegidas = op.internas; break; }
             }
           }
-          // 4. Último fallback: solo la mesa destino
-          if (!mesasElegidas) mesasElegidas = [mesaDestino];
+          return mesasElegidas || [mesaDestino];
+        };
+
+        // Al soltar en una mesa del plano: auto-asignar mesas contiguas según pax
+        const onDropEnMesa = (mesaDestino) => {
+          if (!asignarDragReservaId) return;
+          const r = reservasTurno2.find(x => x.id === asignarDragReservaId);
+          if (!r) return;
+          // Si es 6 pax: preguntar 2 o 3 mesas
+          if (Number(r.personas) === 6) {
+            setPregunta6pax({ reservaId: r.id, mesaDestino });
+            setAsignarDragReservaId(null);
+            return;
+          }
+          const mesasElegidas = elegirMesas(r, mesaDestino, null);
           setAsignarPendiente(p => ({ ...p, [asignarDragReservaId]: mesasElegidas }));
           setAsignarDragReservaId(null);
         };
 
         // Dimensiones del SVG de reserva según pax con regla exacta
-        // 1-2 pax: 1 mesa, 3-5 pax: 2 mesas, 6 con 2 asignadas: 2 mesas / 6 sin asignar: 3 mesas, 7: 3 mesas, 8+: 4 mesas
         const numMesasSvg = (r) => {
           const pax = r.personas || 1;
           const mesasAsig = getMesasDeReserva(r).length;
           if (pax <= 2) return 1;
           if (pax <= 5) return 2;
-          if (pax === 6) return mesasAsig === 2 ? 2 : 3;
+          if (pax === 6) return mesasAsig === 2 ? 2 : 3; // si ya tiene 2 asignadas → 2, sino → 3
           if (pax === 7) return 3;
           return 4;
         };
@@ -3015,12 +3028,13 @@ Buenas y Santas`;
           const isDragging = asignarDragReservaId === r.id;
           const n = numMesasSvg(r);
 
-          // Qué mesas mostrar: si tiene asignadas usarlas, si no tomar el primer grupo del MESA_CONFIG
+          // Qué mesas mostrar: si tiene asignadas usarlas; si NO tiene asignadas, NO mostrar números sugeridos
           let mesasMostrar = mesasR.length > 0 ? mesasR.slice(0, n) : (() => {
             const paxC = Math.min(pax, 8);
             const ops = MESA_CONFIG[paxC] || MESA_CONFIG[1];
             return ops[0] ? ops[0].internas.slice(0, n) : [];
           })();
+          // Si sin mesa asignada → usar mesasMostrar solo para calcular geometría, pero NO mostrar número
 
           const UP_FULL = 60, PAD_FULL = 10;
           const MPOS_FULL = [
@@ -3076,8 +3090,8 @@ Buenas y Santas`;
                 style={{ cursor:"grab", opacity:isDragging?0.5:1, userSelect:"none" }}>
                 <svg width={sw} height={sh} viewBox={`0 0 ${sw} ${sh}`}>
                   <rect x={1} y={1} width={sw-2} height={sh-2} rx={7} fill={sinMesa?"#fff8e1":"#e8f5e9"} stroke={sinMesa?"#ffcc02":"#81c784"} strokeWidth={1.5}/>
-                  <text x={sw/2} y={17} textAnchor="middle" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:12,fontWeight:700,fill:"#1a2e1a"}}>{r.nombre.split(" ")[0]}</text>
-                  <text x={sw/2} y={30} textAnchor="middle" style={{fontFamily:"'Jost',sans-serif",fontSize:9,fill:"#4a7a4a"}}>{r.hora}·{pax}p</text>
+                  <text x={sw/2} y={18} textAnchor="middle" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:13,fontWeight:700,fill:"#111"}}>{r.nombre.split(" ")[0]}</text>
+                  <text x={sw/2} y={31} textAnchor="middle" style={{fontFamily:"'Jost',sans-serif",fontSize:10,fill:"#111",fontWeight:500}}>{r.hora}·{pax}p</text>
                 </svg>
               </div>
             );
@@ -3129,24 +3143,26 @@ Buenas y Santas`;
               <svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`}>
                 {/* Cabecera info */}
                 <rect x={0} y={0} width={svgW} height={INFO_H} rx={6} fill={sinMesa?"#fff8e1":"#f1f8f1"}/>
-                <text x={svgW/2} y={12} textAnchor="middle"
-                  style={{fontFamily:"'Cormorant Garamond',serif",fontSize:11,fontWeight:700,fill:"#1a2e1a"}}>
+                <text x={svgW/2} y={13} textAnchor="middle"
+                  style={{fontFamily:"'Cormorant Garamond',serif",fontSize:13,fontWeight:700,fill:"#111"}}>
                   {r.nombre.split(" ")[0]}
                 </text>
-                <text x={svgW/2} y={23} textAnchor="middle"
-                  style={{fontFamily:"'Jost',sans-serif",fontSize:8,fill:"#4a7a4a"}}>
+                <text x={svgW/2} y={25} textAnchor="middle"
+                  style={{fontFamily:"'Jost',sans-serif",fontSize:10,fill:"#111",fontWeight:500}}>
                   {r.hora} · {pax}p
                 </text>
                 {/* Mesa fusionada — UN SOLO RECT igual que el plano */}
                 <rect x={offX + rx2*scale + 1} y={offY + ry2*scale + 2} width={rw2*scale} height={rh2*scale} rx={6} fill="rgba(0,0,0,0.05)"/>
                 <rect x={offX + rx2*scale} y={offY + ry2*scale} width={rw2*scale} height={rh2*scale} rx={6}
                   fill={cf} stroke={cs} strokeWidth={sinMesa?2:1.5} strokeDasharray={sinMesa?"5 3":"none"}/>
-                {/* Número(s) de mesa */}
-                <text x={offX + rx2*scale + rw2*scale/2} y={offY + ry2*scale + rh2*scale * (mesasMostrar.length>1?0.28:0.5)+4}
-                  textAnchor="middle"
-                  style={{fontFamily:"'Cormorant Garamond',serif",fontSize:Math.max(10,rw2*scale*0.25),fontWeight:700,fill:mesasR.length>0?"#1b5e20":"#2e7d32"}}>
-                  {mesasMostrar.map(m => MESA_NOMBRE[m]||String(m)).join("+")}
-                </text>
+                {/* Número(s) de mesa — solo si está asignada */}
+                {mesasR.length > 0 && (
+                  <text x={offX + rx2*scale + rw2*scale/2} y={offY + ry2*scale + rh2*scale * (mesasMostrar.length>1?0.28:0.5)+4}
+                    textAnchor="middle"
+                    style={{fontFamily:"'Cormorant Garamond',serif",fontSize:Math.max(10,rw2*scale*0.25),fontWeight:700,fill:"#1b5e20"}}>
+                    {mesasR.map(m => MESA_NOMBRE[m]||String(m)).join("+")}
+                  </text>
+                )}
               </svg>
               {mesasR.length > 0 && (
                 <div style={{ textAlign:"center", marginTop:-1 }}>
@@ -3165,7 +3181,7 @@ Buenas y Santas`;
             {/* Header */}
             <div style={{ background: "#fff", borderBottom: "1px solid #c8e6c9", padding: "12px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
               <div>
-                <span style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 700, color: "#1a1a1a" }}>Asignar mesas</span>
+                <span style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 700, color: "#1a1a1a" }}>Modificar mesas</span>
                 <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", marginLeft: 14, letterSpacing: 1 }}>
                   Arrastra una reserva de la derecha y suéltala en el plano
                 </span>
@@ -3317,7 +3333,7 @@ Buenas y Santas`;
                 <p style={{ fontFamily:"'Jost',sans-serif", fontSize:10, letterSpacing:2, color:"#4a7a4a", textTransform:"uppercase", marginBottom:14, fontWeight:600, paddingLeft:4 }}>
                   Reservas del turno
                 </p>
-                <div style={{ display:"flex", flexWrap:"wrap", gap:12, padding:"0 4px" }}>
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(5, 1fr)", gap:10, padding:"0 4px" }}>
                   {[...reservasTurno2].sort((a,b) => (a.hora||"").localeCompare(b.hora||"")).map(r => (
                     <ReservaMiniSVG key={r.id} r={r} />
                   ))}
@@ -3327,6 +3343,50 @@ Buenas y Santas`;
           </div>
         );
       })()}
+
+      {/* ── MODAL 6 PAX: 2 O 3 MESAS ── */}
+      {pregunta6pax && modoAsignarMesas && (
+        <div className="overlay" style={{ zIndex: 70 }}>
+          <div className="modal" style={{ maxWidth: 380, textAlign: "center", padding: "36px 32px" }}>
+            <p style={{ fontFamily:"'Jost',sans-serif", fontSize:11, letterSpacing:2, color:"#4a7a4a", textTransform:"uppercase", marginBottom:8 }}>
+              {reservas.find(x=>x.id===pregunta6pax.reservaId)?.nombre.split(" ")[0]} · 6 pax
+            </p>
+            <h2 style={{ fontFamily:"'Lora',serif", fontSize:22, fontWeight:700, color:"#1a1a1a", marginBottom:24 }}>
+              ¿Cuántas mesas?
+            </h2>
+            <div style={{ display:"flex", gap:16, justifyContent:"center" }}>
+              {[2, 3].map(nM => (
+                <button key={nM} onClick={() => {
+                  const r = reservas.find(x => x.id === pregunta6pax.reservaId);
+                  if (!r) { setPregunta6pax(null); return; }
+                  const ops2 = nM === 2
+                    ? [{internas:[8,18]},{internas:[7,17]},{internas:[1,2]},{internas:[12,13]},{internas:[3,4]},{internas:[5,15]},{internas:[6,16]},{internas:[10,11]}]
+                    : MESA_CONFIG[6] || [];
+                  const ocupadasPorOtros2 = new Set(
+                    reservas.filter(x => x.id !== r.id && x.fecha === r.fecha && getTurno(x.hora) === getTurno(r.hora) && x.estado !== "cancelada")
+                      .flatMap(x => { const p2 = asignarPendiente[x.id]; return p2 !== undefined ? p2 : (x.mesas&&x.mesas.length>0?x.mesas:x.mesa?[x.mesa]:[]); })
+                  );
+                  let chosen = null;
+                  for (const op of ops2) {
+                    if (op.internas.includes(pregunta6pax.mesaDestino) && op.internas.every(m => !ocupadasPorOtros2.has(m))) { chosen = op.internas; break; }
+                  }
+                  if (!chosen) for (const op of ops2) { if (op.internas.every(m => !ocupadasPorOtros2.has(m))) { chosen = op.internas; break; } }
+                  if (!chosen) chosen = [pregunta6pax.mesaDestino];
+                  setAsignarPendiente(p => ({ ...p, [r.id]: chosen }));
+                  setPregunta6pax(null);
+                }}
+                style={{ padding:"14px 32px", fontFamily:"'Jost',sans-serif", fontSize:18, fontWeight:700, cursor:"pointer",
+                  background:"#e8f5e9", color:"#1b5e20", border:"2px solid #81c784", borderRadius:8 }}>
+                  {nM} mesas
+                </button>
+              ))}
+            </div>
+            <button className="btn-outline" style={{ marginTop:18, fontSize:11, color:"#888", borderColor:"#ccc" }}
+              onClick={() => setPregunta6pax(null)}>Cancelar</button>
+          </div>
+        </div>
+      )}
+
       {turnoModalAbierto && (
         <div className="overlay" style={{ zIndex: 60 }} onClick={e => e.target === e.currentTarget && setTurnoModalAbierto(false)}>
           <div className="modal" style={{ maxWidth: 360, padding: "36px 32px", textAlign: "center" }}>
