@@ -3169,18 +3169,19 @@ Buenas y Santas`;
                 <rect x={rectX+1} y={rectY+2} width={mesaW} height={mesaH} rx={6} fill="rgba(0,0,0,0.05)"/>
                 <rect x={rectX} y={rectY} width={mesaW} height={mesaH} rx={6}
                   fill={cf} stroke={cs} strokeWidth={sinMesa?2:1.5} strokeDasharray={sinMesa?"5 3":"none"}/>
-                {/* Número(s) de mesa — solo si está asignada */}
+                {/* Número de mesa — solo la primera, igual que el plano */}
                 {mesasR.length > 0 && (
                   <text x={rectX + mesaW/2} y={rectY + mesaH * (mesasMostrar.length>1?0.35:0.55)+4}
                     textAnchor="middle"
                     style={{fontFamily:"'Cormorant Garamond',serif",fontSize:Math.max(10,mesaW*0.22),fontWeight:700,fill:"#1b5e20"}}>
-                    {mesasR.map(m => MESA_NOMBRE[m]||String(m)).join("+")}
+                    {MESA_NOMBRE[mesasR[0]] || String(mesasR[0])}
                   </text>
                 )}
               </svg>
               {mesasR.length > 0 && (
                 <div style={{ textAlign:"center", marginTop:-1 }}>
-                  <button type="button" onClick={() => quitarMesaDeReserva(r.id)}
+                  <button type="button"
+                    onPointerDown={e => { e.preventDefault(); quitarMesaDeReserva(r.id); }}
                     style={{ fontFamily:"'Jost',sans-serif", fontSize:8, color:"#b71c1c", background:"none", border:"none", cursor:"pointer", padding:"0 2px" }}>
                     quitar
                   </button>
