@@ -442,11 +442,11 @@ export default function App() {
     8: [{internas:[5,15,6,16]}, {internas:[3,4,7,17]}, {internas:[1,2,8,18]}, {internas:[10,11,12,13]}],
     7: [{internas:[7,17,4]}, {internas:[6,16,15]}, {internas:[8,18,2]}, {internas:[11,12,13]}],
     6: [{internas:[6,16,15]}, {internas:[7,17,4]}, {internas:[8,18,2]}, {internas:[11,12,13]}],
-    5: [{internas:[1,2]}, {internas:[7,17]}, {internas:[12,13]}, {internas:[8,18]}, {internas:[3,4]}],
+    5: [{internas:[1,2]}, {internas:[7,17]}, {internas:[12,13]}, {internas:[8,18]}, {internas:[3,4]}, {internas:[5,15]}, {internas:[6,16]}, {internas:[10,11]}],
     4: [{internas:[12,13]}, {internas:[5,15]}, {internas:[6,16]}, {internas:[7,17]}, {internas:[1,2]}, {internas:[8,18]}, {internas:[3,4]}, {internas:[10,11]}],
     3: [{internas:[12,13]}, {internas:[5,15]}, {internas:[6,16]}, {internas:[7,17]}, {internas:[1,2]}, {internas:[8,18]}, {internas:[3,4]}, {internas:[10,11]}],
-    2: [{internas:[3]}, {internas:[10]}, {internas:[11]}, {internas:[4]}, {internas:[5]}, {internas:[15]}, {internas:[7]}, {internas:[17]}, {internas:[8]}, {internas:[18]}, {internas:[1]}, {internas:[2]}, {internas:[6]}, {internas:[16]}],
-    1: [{internas:[3]}, {internas:[10]}, {internas:[11]}, {internas:[4]}, {internas:[5]}, {internas:[15]}, {internas:[7]}, {internas:[17]}, {internas:[8]}, {internas:[18]}, {internas:[1]}, {internas:[2]}, {internas:[6]}, {internas:[16]}],
+    2: [{internas:[3]}, {internas:[10]}, {internas:[11]}, {internas:[4]}, {internas:[5]}, {internas:[15]}, {internas:[7]}, {internas:[17]}, {internas:[8]}, {internas:[18]}, {internas:[1]}, {internas:[2]}, {internas:[6]}, {internas:[16]}, {internas:[12]}, {internas:[13]}],
+    1: [{internas:[3]}, {internas:[10]}, {internas:[11]}, {internas:[4]}, {internas:[5]}, {internas:[15]}, {internas:[7]}, {internas:[17]}, {internas:[8]}, {internas:[18]}, {internas:[1]}, {internas:[2]}, {internas:[6]}, {internas:[16]}, {internas:[12]}, {internas:[13]}],
   };
 
   const asignarMesasTurno = async (fecha, turno, ajuste6 = null) => {
@@ -2908,14 +2908,15 @@ Buenas y Santas`;
           const ocupadasPorOtros = new Set(
             reservasTurno2.filter(x => x.id !== r.id).flatMap(x => getMesasDeReserva(x))
           );
-          // 1. Buscar grupo que contenga mesaDestino Y esté completamente libre
+
+          // 1. Grupo que contenga mesaDestino (en cualquier posición) Y esté libre
           let mesasElegidas = null;
           for (const op of opciones) {
             if (op.internas.includes(mesaDestino) && op.internas.every(m => !ocupadasPorOtros.has(m))) {
               mesasElegidas = op.internas; break;
             }
           }
-          // 2. Si no, cualquier grupo libre
+          // 2. Cualquier grupo libre (sin importar mesaDestino)
           if (!mesasElegidas) {
             for (const op of opciones) {
               if (op.internas.every(m => !ocupadasPorOtros.has(m))) {
@@ -2923,7 +2924,15 @@ Buenas y Santas`;
               }
             }
           }
-          // 3. Fallback: solo la mesa destino
+          // 3. Fallback parcial: grupo con mesaDestino aunque alguna otra mesa esté ocupada
+          if (!mesasElegidas) {
+            for (const op of opciones) {
+              if (op.internas.includes(mesaDestino)) {
+                mesasElegidas = op.internas; break;
+              }
+            }
+          }
+          // 4. Último fallback: solo la mesa destino
           if (!mesasElegidas) mesasElegidas = [mesaDestino];
           setAsignarPendiente(p => ({ ...p, [asignarDragReservaId]: mesasElegidas }));
           setAsignarDragReservaId(null);
