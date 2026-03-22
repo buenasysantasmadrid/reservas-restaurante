@@ -1430,8 +1430,10 @@ Buenas y Santas`;
           <button className={`nav-btn ${vista === "reservas" ? "active" : ""}`} onClick={() => navegarConGuardia(() => setVista("reservas"))}>Reservas</button>
           <button className={`nav-btn ${vista === "plano" ? "active" : ""}`} onClick={() => navegarConGuardia(() => setVista("plano"))}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline",verticalAlign:"middle",marginRight:4}}><rect x="3" y="9" width="18" height="3" rx="1"/><line x1="5" y1="12" x2="5" y2="19"/><line x1="19" y1="12" x2="19" y2="19"/><line x1="3" y1="19" x2="21" y2="19"/></svg> Plano</button>
           <button className="nav-btn" onClick={abrirNueva}>+ Nueva</button>
-          <button className={`nav-btn ${vista === "pegar" ? "active" : ""}`} onClick={() => navegarConGuardia(() => setVista("pegar"))}>📋 Pegar WhatsApp</button>
-          <button className={`nav-btn ${vista === "sheet" ? "active" : ""}`} onClick={() => navegarConGuardia(() => setVista("sheet"))}>📲 Nueva WhatsApp</button>
+          <button className={`nav-btn ${vista === "pegar" || vista === "sheet" ? "active" : ""}`} onClick={() => navegarConGuardia(() => setVista("sheet"))}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{display:"inline",verticalAlign:"middle",marginRight:5}}><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            WhatsApp
+          </button>
         </nav>
         {/* Hamburger */}
         <button className="hamburger" onClick={() => setMenuOpen(o => !o)} aria-label="Menú">
@@ -1446,8 +1448,10 @@ Buenas y Santas`;
           <button className={`nav-btn ${vista === "reservas" ? "active" : ""}`} onClick={() => { navegarConGuardia(() => { setVista("reservas"); setMenuOpen(false); }); }}>Reservas</button>
           <button className={`nav-btn ${vista === "plano" ? "active" : ""}`} onClick={() => { navegarConGuardia(() => { setVista("plano"); setMenuOpen(false); }); }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline",verticalAlign:"middle",marginRight:4}}><rect x="3" y="9" width="18" height="3" rx="1"/><line x1="5" y1="12" x2="5" y2="19"/><line x1="19" y1="12" x2="19" y2="19"/><line x1="3" y1="19" x2="21" y2="19"/></svg> Plano</button>
           <button className="nav-btn" onClick={() => { abrirNueva(); setMenuOpen(false); }}>+ Nueva reserva</button>
-          <button className={`nav-btn ${vista === "pegar" ? "active" : ""}`} onClick={() => { navegarConGuardia(() => { setVista("pegar"); setMenuOpen(false); }); }}>📋 Pegar WhatsApp</button>
-          <button className={`nav-btn ${vista === "sheet" ? "active" : ""}`} onClick={() => { navegarConGuardia(() => { setVista("sheet"); setMenuOpen(false); }); }}>📲 Nueva WhatsApp</button>
+          <button className={`nav-btn ${vista === "pegar" || vista === "sheet" ? "active" : ""}`} onClick={() => { navegarConGuardia(() => { setVista("sheet"); setMenuOpen(false); }); }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{display:"inline",verticalAlign:"middle",marginRight:5}}><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            WhatsApp
+          </button>
         </nav>
       )}
 
@@ -2012,68 +2016,30 @@ Buenas y Santas`;
       </main>
 
       {/* ── PEGAR MENSAJE ── */}
-      {vista === "pegar" && (
-        <div
-          style={{ padding: "40px", maxWidth: 800, margin: "0 auto", position: "relative", zIndex: 1 }}
-          onClick={e => {
-            if (e.target === e.currentTarget && textoPegado.trim()) {
-              setConfirmarSalidaPagina(() => () => { setTextoPegado(""); });
-            }
-          }}
-        >
-          <div style={{ marginBottom: 32 }}>
-            <h1 style={{ fontFamily: "'Lora', serif", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Pegar mensaje</h1>
-          </div>
-
-          <div className="card" style={{ padding: 32 }}>
-            <textarea
-              className="input-field"
-              rows={10}
-              value={textoPegado}
-              onChange={e => setTextoPegado(e.target.value)}
-              style={{ resize: "vertical", lineHeight: 1.7, fontSize: 14 }}
-            />
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 20, alignItems: "center" }}>
-
-              <button
-                className="btn-gold"
-                onClick={interpretarTexto}
-                disabled={interpretando || !textoPegado.trim()}
-                style={{ opacity: interpretando || !textoPegado.trim() ? 0.5 : 1, display: "flex", alignItems: "center", gap: 10 }}
-              >
-                {interpretando ? (
-                  <>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: "spin 1s linear infinite" }}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
-                    Interpretando...
-                  </>
-                ) : "✦ Interpretar y crear reserva"}
-              </button>
-            </div>
-          </div>
-          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-        </div>
-      )}
-
-      {/* ── GOOGLE SHEET ── */}
-      {vista === "sheet" && (
+      {/* ── WHATSAPP (sheet + pegar unificados) ── */}
+      {(vista === "sheet" || vista === "pegar") && (
         <div
           style={{ padding: "40px", maxWidth: 900, margin: "0 auto", position: "relative", zIndex: 1 }}
           onClick={e => {
-            if (e.target === e.currentTarget && sheetFilas.length > 1) {
-              setConfirmarSalidaPagina(() => () => { setSheetFilas([]); });
+            if (e.target === e.currentTarget && (sheetFilas.length > 1 || textoPegado.trim())) {
+              setConfirmarSalidaPagina(() => () => { setSheetFilas([]); setTextoPegado(""); });
             }
           }}
         >
           <div style={{ marginBottom: 32 }}>
-            <h1 style={{ fontFamily: "'Lora', serif", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Nueva WhatsApp</h1>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 8 }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              <h1 style={{ fontFamily: "'Lora', serif", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>WhatsApp</h1>
+            </div>
           </div>
 
-          <div style={{ display: "flex", gap: 12, marginBottom: 32, alignItems: "center" }}>
+          {/* ── Cargar desde sheet ── */}
+          <div style={{ display: "flex", gap: 12, marginBottom: 24, alignItems: "center" }}>
             <button className="btn-gold" onClick={cargarDesdeSheet} disabled={sheetCargando}
               style={{ display: "flex", alignItems: "center", gap: 10, opacity: sheetCargando ? 0.6 : 1 }}>
               {sheetCargando
                 ? <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: "spin 1s linear infinite" }}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>Cargando...</>
-                : "Cargar reserva"}
+                : "Cargar mesa"}
             </button>
           </div>
 
@@ -2086,7 +2052,7 @@ Buenas y Santas`;
           {sheetFilas.length > 1 && (() => {
             const headers = sheetFilas[0].map(h => String(h).toLowerCase().trim());
             return (
-              <div className="card" style={{ overflow: "auto" }}>
+              <div className="card" style={{ overflow: "auto", marginBottom: 40 }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 600 }}>
                   <thead>
                     <tr style={{ borderBottom: "1px solid #c8e6c9" }}>
@@ -2109,7 +2075,7 @@ Buenas y Santas`;
                               const d = importarFilaSheet(headers, fila);
                               setReservaEditando(null);
                               setForm(d);
-                              setPendingSheetIdx(i + 1); // +1 porque slice(1)
+                              setPendingSheetIdx(i + 1);
                               setModalAbierto(true);
                             }}>
                             {guardando ? "⏳ Importando..." : "+ Importar"}
@@ -2118,7 +2084,6 @@ Buenas y Santas`;
                         {fila.map((celda, j) => {
                           const hdr = String(headers[j] || "").toLowerCase();
                           if (hdr.includes("import") || hdr.includes("hora") || hdr.includes("time")) return null;
-                          // Columna C (índice 2): separar fecha y hora del string ISO
                           if (j === 2 && celda) {
                             const s = String(celda);
                             const m = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
@@ -2149,6 +2114,34 @@ Buenas y Santas`;
               </div>
             );
           })()}
+
+          {/* ── Pegar mensaje WhatsApp ── */}
+          <div className="card" style={{ padding: 32 }}>
+            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", marginBottom: 16, fontWeight: 600 }}>Pegar mensaje</p>
+            <textarea
+              className="input-field"
+              rows={6}
+              value={textoPegado}
+              onChange={e => setTextoPegado(e.target.value)}
+              placeholder="Pega aquí el mensaje de WhatsApp..."
+              style={{ resize: "vertical", lineHeight: 1.7, fontSize: 14 }}
+            />
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 20, alignItems: "center" }}>
+              <button
+                className="btn-gold"
+                onClick={interpretarTexto}
+                disabled={interpretando || !textoPegado.trim()}
+                style={{ opacity: interpretando || !textoPegado.trim() ? 0.5 : 1, display: "flex", alignItems: "center", gap: 10 }}
+              >
+                {interpretando ? (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: "spin 1s linear infinite" }}><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
+                    Interpretando...
+                  </>
+                ) : "✦ Interpretar y crear reserva"}
+              </button>
+            </div>
+          </div>
 
           <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
         </div>
@@ -3126,17 +3119,24 @@ Buenas y Santas`;
             }
           }
 
+          // Forzar orientación vertical: si la mesa es más ancha que alta, rotar 90°
+          const needsRotation = rw2 > rh2 * 1.1;
+          const dispW = needsRotation ? rh2 : rw2;
+          const dispH = needsRotation ? rw2 : rh2;
+
           // Escalar al mismo tamaño físico que el plano: 1 unidad = U2 px
           const SCALE_MINI = 74 / 60; // U2 / UP_FULL
           const PAD_MINI = 4, INFO_H = 46;
           const scale = SCALE_MINI;
-          const mesaW = Math.round(rw2 * scale);
-          const mesaH = Math.round(rh2 * scale);
-          // svgW = ancho de la mesa + padding lateral. Mínimo INFO_H para que quepa el texto
+          const mesaW = Math.round(dispW * scale);
+          const mesaH = needsRotation && mesasMostrar.length > 1
+            ? Math.round(rw2 * scale) + (mesasMostrar.length - 1) * 2  // mesas apiladas
+            : Math.round(dispH * scale);
           const svgW = Math.max(mesaW + PAD_MINI * 2, 90);
           const svgH = mesaH + PAD_MINI * 2 + INFO_H + 4;
-          const offX = PAD_MINI + (svgW - PAD_MINI*2 - mesaW)/2 - rx2 * scale;
-          const offY = INFO_H + PAD_MINI - ry2 * scale;
+          // offX/offY usando dispW/dispH (ya rotado)
+          const offX = PAD_MINI + (svgW - PAD_MINI*2 - mesaW)/2 - (needsRotation ? ry2 : rx2) * scale;
+          const offY = INFO_H + PAD_MINI - (needsRotation ? rx2 : ry2) * scale;
 
           const cf = sinMesa ? "#e0e0e0" : isDragging ? "#fff3e0" : "#e8f5e9";
           const cs = sinMesa ? "#888" : isDragging ? "#f9a825" : "#81c784";
@@ -3160,17 +3160,44 @@ Buenas y Santas`;
                   style={{fontFamily:"'Jost',sans-serif",fontSize:16,fill:"#111",fontWeight:700}}>
                   {pax}p
                 </text>
-                {/* Mesa fusionada — mismo tamaño físico que el plano */}
-                <rect x={offX + rx2*scale + 1} y={offY + ry2*scale + 2} width={rw2*scale} height={rh2*scale} rx={6} fill="rgba(0,0,0,0.05)"/>
-                <rect x={offX + rx2*scale} y={offY + ry2*scale} width={rw2*scale} height={rh2*scale} rx={6}
-                  fill={cf} stroke={cs} strokeWidth={sinMesa?2:1.5} strokeDasharray={sinMesa?"5 3":"none"}/>
-                {/* Número(s) de mesa — solo si está asignada */}
-                {mesasR.length > 0 && (
-                  <text x={offX + rx2*scale + rw2*scale/2} y={offY + ry2*scale + rh2*scale * (mesasMostrar.length>1?0.28:0.5)+4}
-                    textAnchor="middle"
-                    style={{fontFamily:"'Cormorant Garamond',serif",fontSize:Math.max(10,rw2*scale*0.22),fontWeight:700,fill:"#1b5e20"}}>
-                    {mesasR.map(m => MESA_NOMBRE[m]||String(m)).join("+")}
-                  </text>
+                {/* Mesa fusionada — mismo tamaño físico que el plano, siempre vertical */}
+                {needsRotation && mesasMostrar.length > 1 ? (
+                  // Dibujar mesas individuales apiladas verticalmente
+                  (() => {
+                    const indivW = Math.round(rh2 * scale); // cada mesa es cuadrada: rh2 = alto original = ancho rotado
+                    const indivH = Math.round(rw2 / mesasMostrar.length * scale);
+                    return mesasMostrar.map((mid, idx) => {
+                      const bx = PAD_MINI + (svgW - PAD_MINI*2 - indivW)/2;
+                      const by = INFO_H + PAD_MINI + idx * (indivH + 2);
+                      const lbl = MESA_NOMBRE[mid] || String(mid);
+                      return (
+                        <g key={mid}>
+                          <rect x={bx+1} y={by+2} width={indivW} height={indivH} rx={5} fill="rgba(0,0,0,0.05)"/>
+                          <rect x={bx} y={by} width={indivW} height={indivH} rx={5}
+                            fill={cf} stroke={cs} strokeWidth={sinMesa?2:1.5} strokeDasharray={sinMesa?"5 3":"none"}/>
+                          {mesasR.length > 0 && (
+                            <text x={bx+indivW/2} y={by+indivH/2+4} textAnchor="middle"
+                              style={{fontFamily:"'Cormorant Garamond',serif",fontSize:Math.max(9,indivW*0.22),fontWeight:700,fill:"#1b5e20"}}>
+                              {lbl}
+                            </text>
+                          )}
+                        </g>
+                      );
+                    });
+                  })()
+                ) : (
+                  <>
+                    <rect x={offX + (needsRotation ? ry2 : rx2)*scale + 1} y={offY + (needsRotation ? rx2 : ry2)*scale + 2} width={dispW*scale} height={dispH*scale} rx={6} fill="rgba(0,0,0,0.05)"/>
+                    <rect x={offX + (needsRotation ? ry2 : rx2)*scale} y={offY + (needsRotation ? rx2 : ry2)*scale} width={dispW*scale} height={dispH*scale} rx={6}
+                      fill={cf} stroke={cs} strokeWidth={sinMesa?2:1.5} strokeDasharray={sinMesa?"5 3":"none"}/>
+                    {mesasR.length > 0 && (
+                      <text x={offX + (needsRotation ? ry2 : rx2)*scale + dispW*scale/2} y={offY + (needsRotation ? rx2 : ry2)*scale + dispH*scale * (mesasMostrar.length>1?0.28:0.5)+4}
+                        textAnchor="middle"
+                        style={{fontFamily:"'Cormorant Garamond',serif",fontSize:Math.max(10,dispW*scale*0.22),fontWeight:700,fill:"#1b5e20"}}>
+                        {mesasR.map(m => MESA_NOMBRE[m]||String(m)).join("+")}
+                      </text>
+                    )}
+                  </>
                 )}
               </svg>
               {mesasR.length > 0 && (
