@@ -2901,21 +2901,6 @@ Buenas y Santas`;
           setAsignarPendiente(p => ({ ...p, [reservaId]: curr.filter(m => m !== mesaId) }));
         };
 
-        // Dimensiones del SVG de reserva según pax
-        const mesaSvgDims = (pax) => {
-          const n = Math.min(pax || 1, 8);
-          if (n <= 2) return { w: 70, h: 70 };
-          if (n <= 4) return { w: 70, h: 110 };
-          if (n <= 6) return { w: 70, h: 150 };
-          return { w: 70, h: 190 };
-        };
-
-        // Color de la tarjeta según si tiene mesa o no
-        const cardColor = (sinMesa, isDragging) =>
-          isDragging ? { fill:"#fff8e1", stroke:"#f9a825" }
-          : sinMesa   ? { fill:"#fff8e1", stroke:"#ffcc02" }
-          :              { fill:"#e8f5e9", stroke:"#81c784" };
-
         // Al soltar en una mesa del plano: auto-asignar mesas contiguas según pax
         const onDropEnMesa = (mesaDestino) => {
           if (!asignarDragReservaId) return;
@@ -2923,33 +2908,220 @@ Buenas y Santas`;
           if (!r) return;
           const pax = Math.min(r.personas || 1, 8);
           const opciones = MESA_CONFIG[pax] || MESA_CONFIG[1];
-          // Mesas ya ocupadas por OTRAS reservas (con pendientes)
           const ocupadasPorOtros = new Set(
-            reservasTurno2
-              .filter(x => x.id !== r.id)
-              .flatMap(x => getMesasDeReserva(x))
+            reservasTurno2.filter(x => x.id !== r.id).flatMap(x => getMesasDeReserva(x))
           );
-          // Buscar grupo que contenga la mesa destino y esté libre
           let mesasElegidas = null;
           for (const op of opciones) {
             if (op.internas.includes(mesaDestino) && op.internas.every(m => !ocupadasPorOtros.has(m))) {
-              mesasElegidas = op.internas;
-              break;
+              mesasElegidas = op.internas; break;
             }
           }
-          // Si no hay grupo con esa mesa, intentar cualquier grupo libre
           if (!mesasElegidas) {
             for (const op of opciones) {
               if (op.internas.every(m => !ocupadasPorOtros.has(m))) {
-                mesasElegidas = op.internas;
-                break;
+                mesasElegidas = op.internas; break;
               }
             }
           }
-          // Fallback: solo la mesa destino
           if (!mesasElegidas) mesasElegidas = [mesaDestino];
           setAsignarPendiente(p => ({ ...p, [asignarDragReservaId]: mesasElegidas }));
           setAsignarDragReservaId(null);
+        };
+
+        // Dimensiones del SVG de reserva según pax con regla exacta
+        // 1-2 pax: 1 mesa, 3-5 pax: 2 mesas, 6 con 2 asignadas: 2 mesas / 6 sin asignar: 3 mesas, 7: 3 mesas, 8+: 4 mesas
+        const numMesasSvg = (r) => {
+          const pax = r.personas || 1;
+          const mesasAsig = getMesasDeReserva(r).length;
+          if (pax <= 2) return 1;
+          if (pax <= 5) return 2;
+          if (pax === 6) return mesasAsig === 2 ? 2 : 3;
+          if (pax === 7) return 3;
+          return 4;
+        };
+
+        // MISMA geometría que el plano principal — función genérica de cálculo de bbox fusionada
+        const calcMergedRect = (mesaIds, MPOS, UP, PADP) => {
+          if (!mesaIds || mesaIds.length === 0) return null;
+          const MGROUPS2 = [
+            { ids: [8,2,18,1], clampToFirst:true, clampHeight:3.2, anchorBottom:true },
+            { ids: [7,17,4,3], clampToFirst:true, clampHeight:3.2, anchorBottom:true },
+            { ids: [6,16,15,5], clampToFirst:true, clampHeight:3.2, anchorBottom:true },
+            { ids: [12,13,11,10], clampToFirst:true, clampHeight:3.2 },
+            { ids: [5,15,16], clampToFirst:true, clampHeight:2.1 },
+            { ids: [6,16,15], clampToFirst:true, clampHeight:2.1, anchorBottom:true },
+            { ids: [3,4,17], clampToFirst:true, clampHeight:2.1 },
+            { ids: [7,17,4], clampToFirst:true, clampHeight:2.1, anchorBottom:true },
+            { ids: [1,2,18], clampToFirst:true, clampHeight:2.1 },
+            { ids: [8,18,2], clampToFirst:true, clampHeight:2.1, anchorBottom:true },
+            { ids: [12,13,11], clampToFirst:true, clampHeight:2.1 },
+            ...[[[1,2],[3,4],[5,15],[12,13],[8,18],[7,17],[6,16],[11,10],[40,41],[30,31]]].flat().map(a => a),
+          ];
+          const ms = new Set(mesaIds);
+          let mergeGroup = null;
+          for (const grp of MGROUPS2) {
+            const ids2 = Array.isArray(grp) ? grp : grp.ids;
+            const unique2 = [...new Set(ids2)];
+            if (unique2.length === mesaIds.length && unique2.every(m => ms.has(m))) {
+              mergeGroup = grp; break;
+            }
+          }
+          const primaryId = mesaIds[0];
+          const primary = MPOS.find(p => p.id === primaryId);
+          if (!primary) return null;
+          const { cx, cy, w, h } = primary;
+          let mx = PADP + cx*UP - (w*UP)/2;
+          let my = PADP + cy*UP - (h*UP)/2;
+          let mw = w*UP, mh = h*UP;
+          if (mesaIds.length > 1 && mergeGroup) {
+            const origMx=mx, origMw=mw, origMh=mh;
+            const secIds = Array.isArray(mergeGroup) ? mergeGroup.slice(1) : mergeGroup.ids.slice(1);
+            secIds.forEach(secId => {
+              const sec = MPOS.find(p => p.id===secId); if(!sec) return;
+              const sx=PADP+sec.cx*UP-(sec.w*UP)/2, sy=PADP+sec.cy*UP-(sec.h*UP)/2;
+              const x2=Math.max(mx+mw,sx+sec.w*UP), y2=Math.max(my+mh,sy+sec.h*UP);
+              mx=Math.min(mx,sx); my=Math.min(my,sy); mw=x2-mx; mh=y2-my;
+            });
+            const cToF = !Array.isArray(mergeGroup) && mergeGroup.clampToFirst;
+            if (cToF) {
+              mx=origMx; mw=origMw; mh=origMh;
+              secIds.forEach(secId => {
+                const sec=MPOS.find(p=>p.id===secId); if(!sec) return;
+                if(Math.abs(sec.cx-cx)<0.7){const sy=PADP+sec.cy*UP-(sec.h*UP)/2,y2=Math.max(my+mh,sy+sec.h*UP);my=Math.min(my,sy);mh=y2-my;}
+              });
+              const cH = !Array.isArray(mergeGroup) ? mergeGroup.clampHeight : null;
+              if(cH) mh=Math.min(mh,cH*UP);
+              const aB = !Array.isArray(mergeGroup) && mergeGroup.anchorBottom;
+              if(aB) my=(PADP+cy*UP+(h*UP)/2)-mh;
+            }
+          }
+          return { mx, my, mw, mh };
+        };
+
+        // SVG mini de una reserva para el panel derecho
+        // Dibuja la(s) mesa(s) asignadas en su posición exacta del plano, escaladas para caber en una tarjeta
+        const ReservaMiniSVG = ({ r }) => {
+          const pax = r.personas || 1;
+          const mesasR = getMesasDeReserva(r);
+          const sinMesa = mesasR.length === 0;
+          const isDragging = asignarDragReservaId === r.id;
+          const n = numMesasSvg(r);
+
+          // Construir lista de mesas a mostrar: si tiene asignadas usarlas, si no usar n mesas del MESA_CONFIG
+          let mesasMostrar = mesasR.length > 0 ? mesasR : (() => {
+            const paxC = Math.min(pax, 8);
+            const ops = MESA_CONFIG[paxC] || MESA_CONFIG[1];
+            if (ops[0]) return ops[0].internas.slice(0, n);
+            return [];
+          })();
+          mesasMostrar = mesasMostrar.slice(0, n);
+
+          // Calcular bbox total de todas las mesas a mostrar en coordenadas del plano (U=60)
+          const UP_FULL = 60, PAD_FULL = 10;
+          const MPOS_FULL = [
+            {id:40,cx:3.2,cy:0.5,w:0.8,h:0.8},{id:41,cx:4.5,cy:0.5,w:0.8,h:0.8},
+            {id:12,cx:1,cy:1.7,w:0.8,h:0.8},{id:1,cx:3.2,cy:1.7,w:0.8,h:0.8},
+            {id:3,cx:4.5,cy:1.7,w:0.8,h:0.8},{id:5,cx:5.8,cy:1.7,w:0.8,h:0.8},
+            {id:13,cx:1,cy:2.6,w:0.8,h:0.8},{id:2,cx:3.2,cy:2.6,w:0.8,h:0.8},
+            {id:4,cx:4.5,cy:2.6,w:0.8,h:0.8},{id:15,cx:5.8,cy:2.6,w:0.8,h:0.8},
+            {id:18,cx:3.2,cy:3.9,w:0.8,h:0.8},{id:17,cx:4.5,cy:3.9,w:0.8,h:0.8},
+            {id:16,cx:5.8,cy:3.9,w:0.8,h:0.8},{id:11,cx:0.5,cy:4.8,w:0.8,h:0.8},
+            {id:10,cx:1.6,cy:4.8,w:0.8,h:0.8},{id:8,cx:3.2,cy:4.8,w:0.8,h:0.8},
+            {id:7,cx:4.5,cy:4.8,w:0.8,h:0.8},{id:6,cx:5.8,cy:4.8,w:0.8,h:0.8},
+            {id:30,cx:3.2,cy:6.0,w:0.8,h:0.8},{id:31,cx:4.5,cy:6.0,w:0.8,h:0.8},
+          ];
+
+          // Calcular rect fusionado para las mesas asignadas (si hay)
+          const mergedRect = mesasMostrar.length > 0 ? calcMergedRect(mesasMostrar, MPOS_FULL, UP_FULL, PAD_FULL) : null;
+
+          // Si no hay merged rect (mesa desconocida), fallback a tarjeta simple
+          if (!mergedRect) {
+            const sw = 72, sh = 40 + n * 22;
+            const cf = sinMesa ? "#fff8e1" : isDragging ? "#fff8e1" : "#e8f5e9";
+            const cs = sinMesa ? "#ffcc02" : isDragging ? "#f9a825" : "#81c784";
+            return (
+              <div draggable onDragStart={() => setAsignarDragReservaId(r.id)} onDragEnd={() => setAsignarDragReservaId(null)}
+                style={{ cursor:"grab", opacity: isDragging ? 0.5 : 1, userSelect:"none" }}>
+                <svg width={sw} height={sh} viewBox={`0 0 ${sw} ${sh}`}>
+                  <rect x={1} y={1} width={sw-2} height={sh-2} rx={8} fill={cf} stroke={cs} strokeWidth={1.5}/>
+                  <text x={sw/2} y={15} textAnchor="middle" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:12,fontWeight:700,fill:"#1a2e1a"}}>{r.nombre.split(" ")[0]}</text>
+                  <text x={sw/2} y={26} textAnchor="middle" style={{fontFamily:"'Jost',sans-serif",fontSize:8,fill:"#4a7a4a"}}>{r.hora}·{pax}p</text>
+                </svg>
+              </div>
+            );
+          }
+
+          // Escalar el rect fusionado para caber en 72px de ancho
+          const { mx: rx, my: ry, mw: rw, mh: rh } = mergedRect;
+          const PAD_MINI = 6, INFO_H = 28;
+          const scale = (72 - PAD_MINI*2) / rw;
+          const svgW = 72;
+          const svgH = Math.round(rh * scale) + PAD_MINI*2 + INFO_H;
+          const offX = PAD_MINI - rx * scale;
+          const offY = INFO_H + PAD_MINI - ry * scale;
+
+          const cf = sinMesa ? "#fff8e1" : isDragging ? "#fff3e0" : "#e8f5e9";
+          const cs = sinMesa ? "#ffcc02" : isDragging ? "#f9a825" : "#81c784";
+          const tfill = sinMesa ? "#1a2e1a" : "#1a2e1a";
+
+          // Dibujar cada mesa individual dentro del grupo
+          const mesasRects = mesasMostrar.map(mid => {
+            const mp = MPOS_FULL.find(p => p.id === mid);
+            if (!mp) return null;
+            const bx = PAD_FULL + mp.cx*UP_FULL - (mp.w*UP_FULL)/2;
+            const by = PAD_FULL + mp.cy*UP_FULL - (mp.h*UP_FULL)/2;
+            const bw = mp.w*UP_FULL, bh = mp.h*UP_FULL;
+            const sx = bx*scale + offX, sy = by*scale + offY;
+            const sw2 = bw*scale, sh2 = bh*scale;
+            const lbl = MESA_NOMBRE[mid] || String(mid);
+            return (
+              <g key={mid}>
+                <rect x={sx} y={sy} width={sw2} height={sh2} rx={4} fill={cf} stroke={cs} strokeWidth={1.5}
+                  strokeDasharray={sinMesa ? "4 2" : "none"}/>
+                <text x={sx+sw2/2} y={sy+sh2/2+4} textAnchor="middle"
+                  style={{fontFamily:"'Cormorant Garamond',serif",fontSize:Math.max(9,sw2*0.3),fontWeight:700,fill:tfill}}>
+                  {lbl}
+                </text>
+              </g>
+            );
+          });
+
+          return (
+            <div key={r.id} draggable onDragStart={() => setAsignarDragReservaId(r.id)} onDragEnd={() => setAsignarDragReservaId(null)}
+              style={{ cursor:"grab", opacity: isDragging ? 0.5 : 1, userSelect:"none" }}
+              title={`${r.nombre} · ${r.hora} · ${pax} pax`}>
+              <svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`}>
+                {/* Info nombre+hora+pax */}
+                <rect x={0} y={0} width={svgW} height={INFO_H} rx={5} fill={sinMesa ? "#fff8e1" : "#f1f8f1"}/>
+                <text x={svgW/2} y={11} textAnchor="middle"
+                  style={{fontFamily:"'Cormorant Garamond',serif",fontSize:11,fontWeight:700,fill:"#1a2e1a"}}>
+                  {r.nombre.split(" ")[0]}
+                </text>
+                <text x={svgW/2} y={22} textAnchor="middle"
+                  style={{fontFamily:"'Jost',sans-serif",fontSize:8,fill:"#4a7a4a"}}>
+                  {r.hora} · {pax}p
+                </text>
+                {/* Mesas */}
+                {mesasRects}
+                {/* Si ya tiene mesas asignadas, mostrar en verde */}
+                {mesasR.length > 0 && (
+                  <text x={svgW/2} y={svgH-3} textAnchor="middle"
+                    style={{fontFamily:"'Jost',sans-serif",fontSize:7,fill:"#1b5e20",fontWeight:600}}>
+                    {mesasR.map(m => getMesaNombre(m)).join("+")}
+                  </text>
+                )}
+              </svg>
+              {mesasR.length > 0 && (
+                <div style={{ textAlign:"center", marginTop:-1 }}>
+                  <button type="button" onClick={() => setAsignarPendiente(p => ({ ...p, [r.id]: [] }))}
+                    style={{ fontFamily:"'Jost',sans-serif", fontSize:8, color:"#b71c1c", background:"none", border:"none", cursor:"pointer", padding:"0 2px" }}>
+                    quitar
+                  </button>
+                </div>
+              )}
+            </div>
+          );
         };
 
         return (
@@ -2977,128 +3149,142 @@ Buenas y Santas`;
             {/* Body: plano izq + reservas der */}
             <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
 
-              {/* ── PLANO ── */}
+              {/* ── PLANO (izquierda) ── con fusión igual que el plano principal */}
               <div style={{ flex: 1, padding: 20, overflowY: "auto", background: "#f4faf4", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-                <svg viewBox={`0 0 ${VW2} ${VH2}`} style={{ width: "100%", maxWidth: 520, display: "block", borderRadius: 12, boxShadow: "0 4px 24px rgba(0,0,0,0.10)" }}>
-                  <defs>
-                    <pattern id="fg2" x="0" y="0" width={U2*0.5} height={U2*0.5} patternUnits="userSpaceOnUse">
-                      <path d={`M ${U2*0.5} 0 L 0 0 0 ${U2*0.5}`} fill="none" stroke="#e8f5e9" strokeWidth="0.5"/>
-                    </pattern>
-                  </defs>
-                  <rect x={0} y={0} width={VW2} height={VH2} fill="#f4faf4" rx={12}/>
-                  <rect x={0} y={0} width={VW2} height={VH2} fill="url(#fg2)" rx={12}/>
-                  <line x1={PAD2+0.2*U2} y1={PAD2+1.15*U2} x2={PAD2+6.5*U2} y2={PAD2+1.15*U2} stroke="#c8e6c9" strokeWidth={0.8} strokeDasharray="5 5"/>
-                  {MESAS_PLANO.map(({ id, cx, cy, w, h }) => {
-                    const mx = PAD2 + cx*U2 - (w*U2)/2;
-                    const my = PAD2 + cy*U2 - (h*U2)/2;
-                    const mw = w*U2, mh = h*U2;
-                    const reservaEnMesa = mesasAsignadas[id] ? reservasTurno2.find(r => r.id === mesasAsignadas[id]) : null;
-                    const puedeRecibir = !!asignarDragReservaId && !reservaEnMesa;
-                    const label = MESA_NOMBRE[id] || String(id);
-                    const fill = reservaEnMesa ? "#2e7d32" : puedeRecibir ? "#fffde7" : "#e8f5e9";
-                    const stroke = reservaEnMesa ? "#1b5e20" : puedeRecibir ? "#f9a825" : "#81c784";
-                    const textC = reservaEnMesa ? "#fff" : puedeRecibir ? "#e65100" : "#2e7d32";
-                    const strokeW = puedeRecibir ? 2 : reservaEnMesa ? 2 : 1.2;
-                    const strokeDash = puedeRecibir ? "4 3" : "none";
-                    return (
-                      <g key={id}
-                        style={{ cursor: puedeRecibir ? "copy" : reservaEnMesa ? "pointer" : "default" }}
-                        onDragOver={e => { if (asignarDragReservaId) e.preventDefault(); }}
-                        onDrop={e => { e.preventDefault(); onDropEnMesa(id); }}
-                        onClick={() => { if (reservaEnMesa) quitarMesaDeReserva(reservaEnMesa.id, id); }}
-                      >
-                        <rect x={mx} y={my} width={mw} height={mh} rx={7} fill={fill} stroke={stroke} strokeWidth={strokeW} strokeDasharray={strokeDash}/>
-                        <text x={mx+mw/2} y={my+mh*(reservaEnMesa ? 0.3 : 0.5)} textAnchor="middle"
-                          style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, fontWeight: 700, fill: textC }}>
-                          {label}
-                        </text>
-                        {reservaEnMesa && <>
-                          <text x={mx+mw/2} y={my+mh*0.52} textAnchor="middle"
-                            style={{ fontFamily: "'Jost', sans-serif", fontSize: 7, fill: "#fff", fontWeight: 600 }}>
-                            {reservaEnMesa.nombre.split(" ")[0]}
-                          </text>
-                          <text x={mx+mw/2} y={my+mh*0.72} textAnchor="middle"
-                            style={{ fontFamily: "'Jost', sans-serif", fontSize: 7, fill: "#fff", opacity: 0.85 }}>
-                            {reservaEnMesa.hora} · {reservaEnMesa.personas}p
-                          </text>
-                          <text x={mx+mw-3} y={my+9} textAnchor="end"
-                            style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fill: "#fff", opacity: 0.7 }}>✕</text>
-                        </>}
-                      </g>
-                    );
-                  })}
-                </svg>
-                <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#6a9a6a", marginTop: 10 }}>
+                {(() => {
+                  // Calcular secondary mesas según asignaciones actuales
+                  const MGROUPS_P = [
+                    { ids:[8,2,18,1], clampToFirst:true, clampHeight:3.2, anchorBottom:true },
+                    { ids:[7,17,4,3], clampToFirst:true, clampHeight:3.2, anchorBottom:true },
+                    { ids:[6,16,15,5], clampToFirst:true, clampHeight:3.2, anchorBottom:true },
+                    { ids:[12,13,11,10], clampToFirst:true, clampHeight:3.2 },
+                    { ids:[5,15,16], clampToFirst:true, clampHeight:2.1 },
+                    { ids:[6,16,15], clampToFirst:true, clampHeight:2.1, anchorBottom:true },
+                    { ids:[3,4,17], clampToFirst:true, clampHeight:2.1 },
+                    { ids:[7,17,4], clampToFirst:true, clampHeight:2.1, anchorBottom:true },
+                    { ids:[1,2,18], clampToFirst:true, clampHeight:2.1 },
+                    { ids:[8,18,2], clampToFirst:true, clampHeight:2.1, anchorBottom:true },
+                    { ids:[12,13,11], clampToFirst:true, clampHeight:2.1 },
+                    [1,2],[3,4],[5,15],[12,13],[8,18],[7,17],[6,16],[11,10],[40,41],[30,31],
+                  ];
+                  // mergeGroup por reserva
+                  const rmg2 = {};
+                  reservasTurno2.forEach(r => {
+                    const ms2 = new Set(getMesasDeReserva(r));
+                    if (ms2.size < 2) return;
+                    for (const grp of MGROUPS_P) {
+                      const ids2 = Array.isArray(grp) ? grp : grp.ids;
+                      const uniq2 = [...new Set(ids2)];
+                      if (uniq2.every(m => ms2.has(m))) {
+                        rmg2[r.id] = Array.isArray(grp) ? uniq2 : { ids: uniq2, clampToFirst: grp.clampToFirst, clampHeight: grp.clampHeight, anchorBottom: grp.anchorBottom };
+                        break;
+                      }
+                    }
+                  });
+                  const sec2 = new Set();
+                  Object.values(rmg2).forEach(grp => { const ids2 = Array.isArray(grp) ? grp : grp.ids; ids2.slice(1).forEach(m => sec2.add(m)); });
+
+                  return (
+                    <svg viewBox={`0 0 ${VW2} ${VH2}`} style={{ width:"100%", maxWidth:520, display:"block", borderRadius:12, boxShadow:"0 4px 24px rgba(0,0,0,0.10)" }}>
+                      <defs>
+                        <pattern id="fg2" x="0" y="0" width={U2*0.5} height={U2*0.5} patternUnits="userSpaceOnUse">
+                          <path d={`M ${U2*0.5} 0 L 0 0 0 ${U2*0.5}`} fill="none" stroke="#e8f5e9" strokeWidth="0.5"/>
+                        </pattern>
+                      </defs>
+                      <rect x={0} y={0} width={VW2} height={VH2} fill="#f4faf4" rx={12}/>
+                      <rect x={0} y={0} width={VW2} height={VH2} fill="url(#fg2)" rx={12}/>
+                      <line x1={PAD2+0.2*U2} y1={PAD2+1.15*U2} x2={PAD2+6.5*U2} y2={PAD2+1.15*U2} stroke="#c8e6c9" strokeWidth={0.8} strokeDasharray="5 5"/>
+                      {MESAS_PLANO.map(({ id, cx, cy, w, h }) => {
+                        if (sec2.has(id)) return null; // ocultar secundarias
+                        const reservaEnMesa = mesasAsignadas[id] ? reservasTurno2.find(r => r.id === mesasAsignadas[id]) : null;
+                        const puedeRecibir = !!asignarDragReservaId && !reservaEnMesa;
+                        const label = MESA_NOMBRE[id] || String(id);
+
+                        // Calcular rect fusionado si hay reserva con múltiples mesas
+                        let mx = PAD2 + cx*U2 - (w*U2)/2;
+                        let my = PAD2 + cy*U2 - (h*U2)/2;
+                        let mw = w*U2, mh = h*U2;
+
+                        if (reservaEnMesa) {
+                          const mg = rmg2[reservaEnMesa.id];
+                          if (mg) {
+                            const mergeIds2 = Array.isArray(mg) ? mg : mg.ids;
+                            if (mergeIds2[0] === id && mergeIds2.length > 1) {
+                              const origMx=mx, origMw=mw, origMh=mh;
+                              mergeIds2.slice(1).forEach(sid => {
+                                const sec = MESAS_PLANO.find(p => p.id===sid); if(!sec) return;
+                                const sx=PAD2+sec.cx*U2-(sec.w*U2)/2, sy=PAD2+sec.cy*U2-(sec.h*U2)/2;
+                                const x2=Math.max(mx+mw,sx+sec.w*U2), y2=Math.max(my+mh,sy+sec.h*U2);
+                                mx=Math.min(mx,sx); my=Math.min(my,sy); mw=x2-mx; mh=y2-my;
+                              });
+                              const cToF = !Array.isArray(mg) && mg.clampToFirst;
+                              if (cToF) {
+                                mx=origMx; mw=origMw; mh=origMh;
+                                mergeIds2.slice(1).forEach(sid => {
+                                  const sec=MESAS_PLANO.find(p=>p.id===sid); if(!sec) return;
+                                  if(Math.abs(sec.cx-cx)<0.7){const sy=PAD2+sec.cy*U2-(sec.h*U2)/2,y2=Math.max(my+mh,sy+sec.h*U2);my=Math.min(my,sy);mh=y2-my;}
+                                });
+                                const cH = !Array.isArray(mg) ? mg.clampHeight : null;
+                                if(cH) mh=Math.min(mh,cH*U2);
+                                const aB = !Array.isArray(mg) && mg.anchorBottom;
+                                if(aB) my=(PAD2+cy*U2+(h*U2)/2)-mh;
+                              }
+                            }
+                          }
+                        }
+
+                        const fill = reservaEnMesa ? "#2e7d32" : puedeRecibir ? "#fffde7" : "#e8f5e9";
+                        const stroke = reservaEnMesa ? "#1b5e20" : puedeRecibir ? "#f9a825" : "#81c784";
+                        const textC = reservaEnMesa ? "#fff" : puedeRecibir ? "#e65100" : "#2e7d32";
+                        const isMergedPrimary = reservaEnMesa && (() => { const mg=rmg2[reservaEnMesa.id]; if(!mg) return false; const ids2=Array.isArray(mg)?mg:mg.ids; return ids2[0]===id && ids2.length>1; })();
+
+                        return (
+                          <g key={id}
+                            style={{ cursor: puedeRecibir ? "copy" : reservaEnMesa ? "pointer" : "default" }}
+                            onDragOver={e => { if (asignarDragReservaId) e.preventDefault(); }}
+                            onDrop={e => { e.preventDefault(); onDropEnMesa(id); }}
+                            onClick={() => { if (reservaEnMesa) quitarMesaDeReserva(reservaEnMesa.id, id); }}
+                          >
+                            <rect x={mx+1} y={my+2} width={mw} height={mh} rx={8} fill="rgba(0,0,0,0.05)"/>
+                            <rect x={mx} y={my} width={mw} height={mh} rx={7} fill={fill} stroke={stroke}
+                              strokeWidth={puedeRecibir ? 2 : reservaEnMesa ? 2 : 1.2}
+                              strokeDasharray={puedeRecibir ? "4 3" : "none"}/>
+                            <text x={mx+mw/2} y={my+mh*(reservaEnMesa && isMergedPrimary ? 0.22 : reservaEnMesa ? 0.28 : 0.5)+4} textAnchor="middle"
+                              style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:13, fontWeight:700, fill:textC }}>
+                              {label}
+                            </text>
+                            {reservaEnMesa && <>
+                              <text x={mx+mw/2} y={my+mh*(isMergedPrimary?0.48:0.55)} textAnchor="middle"
+                                style={{fontFamily:"'Jost',sans-serif",fontSize:7,fill:"#fff",fontWeight:600}}>
+                                {reservaEnMesa.nombre.split(" ")[0]}
+                              </text>
+                              <text x={mx+mw/2} y={my+mh*(isMergedPrimary?0.65:0.75)} textAnchor="middle"
+                                style={{fontFamily:"'Jost',sans-serif",fontSize:7,fill:"#fff",opacity:0.85}}>
+                                {reservaEnMesa.hora}·{reservaEnMesa.personas}p
+                              </text>
+                              <text x={mx+mw-3} y={my+9} textAnchor="end"
+                                style={{fontFamily:"'Jost',sans-serif",fontSize:9,fill:"#fff",opacity:0.7}}>✕</text>
+                            </>}
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  );
+                })()}
+                <p style={{ fontFamily:"'Jost',sans-serif", fontSize:11, color:"#6a9a6a", marginTop:10 }}>
                   Verde = asignada · Clic en mesa asignada para quitar
                 </p>
               </div>
 
-              {/* ── PANEL RESERVAS (derecha) ── */}
-              <div style={{ width: 300, background: "#fff", borderLeft: "1px solid #c8e6c9", padding: "16px 12px", overflowY: "auto", flexShrink: 0 }}>
-                <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", marginBottom: 14, fontWeight: 600, paddingLeft: 4 }}>
+              {/* ── PANEL RESERVAS (derecha) ── tarjetas SVG con geometría real */}
+              <div style={{ width: 310, background: "#fff", borderLeft: "1px solid #c8e6c9", padding: "16px 12px", overflowY: "auto", flexShrink: 0 }}>
+                <p style={{ fontFamily:"'Jost',sans-serif", fontSize:10, letterSpacing:2, color:"#4a7a4a", textTransform:"uppercase", marginBottom:14, fontWeight:600, paddingLeft:4 }}>
                   Reservas del turno
                 </p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 10, padding: "0 4px" }}>
-                  {[...reservasTurno2].sort((a,b) => (a.hora||"").localeCompare(b.hora||"")).map(r => {
-                    const mesasR = getMesasDeReserva(r);
-                    const sinMesa = mesasR.length === 0;
-                    const isDragging = asignarDragReservaId === r.id;
-                    const pax = r.personas || 1;
-                    const { w: sw, h: sh } = mesaSvgDims(pax);
-                    const { fill: cf, stroke: cs } = cardColor(sinMesa, isDragging);
-                    // Número de "bloques" visuales según pax
-                    const bloques = pax <= 2 ? 1 : pax <= 4 ? 2 : pax <= 6 ? 3 : 4;
-                    const bloqueH = (sh - 36) / bloques; // espacio para bloques
-                    return (
-                      <div key={r.id}
-                        draggable
-                        onDragStart={() => setAsignarDragReservaId(r.id)}
-                        onDragEnd={() => setAsignarDragReservaId(null)}
-                        style={{ cursor: "grab", opacity: isDragging ? 0.5 : 1, userSelect: "none" }}
-                        title={`${r.nombre} · ${r.hora} · ${pax} pax`}
-                      >
-                        <svg width={sw} height={sh} viewBox={`0 0 ${sw} ${sh}`}>
-                          {/* Sombra */}
-                          <rect x={2} y={3} width={sw-4} height={sh-4} rx={8} fill="rgba(0,0,0,0.07)"/>
-                          {/* Fondo mesa */}
-                          <rect x={1} y={1} width={sw-2} height={sh-2} rx={8} fill={cf} stroke={cs} strokeWidth={sinMesa ? 2 : 1.5}
-                            strokeDasharray={sinMesa ? "5 3" : "none"}/>
-                          {/* Bloques internos representando capacidad */}
-                          {Array.from({length: bloques}).map((_, i) => (
-                            <rect key={i} x={8} y={32 + i*(bloqueH+3)} width={sw-16} height={bloqueH-3} rx={3}
-                              fill={sinMesa ? "#ffe082" : "#c8e6c9"} opacity={0.6}/>
-                          ))}
-                          {/* Nombre */}
-                          <text x={sw/2} y={14} textAnchor="middle"
-                            style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 12, fontWeight: 700, fill: "#1a2e1a" }}>
-                            {r.nombre.split(" ")[0]}
-                          </text>
-                          {/* Hora */}
-                          <text x={sw/2} y={24} textAnchor="middle"
-                            style={{ fontFamily: "'Jost', sans-serif", fontSize: 8, fill: "#4a7a4a" }}>
-                            {r.hora} · {pax}p
-                          </text>
-                          {/* Mesas asignadas */}
-                          {mesasR.length > 0 && (
-                            <text x={sw/2} y={sh-5} textAnchor="middle"
-                              style={{ fontFamily: "'Jost', sans-serif", fontSize: 7, fill: "#1b5e20", fontWeight: 600 }}>
-                              {mesasR.map(m => getMesaNombre(m)).join("+")}
-                            </text>
-                          )}
-                        </svg>
-                        {/* Botón quitar mesas */}
-                        {mesasR.length > 0 && (
-                          <div style={{ textAlign: "center", marginTop: -2 }}>
-                            <button type="button"
-                              onClick={() => setAsignarPendiente(p => ({ ...p, [r.id]: [] }))}
-                              style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, color: "#b71c1c", background: "none", border: "none", cursor: "pointer", padding: "0 2px", letterSpacing: 0.5 }}>
-                              quitar mesa
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                <div style={{ display:"flex", flexWrap:"wrap", gap:12, padding:"0 4px" }}>
+                  {[...reservasTurno2].sort((a,b) => (a.hora||"").localeCompare(b.hora||"")).map(r => (
+                    <ReservaMiniSVG key={r.id} r={r} />
+                  ))}
                 </div>
               </div>
             </div>
