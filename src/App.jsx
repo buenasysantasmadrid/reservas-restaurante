@@ -2879,9 +2879,9 @@ Buenas y Santas`;
           { id: 6, cx: 5.8, cy: 4.8, w: 0.8, h: 0.8 },
           { id: 30, cx: 3.2, cy: 6.0, w: 0.8, h: 0.8 }, { id: 31, cx: 4.5, cy: 6.0, w: 0.8, h: 0.8 },
         ];
-        const U2 = 62, PAD2 = 8;
+        const U2 = 74, PAD2 = 8;
         const VW2 = 6.1 * U2 + PAD2 * 2;
-        const VH2 = 7.8 * U2 + PAD2 * 2;
+        const VH2 = 6.6 * U2 + PAD2 * 2;
 
         const guardarTodo = async () => {
           const batch = writeBatch(db);
@@ -3084,7 +3084,7 @@ Buenas y Santas`;
           const primary = MPOS_FULL.find(p => p.id === mesasMostrar[0]);
           if (!primary || mesasMostrar.length === 0) {
             // fallback tarjeta simple
-            const sw = 110, sh = 80;
+            const sw = 90, sh = 90;
             return (
               <div draggable onDragStart={() => setAsignarDragReservaId(r.id)} onDragEnd={() => setAsignarDragReservaId(null)}
                 style={{ cursor:"grab", opacity:isDragging?0.5:1, userSelect:"none" }}>
@@ -3092,7 +3092,7 @@ Buenas y Santas`;
                   <rect x={1} y={1} width={sw-2} height={sh-2} rx={7} fill={sinMesa?"#e0e0e0":"#e8f5e9"} stroke={sinMesa?"#888":"#81c784"} strokeWidth={1.5}/>
                   <text x={sw/2} y={22} textAnchor="middle" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:14,fontWeight:700,fill:"#111"}}>{r.nombre.split(" ")[0]}</text>
                   <text x={sw/2} y={38} textAnchor="middle" style={{fontFamily:"'Jost',sans-serif",fontSize:10,fill:"#555"}}>{r.hora}</text>
-                  <text x={sw/2} y={58} textAnchor="middle" style={{fontFamily:"'Jost',sans-serif",fontSize:16,fill:"#111",fontWeight:700}}>{pax}p</text>
+                  <text x={sw/2} y={60} textAnchor="middle" style={{fontFamily:"'Jost',sans-serif",fontSize:16,fill:"#111",fontWeight:700}}>{pax}p</text>
                 </svg>
               </div>
             );
@@ -3126,12 +3126,16 @@ Buenas y Santas`;
             }
           }
 
-          // Escalar para caber en tarjeta de 72px ancho
-          const PAD_MINI = 5, INFO_H = 46;
-          const scale = (110 - PAD_MINI*2) / rw2;
-          const svgW = 110;
-          const svgH = Math.round(rh2 * scale) + PAD_MINI*2 + INFO_H + 4;
-          const offX = PAD_MINI - rx2 * scale;
+          // Escalar al mismo tamaño físico que el plano: 1 unidad = U2 px
+          const SCALE_MINI = 74 / 60; // U2 / UP_FULL
+          const PAD_MINI = 4, INFO_H = 46;
+          const scale = SCALE_MINI;
+          const mesaW = Math.round(rw2 * scale);
+          const mesaH = Math.round(rh2 * scale);
+          // svgW = ancho de la mesa + padding lateral. Mínimo INFO_H para que quepa el texto
+          const svgW = Math.max(mesaW + PAD_MINI * 2, 90);
+          const svgH = mesaH + PAD_MINI * 2 + INFO_H + 4;
+          const offX = PAD_MINI + (svgW - PAD_MINI*2 - mesaW)/2 - rx2 * scale;
           const offY = INFO_H + PAD_MINI - ry2 * scale;
 
           const cf = sinMesa ? "#e0e0e0" : isDragging ? "#fff3e0" : "#e8f5e9";
@@ -3156,7 +3160,7 @@ Buenas y Santas`;
                   style={{fontFamily:"'Jost',sans-serif",fontSize:16,fill:"#111",fontWeight:700}}>
                   {pax}p
                 </text>
-                {/* Mesa fusionada — UN SOLO RECT igual que el plano */}
+                {/* Mesa fusionada — mismo tamaño físico que el plano */}
                 <rect x={offX + rx2*scale + 1} y={offY + ry2*scale + 2} width={rw2*scale} height={rh2*scale} rx={6} fill="rgba(0,0,0,0.05)"/>
                 <rect x={offX + rx2*scale} y={offY + ry2*scale} width={rw2*scale} height={rh2*scale} rx={6}
                   fill={cf} stroke={cs} strokeWidth={sinMesa?2:1.5} strokeDasharray={sinMesa?"5 3":"none"}/>
@@ -3164,7 +3168,7 @@ Buenas y Santas`;
                 {mesasR.length > 0 && (
                   <text x={offX + rx2*scale + rw2*scale/2} y={offY + ry2*scale + rh2*scale * (mesasMostrar.length>1?0.28:0.5)+4}
                     textAnchor="middle"
-                    style={{fontFamily:"'Cormorant Garamond',serif",fontSize:Math.max(10,rw2*scale*0.25),fontWeight:700,fill:"#1b5e20"}}>
+                    style={{fontFamily:"'Cormorant Garamond',serif",fontSize:Math.max(10,rw2*scale*0.22),fontWeight:700,fill:"#1b5e20"}}>
                     {mesasR.map(m => MESA_NOMBRE[m]||String(m)).join("+")}
                   </text>
                 )}
