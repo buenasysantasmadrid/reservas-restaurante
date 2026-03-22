@@ -1626,8 +1626,8 @@ Buenas y Santas`;
                       grupo.reservas.forEach((r, idx) => {
                       const esLlego = r.estado === "llego";
                       const turnoKey2 = getTurno(r.hora);
-                      const lightBg = tStatus.status === "completo" ? "#fff5f5" : tStatus.status === "cuidado" ? "#fffbf0" :
-                        turnoKey2 === "t1" ? "#fafffe" : turnoKey2 === "t2" ? "#f8fdf8" : "#f6fbf6";
+                      const lightBg = tStatus.status === "completo" ? "#ffecec" : tStatus.status === "cuidado" ? "#fff4e5" :
+                        turnoKey2 === "t1" ? "#f0faf0" : turnoKey2 === "t2" ? "#e6f5e6" : "#d8edd8";
                       const trBg = esLlego ? "transparent" : lightBg;
                       rows.push(
                     <tr key={r.id} className="row-hover" style={{ borderBottom: "1px solid #e8f5e9", background: trBg }}>
