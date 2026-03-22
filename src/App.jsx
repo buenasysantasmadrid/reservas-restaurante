@@ -98,6 +98,10 @@ export default function App() {
   const [planoTurnoModalAbierto, setPlanoTurnoModalAbierto] = useState(false);
   const [planoTurnoDesde, setPlanoTurnoDesde] = useState("13:30");
   const [planoTurnoHasta, setPlanoTurnoHasta] = useState("16:00");
+  // Modo reasignación de mesas en el plano
+  const [modoReasignar, setModoReasignar] = useState(false);
+  const [reasignarReservaId, setReasignarReservaId] = useState(null);
+  const [reasignarMesasDestino, setReasignarMesasDestino] = useState([]);
 
   // Auto-archivar al abrir la app si son las 4am o más
   useEffect(() => {
@@ -2394,9 +2398,23 @@ Buenas y Santas`;
           const sinConfirmar = res && res.estado === "tomada";
           const llego = res && res.estado === "llego";
 
-          const fill   = llego ? "#f5f5f5" : ocupada ? (sinConfirmar ? "#fff8e1" : "#2e7d32") : "#e8f5e9";
-          const stroke = llego ? "#e0e0e0" : ocupada ? (sinConfirmar ? "#f9a825" : "#1b5e20") : "#81c784";
-          const textC  = llego ? "#bdbdbd" : ocupada ? (sinConfirmar ? "#e65100" : "#fff") : "#2e7d32";
+          // Reasignación: estados visuales
+          const esReservaSeleccionada = modoReasignar && res && res.id === reasignarReservaId;
+          const esMesaDestino = modoReasignar && reasignarMesasDestino.includes(id);
+          const hayReservaSeleccionada = modoReasignar && reasignarReservaId !== null;
+
+          let fill, stroke, textC;
+          if (esReservaSeleccionada) {
+            fill = "#ff8f00"; stroke = "#e65100"; textC = "#fff";
+          } else if (esMesaDestino) {
+            fill = "#1565c0"; stroke = "#0d47a1"; textC = "#fff";
+          } else {
+            fill   = llego ? "#f5f5f5" : ocupada ? (sinConfirmar ? "#fff8e1" : "#2e7d32") : "#e8f5e9";
+            stroke = llego ? "#e0e0e0" : ocupada ? (sinConfirmar ? "#f9a825" : "#1b5e20") : "#81c784";
+            textC  = llego ? "#bdbdbd" : ocupada ? (sinConfirmar ? "#e65100" : "#fff") : "#2e7d32";
+          }
+          // En modo reasignar, mesas no relevantes se atenúan un poco
+          const opacity = (modoReasignar && hayReservaSeleccionada && !esReservaSeleccionada && !esMesaDestino) ? 0.5 : 1;
 
           const mergeGroup = res ? reservaMergeGroup[res.id] : null;
           const mergeIds = mergeGroup ? (Array.isArray(mergeGroup) ? mergeGroup : mergeGroup.ids) : null;
@@ -2446,10 +2464,37 @@ Buenas y Santas`;
           const labelMesa = MESA_NOMBRE[id] || String(id);
           const lineH = isMerged ? mh * 0.22 : (res ? mh * 0.28 : mh / 2 + 4);
 
+          const handleClick = () => {
+            if (modoReasignar) {
+              if (!reasignarReservaId) {
+                // Paso 1: seleccionar reserva origen (solo mesas ocupadas)
+                if (res) setReasignarReservaId(res.id);
+              } else {
+                // Paso 2: marcar/desmarcar mesas destino
+                if (res && res.id === reasignarReservaId) {
+                  // Click sobre la misma reserva → deseleccionar
+                  setReasignarReservaId(null);
+                  setReasignarMesasDestino([]);
+                } else {
+                  // Toggle mesa destino
+                  setReasignarMesasDestino(prev =>
+                    prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
+                  );
+                }
+              }
+            } else {
+              if (res) setPlanoModal({ reservaId: res.id, nombre: res.nombre, estado: res.estado, telefono: res.telefono || "", prefijo: res.prefijo || "" });
+            }
+          };
+
+          const cursorStyle = modoReasignar
+            ? (!reasignarReservaId ? (res ? "pointer" : "default") : "pointer")
+            : (res ? "pointer" : "default");
+
           return (
-            <g key={id} style={{ cursor: res ? "pointer" : "default" }}
-              onClick={() => res && setPlanoModal({ reservaId: res.id, nombre: res.nombre, estado: res.estado, telefono: res.telefono || "", prefijo: res.prefijo || "" })}
-              onMouseEnter={res && res.notas ? (e) => {
+            <g key={id} style={{ cursor: cursorStyle, opacity }}
+              onClick={handleClick}
+              onMouseEnter={!modoReasignar && res && res.notas ? (e) => {
                 const svgEl = e.currentTarget.closest("svg");
                 const svgRect = svgEl.getBoundingClientRect();
                 const containerRect = svgEl.parentElement.getBoundingClientRect();
@@ -2463,9 +2508,11 @@ Buenas y Santas`;
                   scaleY: svgRect.height / VH,
                 });
               } : null}
-              onMouseLeave={res && res.notas ? () => setHoveredMesa(null) : null}>
+              onMouseLeave={!modoReasignar && res && res.notas ? () => setHoveredMesa(null) : null}>
               <rect x={mx+1} y={my+2} width={mw} height={mh} rx={RR+1} fill="rgba(0,0,0,0.06)"/>
-              <rect x={mx} y={my} width={mw} height={mh} rx={RR} fill={fill} stroke={stroke} strokeWidth={ocupada ? 2 : 1.2}/>
+              <rect x={mx} y={my} width={mw} height={mh} rx={RR} fill={fill} stroke={stroke} strokeWidth={(esReservaSeleccionada || esMesaDestino) ? 3 : ocupada ? 2 : 1.2}
+                strokeDasharray={esMesaDestino ? "5 3" : "none"}/>
+              {esReservaSeleccionada && <rect x={mx-3} y={my-3} width={mw+6} height={mh+6} rx={RR+3} fill="none" stroke="#ff8f00" strokeWidth={2} opacity={0.5}/>}
               <text x={mx + mw/2} y={my + lineH} textAnchor="middle"
                 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: barra ? 11 : 13, fontWeight: 700, fill: textC, letterSpacing: 0.5 }}>
                 {labelMesa}
@@ -2492,6 +2539,17 @@ Buenas y Santas`;
           );
         };
 
+        // Confirmar reasignación
+        const confirmarReasignacion = async () => {
+          if (!reasignarReservaId || reasignarMesasDestino.length === 0) return;
+          const reserva = reservas.find(r => r.id === reasignarReservaId);
+          if (!reserva) return;
+          await fbSetReserva({ ...reserva, mesas: reasignarMesasDestino, mesa: reasignarMesasDestino[0] });
+          showToast(`${reserva.nombre.split(" ")[0]} → Mesa${reasignarMesasDestino.length > 1 ? "s" : ""} ${reasignarMesasDestino.join("+")} ✓`);
+          setReasignarReservaId(null);
+          setReasignarMesasDestino([]);
+        };
+
         return (
           <div style={{ padding: "40px", maxWidth: 1000, margin: "0 auto", position: "relative", zIndex: 1 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24 }}>
@@ -2499,8 +2557,65 @@ Buenas y Santas`;
                 <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 3, color: "#4a7a4a", textTransform: "uppercase", marginBottom: 8 }}>Vista sala</p>
                 <h1 className="page-title" style={{ fontFamily: "'Lora', serif", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Plano</h1>
               </div>
-              <button className="btn-outline" style={{ borderColor: "#81c784", color: "#2e7d32", fontSize: 11 }} onClick={imprimirPlano}>🖨 Imprimir plano</button>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  onClick={() => {
+                    if (modoReasignar) {
+                      setModoReasignar(false);
+                      setReasignarReservaId(null);
+                      setReasignarMesasDestino([]);
+                    } else {
+                      setModoReasignar(true);
+                    }
+                  }}
+                  style={{
+                    padding: "10px 18px", fontFamily: "'Jost', sans-serif", fontSize: 12,
+                    letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", borderRadius: 4,
+                    background: modoReasignar ? "#e65100" : "#fff3e0",
+                    color: modoReasignar ? "#fff" : "#e65100",
+                    border: `1.5px solid ${modoReasignar ? "#e65100" : "#ffcc80"}`,
+                    fontWeight: 600, transition: "all 0.2s"
+                  }}>
+                  {modoReasignar ? "✕ Salir de reasignación" : "⇄ Reasignar mesas"}
+                </button>
+                <button className="btn-outline" style={{ borderColor: "#81c784", color: "#2e7d32", fontSize: 11 }} onClick={imprimirPlano}>🖨 Imprimir plano</button>
+              </div>
             </div>
+
+            {/* Panel instrucciones modo reasignación */}
+            {modoReasignar && (
+              <div style={{ marginBottom: 16, padding: "14px 20px", background: "#fff8e1", border: "1.5px solid #ffcc02", borderRadius: 8, fontFamily: "'Jost', sans-serif", fontSize: 13 }}>
+                {!reasignarReservaId ? (
+                  <span style={{ color: "#e65100" }}>
+                    <strong>Paso 1:</strong> Haz click en la reserva que quieres mover (se pondrá en naranja)
+                  </span>
+                ) : reasignarMesasDestino.length === 0 ? (
+                  <span style={{ color: "#1565c0" }}>
+                    <strong style={{ color: "#e65100" }}>✓ {reservas.find(r => r.id === reasignarReservaId)?.nombre.split(" ")[0]} seleccionada</strong>
+                    {"  ·  "}
+                    <strong>Paso 2:</strong> Haz click en las mesas destino (en azul). Puedes seleccionar varias para fusionar.
+                  </span>
+                ) : (
+                  <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                    <span style={{ color: "#1a2e1a" }}>
+                      <strong style={{ color: "#e65100" }}>✓ {reservas.find(r => r.id === reasignarReservaId)?.nombre.split(" ")[0]}</strong>
+                      {" → "}
+                      <strong style={{ color: "#1565c0" }}>Mesas {reasignarMesasDestino.join(" + ")}</strong>
+                    </span>
+                    <button
+                      onClick={confirmarReasignacion}
+                      style={{ padding: "8px 20px", background: "#2e7d32", color: "#fff", border: "none", borderRadius: 4, fontFamily: "'Jost', sans-serif", fontSize: 12, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", fontWeight: 600 }}>
+                      ✓ Confirmar
+                    </button>
+                    <button
+                      onClick={() => { setReasignarReservaId(null); setReasignarMesasDestino([]); }}
+                      style={{ padding: "8px 14px", background: "none", color: "#888", border: "1px solid #ccc", borderRadius: 4, fontFamily: "'Jost', sans-serif", fontSize: 11, cursor: "pointer" }}>
+                      Cancelar
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Filtros */}
             <div style={{ display: "flex", gap: 12, marginBottom: 28, flexWrap: "wrap", alignItems: "center" }}>
@@ -2555,6 +2670,10 @@ Buenas y Santas`;
                   { fill: "#2e7d32", stroke: "#1b5e20", label: "Confirmada" },
                   { fill: "#fff8e1", stroke: "#f9a825", label: "Sin confirmar" },
                   { fill: "#f5f5f5", stroke: "#e0e0e0", label: "Llegó" },
+                  ...(modoReasignar ? [
+                    { fill: "#ff8f00", stroke: "#e65100", label: "Origen" },
+                    { fill: "#1565c0", stroke: "#0d47a1", label: "Destino" },
+                  ] : []),
                 ].map(l => (
                   <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <div style={{ width: 16, height: 16, background: l.fill, border: `2px solid ${l.stroke}`, borderRadius: 3 }}/>
