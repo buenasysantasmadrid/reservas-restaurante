@@ -3084,14 +3084,14 @@ Buenas y Santas`;
           const primary = MPOS_FULL.find(p => p.id === mesasMostrar[0]);
           if (!primary || mesasMostrar.length === 0) {
             // fallback tarjeta simple
-            const sw = 72, sh = 52;
+            const sw = 96, sh = 70;
             return (
               <div draggable onDragStart={() => setAsignarDragReservaId(r.id)} onDragEnd={() => setAsignarDragReservaId(null)}
                 style={{ cursor:"grab", opacity:isDragging?0.5:1, userSelect:"none" }}>
                 <svg width={sw} height={sh} viewBox={`0 0 ${sw} ${sh}`}>
-                  <rect x={1} y={1} width={sw-2} height={sh-2} rx={7} fill={sinMesa?"#fff8e1":"#e8f5e9"} stroke={sinMesa?"#ffcc02":"#81c784"} strokeWidth={1.5}/>
-                  <text x={sw/2} y={18} textAnchor="middle" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:13,fontWeight:700,fill:"#111"}}>{r.nombre.split(" ")[0]}</text>
-                  <text x={sw/2} y={31} textAnchor="middle" style={{fontFamily:"'Jost',sans-serif",fontSize:10,fill:"#111",fontWeight:500}}>{r.hora}·{pax}p</text>
+                  <rect x={1} y={1} width={sw-2} height={sh-2} rx={7} fill={sinMesa?"#e0e0e0":"#e8f5e9"} stroke={sinMesa?"#888":"#81c784"} strokeWidth={1.5}/>
+                  <text x={sw/2} y={22} textAnchor="middle" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,fontWeight:700,fill:"#111"}}>{r.nombre.split(" ")[0]}</text>
+                  <text x={sw/2} y={38} textAnchor="middle" style={{fontFamily:"'Jost',sans-serif",fontSize:12,fill:"#111",fontWeight:500}}>{r.hora}·{pax}p</text>
                 </svg>
               </div>
             );
@@ -3126,15 +3126,15 @@ Buenas y Santas`;
           }
 
           // Escalar para caber en tarjeta de 72px ancho
-          const PAD_MINI = 5, INFO_H = 30;
-          const scale = (72 - PAD_MINI*2) / rw2;
-          const svgW = 72;
+          const PAD_MINI = 5, INFO_H = 42;
+          const scale = (96 - PAD_MINI*2) / rw2;
+          const svgW = 96;
           const svgH = Math.round(rh2 * scale) + PAD_MINI*2 + INFO_H + 4;
           const offX = PAD_MINI - rx2 * scale;
           const offY = INFO_H + PAD_MINI - ry2 * scale;
 
-          const cf = sinMesa ? "#fff8e1" : isDragging ? "#fff3e0" : "#e8f5e9";
-          const cs = sinMesa ? "#ffcc02" : isDragging ? "#f9a825" : "#81c784";
+          const cf = sinMesa ? "#e0e0e0" : isDragging ? "#fff3e0" : "#e8f5e9";
+          const cs = sinMesa ? "#888" : isDragging ? "#f9a825" : "#81c784";
 
           return (
             <div key={r.id} draggable onDragStart={() => setAsignarDragReservaId(r.id)} onDragEnd={() => setAsignarDragReservaId(null)}
@@ -3142,13 +3142,13 @@ Buenas y Santas`;
               title={`${r.nombre} · ${r.hora} · ${pax} pax${mesasR.length>0?" · "+mesasR.join("+"):""}`}>
               <svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`}>
                 {/* Cabecera info */}
-                <rect x={0} y={0} width={svgW} height={INFO_H} rx={6} fill={sinMesa?"#fff8e1":"#f1f8f1"}/>
-                <text x={svgW/2} y={13} textAnchor="middle"
-                  style={{fontFamily:"'Cormorant Garamond',serif",fontSize:13,fontWeight:700,fill:"#111"}}>
+                <rect x={0} y={0} width={svgW} height={INFO_H} rx={6} fill={sinMesa?"#f0f0f0":"#f1f8f1"}/>
+                <text x={svgW/2} y={16} textAnchor="middle"
+                  style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,fontWeight:700,fill:"#111"}}>
                   {r.nombre.split(" ")[0]}
                 </text>
-                <text x={svgW/2} y={25} textAnchor="middle"
-                  style={{fontFamily:"'Jost',sans-serif",fontSize:10,fill:"#111",fontWeight:500}}>
+                <text x={svgW/2} y={31} textAnchor="middle"
+                  style={{fontFamily:"'Jost',sans-serif",fontSize:12,fill:"#111",fontWeight:500}}>
                   {r.hora} · {pax}p
                 </text>
                 {/* Mesa fusionada — UN SOLO RECT igual que el plano */}
@@ -3329,11 +3329,11 @@ Buenas y Santas`;
               </div>
 
               {/* ── PANEL RESERVAS (derecha) ── tarjetas SVG con geometría real */}
-              <div style={{ width: 310, background: "#fff", borderLeft: "1px solid #c8e6c9", padding: "16px 12px", overflowY: "auto", flexShrink: 0 }}>
+              <div style={{ width: 520, background: "#fff", borderLeft: "1px solid #c8e6c9", padding: "16px 14px", overflowY: "auto", flexShrink: 0 }}>
                 <p style={{ fontFamily:"'Jost',sans-serif", fontSize:10, letterSpacing:2, color:"#4a7a4a", textTransform:"uppercase", marginBottom:14, fontWeight:600, paddingLeft:4 }}>
                   Reservas del turno
                 </p>
-                <div style={{ display:"grid", gridTemplateColumns:"repeat(5, 1fr)", gap:10, padding:"0 4px" }}>
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(5, 1fr)", gap:8, padding:"0 2px" }}>
                   {[...reservasTurno2].sort((a,b) => (a.hora||"").localeCompare(b.hora||"")).map(r => (
                     <ReservaMiniSVG key={r.id} r={r} />
                   ))}
