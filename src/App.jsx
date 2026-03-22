@@ -441,14 +441,14 @@ export default function App() {
 
 
   const MESA_CONFIG = {
-    8: [{internas:[5,15,6,16]}, {internas:[3,4,7,17]}, {internas:[1,2,8,18]}, {internas:[10,11,12,13]}],
-    7: [{internas:[7,17,4]}, {internas:[6,16,15]}, {internas:[8,18,2]}, {internas:[11,12,13]}],
-    6: [{internas:[6,16,15]}, {internas:[7,17,4]}, {internas:[8,18,2]}, {internas:[11,12,13]}],
-    5: [{internas:[1,2]}, {internas:[7,17]}, {internas:[12,13]}, {internas:[8,18]}, {internas:[3,4]}, {internas:[5,15]}, {internas:[6,16]}, {internas:[10,11]}],
-    4: [{internas:[12,13]}, {internas:[5,15]}, {internas:[6,16]}, {internas:[7,17]}, {internas:[1,2]}, {internas:[8,18]}, {internas:[3,4]}, {internas:[10,11]}],
-    3: [{internas:[12,13]}, {internas:[5,15]}, {internas:[6,16]}, {internas:[7,17]}, {internas:[1,2]}, {internas:[8,18]}, {internas:[3,4]}, {internas:[10,11]}],
-    2: [{internas:[3]}, {internas:[10]}, {internas:[11]}, {internas:[4]}, {internas:[5]}, {internas:[15]}, {internas:[7]}, {internas:[17]}, {internas:[8]}, {internas:[18]}, {internas:[1]}, {internas:[2]}, {internas:[6]}, {internas:[16]}, {internas:[12]}, {internas:[13]}],
-    1: [{internas:[3]}, {internas:[10]}, {internas:[11]}, {internas:[4]}, {internas:[5]}, {internas:[15]}, {internas:[7]}, {internas:[17]}, {internas:[8]}, {internas:[18]}, {internas:[1]}, {internas:[2]}, {internas:[6]}, {internas:[16]}, {internas:[12]}, {internas:[13]}],
+    8: [{internas:[5,15,6,16]}, {internas:[3,4,7,17]}, {internas:[1,2,8,18]}, {internas:[10,11,12,13]}, {internas:[40,41]}, {internas:[30,31]}],
+    7: [{internas:[7,17,4]}, {internas:[6,16,15]}, {internas:[8,18,2]}, {internas:[11,12,13]}, {internas:[40,41]}, {internas:[30,31]}],
+    6: [{internas:[6,16,15]}, {internas:[7,17,4]}, {internas:[8,18,2]}, {internas:[11,12,13]}, {internas:[40,41]}, {internas:[30,31]}],
+    5: [{internas:[1,2]}, {internas:[7,17]}, {internas:[12,13]}, {internas:[8,18]}, {internas:[3,4]}, {internas:[5,15]}, {internas:[6,16]}, {internas:[10,11]}, {internas:[40,41]}, {internas:[30,31]}],
+    4: [{internas:[12,13]}, {internas:[5,15]}, {internas:[6,16]}, {internas:[7,17]}, {internas:[1,2]}, {internas:[8,18]}, {internas:[3,4]}, {internas:[10,11]}, {internas:[40,41]}, {internas:[30,31]}],
+    3: [{internas:[12,13]}, {internas:[5,15]}, {internas:[6,16]}, {internas:[7,17]}, {internas:[1,2]}, {internas:[8,18]}, {internas:[3,4]}, {internas:[10,11]}, {internas:[40,41]}, {internas:[30,31]}],
+    2: [{internas:[3]}, {internas:[10]}, {internas:[11]}, {internas:[4]}, {internas:[5]}, {internas:[15]}, {internas:[7]}, {internas:[17]}, {internas:[8]}, {internas:[18]}, {internas:[1]}, {internas:[2]}, {internas:[6]}, {internas:[16]}, {internas:[12]}, {internas:[13]}, {internas:[40]}, {internas:[41]}, {internas:[30]}, {internas:[31]}],
+    1: [{internas:[3]}, {internas:[10]}, {internas:[11]}, {internas:[4]}, {internas:[5]}, {internas:[15]}, {internas:[7]}, {internas:[17]}, {internas:[8]}, {internas:[18]}, {internas:[1]}, {internas:[2]}, {internas:[6]}, {internas:[16]}, {internas:[12]}, {internas:[13]}, {internas:[40]}, {internas:[41]}, {internas:[30]}, {internas:[31]}],
   };
 
   const asignarMesasTurno = async (fecha, turno, ajuste6 = null) => {
@@ -2937,19 +2937,19 @@ Buenas y Santas`;
         };
 
         // Al soltar en una mesa del plano: auto-asignar mesas contiguas según pax
-        const onDropEnMesa = (mesaDestino) => {
-          if (!asignarDragReservaId) return;
-          const r = reservasTurno2.find(x => x.id === asignarDragReservaId);
+        const onDropEnMesa = (mesaDestino, e) => {
+          const dragId = e.dataTransfer.getData("reservaId");
+          const reservaIdParsed = isNaN(Number(dragId)) ? dragId : Number(dragId);
+          const r = reservasTurno2.find(x => x.id === reservaIdParsed || String(x.id) === dragId);
           if (!r) return;
+          setAsignarDragReservaId(null);
           // Si es 6 pax: preguntar 2 o 3 mesas
           if (Number(r.personas) === 6) {
             setPregunta6pax({ reservaId: r.id, mesaDestino });
-            setAsignarDragReservaId(null);
             return;
           }
           const mesasElegidas = elegirMesas(r, mesaDestino, null);
-          setAsignarPendiente(p => ({ ...p, [asignarDragReservaId]: mesasElegidas }));
-          setAsignarDragReservaId(null);
+          setAsignarPendiente(p => ({ ...p, [r.id]: mesasElegidas }));
         };
 
         // Dimensiones del SVG de reserva según pax con regla exacta
@@ -3086,7 +3086,7 @@ Buenas y Santas`;
             // fallback tarjeta simple
             const sw = 90, sh = 90;
             return (
-              <div draggable onDragStart={() => setAsignarDragReservaId(r.id)} onDragEnd={() => setAsignarDragReservaId(null)}
+              <div draggable onDragStart={e => { e.dataTransfer.setData("reservaId", String(r.id)); e.dataTransfer.effectAllowed="move"; setAsignarDragReservaId(r.id); }} onDragEnd={() => setAsignarDragReservaId(null)}
                 style={{ cursor:"grab", opacity:isDragging?0.5:1, userSelect:"none" }}>
                 <svg width={sw} height={sh} viewBox={`0 0 ${sw} ${sh}`}>
                   <rect x={1} y={1} width={sw-2} height={sh-2} rx={7} fill={sinMesa?"#e0e0e0":"#e8f5e9"} stroke={sinMesa?"#888":"#81c784"} strokeWidth={1.5}/>
@@ -3142,7 +3142,7 @@ Buenas y Santas`;
           const cs = sinMesa ? "#888" : isDragging ? "#f9a825" : "#81c784";
 
           return (
-            <div key={r.id} draggable onDragStart={() => setAsignarDragReservaId(r.id)} onDragEnd={() => setAsignarDragReservaId(null)}
+            <div key={r.id} draggable onDragStart={e => { e.dataTransfer.setData("reservaId", String(r.id)); e.dataTransfer.effectAllowed="move"; setAsignarDragReservaId(r.id); }} onDragEnd={() => setAsignarDragReservaId(null)}
               style={{ cursor:"grab", opacity:isDragging?0.5:1, userSelect:"none" }}
               title={`${r.nombre} · ${r.hora} · ${pax} pax${mesasR.length>0?" · "+mesasR.join("+"):""}`}>
               <svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`}>
@@ -3302,8 +3302,8 @@ Buenas y Santas`;
                         return (
                           <g key={id}
                             style={{ cursor: puedeRecibir ? "copy" : reservaEnMesa ? "pointer" : "default" }}
-                            onDragOver={e => { if (asignarDragReservaId) e.preventDefault(); }}
-                            onDrop={e => { e.preventDefault(); onDropEnMesa(id); }}
+                            onDragOver={e => e.preventDefault()}
+                            onDrop={e => { e.preventDefault(); onDropEnMesa(id, e); }}
                             onClick={() => { if (reservaEnMesa) quitarMesaDeReserva(reservaEnMesa.id); }}
                           >
                             <rect x={mx+1} y={my+2} width={mw} height={mh} rx={8} fill="rgba(0,0,0,0.05)"/>
