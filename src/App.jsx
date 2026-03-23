@@ -124,6 +124,65 @@ export default function App() {
   const [modalWaTodos, setModalWaTodos] = useState(null); // { fecha } o null
   // Pregunta 2 o 3 mesas al asignar reserva de 6 pax en drag&drop
   const [pregunta6pax, setPregunta6pax] = useState(null); // { reservaId, mesaDestino }
+  // Fechas cerradas leídas de Google Sheets (hoja CERRAMOS)
+  // Array de { fecha: "YYYY-MM-DD", turno: "todos"|"mediodia"|"noche" }
+  const [fechasCerradas, setFechasCerradas] = useState([]);
+
+  // ── Cargar hoja CERRAMOS de Google Sheets ───────────────────────────────
+  useEffect(() => {
+    const SHEET_ID = "1b-RaZ3yQxQov1xgQS8QIBEeHMg4FA0ZIrjH6vWNtdFA";
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=CERRAMOS`;
+    fetch(url)
+      .then(r => r.text())
+      .then(csv => {
+        const lineas = csv.trim().split(/\r?\n/).slice(1); // saltar cabecera
+        const parsed = [];
+        lineas.forEach(linea => {
+          const cols = linea.split(",").map(c => c.replace(/^"|"$/g, "").trim());
+          const rawFecha = cols[0] || "";
+          const rawTurno = (cols[1] || "").toLowerCase().trim();
+          if (!rawFecha) return;
+          let fecha = "";
+          const mISO = rawFecha.match(/^(\d{4})-(\d{2})-(\d{2})/);
+          const mES  = rawFecha.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+          if (mISO) fecha = `${mISO[1]}-${mISO[2]}-${mISO[3]}`;
+          else if (mES) fecha = `${mES[3]}-${String(mES[2]).padStart(2,"0")}-${String(mES[1]).padStart(2,"0")}`;
+          if (!fecha) return;
+          let turno = "todos";
+          if (rawTurno.includes("noche")) turno = "noche";
+          else if (rawTurno.includes("medio")) turno = "mediodia";
+          parsed.push({ fecha, turno });
+        });
+        setFechasCerradas(parsed);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Helper: qué turnos están bloqueados para una fecha
+  const getTurnosBloqueados = (fecha) => {
+    const bloqueos = fechasCerradas.filter(f => f.fecha === fecha);
+    if (bloqueos.length === 0) return { mediodia: false, noche: false };
+    const total = bloqueos.some(f => f.turno === "todos");
+    return {
+      mediodia: total || bloqueos.some(f => f.turno === "mediodia"),
+      noche:    total || bloqueos.some(f => f.turno === "noche"),
+    };
+  };
+
+  // Helper: devuelve los horarios permitidos para una fecha, descontando turnos bloqueados
+  const getHorariosParaFechaConBloqueo = (fecha) => {
+    const base = getHorariosParaFecha(fecha);
+    if (!fecha) return base;
+    const { mediodia, noche } = getTurnosBloqueados(fecha);
+    return base.filter(h => {
+      const [hh, mm] = h.split(":").map(Number);
+      const mins = hh * 60 + mm;
+      const esMedio = mins < 20 * 60;
+      if (esMedio && mediodia) return false;
+      if (!esMedio && noche) return false;
+      return true;
+    });
+  };
 
   // Auto-archivar al abrir la app si son las 4am o más
   useEffect(() => {
@@ -355,6 +414,15 @@ export default function App() {
     if (!form.tomadaPor) return showToast("Indica quién toma la reserva", "error");
     if (!form.nombre || !form.fecha || !form.hora) return showToast("Selecciona nombre, fecha y hora", "error");
     if (!form.personas || form.personas < 1) return showToast("Indica el número de personas", "error");
+    // Verificar si el turno de esa hora está bloqueado
+    if (!reservaEditando) {
+      const { mediodia, noche } = getTurnosBloqueados(form.fecha);
+      const [hh, mm] = form.hora.split(":").map(Number);
+      const esMedio = (hh * 60 + mm) < 20 * 60;
+      if ((esMedio && mediodia) || (!esMedio && noche)) {
+        return showToast("No se pueden tomar reservas — día cerrado", "error");
+      }
+    }
     // Siempre pedir confirmación de WhatsApp (nueva o edición)
     setConfirmarWA(true);
   };
@@ -2163,14 +2231,34 @@ Buenas y Santas`;
               {/* Fila 1: Fecha y Hora */}
               <div>
                 <label style={{ fontSize: 9, marginBottom: 3 }}>Fecha *</label>
-                <input type="date" className="input-field" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} autoComplete="off" style={{ padding: "7px 10px", fontSize: 13 }} />
+                <input type="date" className="input-field" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value, hora: "" }))} autoComplete="off" style={{ padding: "7px 10px", fontSize: 13 }} />
+                {form.fecha && (() => {
+                  const { mediodia, noche } = getTurnosBloqueados(form.fecha);
+                  if (!mediodia && !noche) return null;
+                  const turnoLabel = mediodia && noche ? "todo el día" : mediodia ? "mediodía" : "noche";
+                  return (
+                    <div style={{ marginTop: 6, padding: "5px 10px", borderRadius: 6, background: "#ffebee", border: "1px solid #ef9a9a", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: 13 }}>🔒</span>
+                      <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 700, color: "#b71c1c", letterSpacing: 0.5 }}>
+                        CERRADO — {turnoLabel}
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
               <div>
                 <label style={{ fontSize: 9, marginBottom: 3 }}>Hora *</label>
                 <select className="input-field" value={form.hora} onChange={e => setForm(f => ({ ...f, hora: e.target.value }))} style={{ padding: "7px 10px", fontSize: 13 }}>
                   <option value="">— Hora —</option>
-                  {getHorariosParaFecha(form.fecha).map(h => <option key={h} value={h}>{h}</option>)}
+                  {getHorariosParaFechaConBloqueo(form.fecha).map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
+                {form.fecha && getHorariosParaFechaConBloqueo(form.fecha).length === 0 && (
+                  <div style={{ marginTop: 6, padding: "5px 10px", borderRadius: 6, background: "#ffebee", border: "1px solid #ef9a9a", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 700, color: "#b71c1c", letterSpacing: 0.5 }}>
+                      No hay horarios disponibles este día
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Fila 2: Nº personas y Tomada por */}
