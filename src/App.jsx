@@ -2828,11 +2828,12 @@ Buenas y Santas`;
                 if (sinMesa.length === 0) return null;
                 return (
                   <div style={{
-                    position: "absolute", top: 16, right: 16, zIndex: 10,
+                    position: "sticky", top: 8, zIndex: 30,
                     background: "#b71c1c", color: "#fff",
                     padding: "12px 20px", borderRadius: 8,
                     boxShadow: "0 4px 16px rgba(183,28,28,0.45)",
                     display: "flex", alignItems: "center", gap: 10,
+                    marginBottom: 16,
                     animation: "pulseRed 1.4s ease-in-out infinite"
                   }}>
                     <span style={{ fontSize: 24 }}>⚠️</span>
@@ -2935,9 +2936,9 @@ Buenas y Santas`;
                       const planoBg = r.estado === "llego" ? "transparent" : "#f4fcf4";
                       return (
                         <tr key={r.id} style={{ borderBottom: "1px solid #d6edd6", background: planoBg }}>
-                          <td style={{ padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontSize: 17, color: "#1b5e20" }}>{r.hora}</td>
-                          <td style={{ padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontSize: 16, color: "#1a2e1a" }}>{r.nombre}</td>
-                          <td style={{ padding: "10px 16px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{r.personas} pax</td>
+                          <td style={{ padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: "#1b5e20" }}>{r.hora}</td>
+                          <td style={{ padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 700, color: "#1a2e1a" }}>{r.nombre}</td>
+                          <td style={{ padding: "10px 16px", fontFamily: "'Jost', sans-serif", fontSize: 15, fontWeight: 700, color: "#4a7a4a" }}>{r.personas} pax</td>
                           <td style={{ padding: "10px 16px" }}>
                             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                               {mesasActuales.map(m => (
@@ -3520,20 +3521,20 @@ Buenas y Santas`;
                               strokeWidth={puedeRecibir ? 2 : reservaEnMesa ? 2 : 1.2}
                               strokeDasharray={puedeRecibir ? "4 3" : "none"}/>
                             <text x={mx+mw/2} y={my+mh*(reservaEnMesa && isMergedPrimary ? 0.22 : reservaEnMesa ? 0.28 : 0.5)+4} textAnchor="middle"
-                              style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:14, fontWeight:700, fill:textC }}>
+                              style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, fontWeight:700, fill:textC }}>
                               {label}
                             </text>
                             {reservaEnMesa && <>
                               <text x={mx+mw/2} y={my+mh*(isMergedPrimary?0.48:0.55)} textAnchor="middle"
-                                style={{fontFamily:"'Jost',sans-serif",fontSize:9,fill:"#fff",fontWeight:600}}>
+                                style={{fontFamily:"'Cormorant Garamond',serif",fontSize:14,fontWeight:700,fill:"#fff"}}>
                                 {reservaEnMesa.nombre.split(" ")[0]}
                               </text>
-                              <text x={mx+mw/2} y={my+mh*(isMergedPrimary?0.65:0.75)} textAnchor="middle"
-                                style={{fontFamily:"'Jost',sans-serif",fontSize:8.5,fill:"#fff",opacity:0.85}}>
-                                {reservaEnMesa.hora}·{reservaEnMesa.personas}p
+                              <text x={mx+mw/2} y={my+mh*(isMergedPrimary?0.67:0.76)} textAnchor="middle"
+                                style={{fontFamily:"'Jost',sans-serif",fontSize:13,fontWeight:600,fill:"#fff",opacity:0.9}}>
+                                {reservaEnMesa.hora} · {reservaEnMesa.personas}p
                               </text>
-                              <text x={mx+mw-3} y={my+9} textAnchor="end"
-                                style={{fontFamily:"'Jost',sans-serif",fontSize:9,fill:"#fff",opacity:0.7}}>✕</text>
+                              <text x={mx+mw-4} y={my+12} textAnchor="end"
+                                style={{fontFamily:"'Jost',sans-serif",fontSize:11,fill:"#fff",opacity:0.7}}>✕</text>
                             </>}
                           </g>
                         );
