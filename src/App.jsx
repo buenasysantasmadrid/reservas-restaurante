@@ -2828,15 +2828,15 @@ Buenas y Santas`;
                 if (sinMesa.length === 0) return null;
                 return (
                   <div style={{
-                    position: "sticky", top: 8, zIndex: 30,
+                    position: "fixed", top: 80, right: 24, zIndex: 100,
                     background: "#b71c1c", color: "#fff",
                     padding: "12px 20px", borderRadius: 8,
                     boxShadow: "0 4px 16px rgba(183,28,28,0.45)",
                     display: "flex", alignItems: "center", gap: 10,
-                    marginBottom: 16,
-                    animation: "pulseRed 1.4s ease-in-out infinite"
+                    animation: "pulseRed 1.4s ease-in-out infinite",
+                    maxWidth: 320
                   }}>
-                    <span style={{ fontSize: 24 }}>⚠️</span>
+                    <span style={{ fontSize: 24, flexShrink: 0 }}>⚠️</span>
                     <div>
                       <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 15, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase" }}>
                         ¡OJO! MESAS SIN ASIGNAR
@@ -3357,15 +3357,15 @@ Buenas y Santas`;
               <svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`}>
                 {/* Cabecera info */}
                 <rect x={0} y={0} width={svgW} height={INFO_H} rx={6} fill={sinMesa?"#f0f0f0":"#f1f8f1"}/>
-                <text x={svgW/2} y={14} textAnchor="middle"
-                  style={{fontFamily:"'Cormorant Garamond',serif",fontSize:14,fontWeight:700,fill:"#111"}}>
+                <text x={svgW/2} y={15} textAnchor="middle"
+                  style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:700,fill:"#111"}}>
                   {r.nombre.split(" ")[0]}
                 </text>
-                <text x={svgW/2} y={27} textAnchor="middle"
-                  style={{fontFamily:"'Jost',sans-serif",fontSize:10,fill:"#555",fontWeight:400}}>
+                <text x={svgW/2} y={29} textAnchor="middle"
+                  style={{fontFamily:"'Jost',sans-serif",fontSize:13,fill:"#555",fontWeight:600}}>
                   {r.hora}
                 </text>
-                <text x={svgW/2} y={41} textAnchor="middle"
+                <text x={svgW/2} y={43} textAnchor="middle"
                   style={{fontFamily:"'Jost',sans-serif",fontSize:16,fill:"#111",fontWeight:700}}>
                   {pax}p
                 </text>
@@ -3526,11 +3526,11 @@ Buenas y Santas`;
                             </text>
                             {reservaEnMesa && <>
                               <text x={mx+mw/2} y={my+mh*(isMergedPrimary?0.48:0.55)} textAnchor="middle"
-                                style={{fontFamily:"'Cormorant Garamond',serif",fontSize:14,fontWeight:700,fill:"#fff"}}>
+                                style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:700,fill:"#fff"}}>
                                 {reservaEnMesa.nombre.split(" ")[0]}
                               </text>
                               <text x={mx+mw/2} y={my+mh*(isMergedPrimary?0.67:0.76)} textAnchor="middle"
-                                style={{fontFamily:"'Jost',sans-serif",fontSize:13,fontWeight:600,fill:"#fff",opacity:0.9}}>
+                                style={{fontFamily:"'Jost',sans-serif",fontSize:10,fontWeight:600,fill:"#fff",opacity:0.9}}>
                                 {reservaEnMesa.hora} · {reservaEnMesa.personas}p
                               </text>
                               <text x={mx+mw-4} y={my+12} textAnchor="end"
