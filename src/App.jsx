@@ -1937,6 +1937,14 @@ Buenas y Santas`;
                                     ✦ Asignar mesas
                                   </button>
                                   <button
+                                    onClick={() => borrarMesasTurno(fecha, turno)}
+                                    style={{ padding: "4px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "none", color: "#b71c1c", border: "1px solid #ef9a9a", borderRadius: 4, cursor: "pointer", fontWeight: 500 }}
+                                    onMouseEnter={e => { e.currentTarget.style.background="#ffebee"; }}
+                                    onMouseLeave={e => { e.currentTarget.style.background="none"; }}
+                                  >
+                                    ✕ Borrar mesas
+                                  </button>
+                                  <button
                                   onClick={() => setModalWaTodos({ fecha })}
                                     style={{ padding: "4px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "#25D366", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer", fontWeight: 500 }}
                                     onMouseEnter={e => e.currentTarget.style.background="#1ebe5a"}
@@ -2064,6 +2072,10 @@ Buenas y Santas`;
                               <button onClick={() => asignarConConfirmacion(grupo.fecha, grupo.turno)}
                                 style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "#2e7d32", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer" }}>
                                 ✦ Asignar mesas
+                              </button>
+                              <button onClick={() => borrarMesasTurno(grupo.fecha, grupo.turno)}
+                                style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "none", color: "#b71c1c", border: "1px solid #ef9a9a", borderRadius: 4, cursor: "pointer" }}>
+                                ✕ Borrar mesas
                               </button>
                               <button onClick={() => setModalWaTodos({ fecha: grupo.fecha })}
                                 style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "#25D366", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer" }}>
@@ -3019,6 +3031,10 @@ Buenas y Santas`;
                     onClick={() => asignarConConfirmacion(planoFecha, planoTurno)}
                     style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "#2e7d32", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer", fontWeight: 500 }}
                   >✦ Asignar mesas</button>
+                  <button
+                    onClick={() => borrarMesasTurno(planoFecha, planoTurno)}
+                    style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "none", color: "#b71c1c", border: "1px solid #ef9a9a", borderRadius: 4, cursor: "pointer", fontWeight: 500 }}
+                  >✕ Borrar mesas</button>
                   </div>
                 </div>
               </div>
@@ -3842,20 +3858,31 @@ Buenas y Santas`;
               Ya hay mesas asignadas
             </h2>
             <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a", lineHeight: 1.7, marginBottom: 24 }}>
-              ¿Quieres borrar las mesas existentes y reasignar?
+              ¿Quieres borrar las mesas existentes antes de reasignar?
             </p>
-            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-              <button className="btn-outline" onClick={() => setConfirmarAsignarMesas(null)}>
-                Cancelar
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <button
+                onClick={async () => {
+                  const { fecha, turno } = confirmarAsignarMesas;
+                  setConfirmarAsignarMesas(null);
+                  await borrarMesasTurno(fecha, turno);
+                  asignarMesasTurno(fecha, turno);
+                }}
+                style={{ padding: "12px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", borderRadius: 4, background: "#2e7d32", color: "#fff", border: "none", fontWeight: 600 }}>
+                ✓ Borrar y reasignar
               </button>
               <button
                 onClick={() => {
                   const { fecha, turno } = confirmarAsignarMesas;
                   setConfirmarAsignarMesas(null);
-                  borrarMesasTurno(fecha, turno).then(() => asignarMesasTurno(fecha, turno));
+                  asignarMesasTurno(fecha, turno);
                 }}
-                style={{ padding: "10px 22px", fontFamily: "'Jost', sans-serif", fontSize: 12, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", borderRadius: 4, background: "#2e7d32", color: "#fff", border: "none", fontWeight: 600 }}>
-                Sí, borrar y reasignar
+                style={{ padding: "12px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", borderRadius: 4, background: "#e8f5e9", color: "#1b5e20", border: "1.5px solid #81c784", fontWeight: 600 }}>
+                No borrar, solo asignar las sin mesa
+              </button>
+              <button className="btn-outline" style={{ fontSize: 11, color: "#888", borderColor: "#ccc" }}
+                onClick={() => setConfirmarAsignarMesas(null)}>
+                Cancelar
               </button>
             </div>
           </div>
