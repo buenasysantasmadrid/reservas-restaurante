@@ -259,10 +259,20 @@ export default function App() {
     if (pasadas.length === 0) return;
 
     const filas = pasadas.map(r => ({
-      nombre: r.nombre, telefono: r.telefono || "", fecha: r.fecha,
-      hora: r.hora || "", personas: r.personas || "", mesas: r.mesas || [],
-      mesa: r.mesa || "", estado: r.estado || "", notas: r.notas || "",
-      email: r.email || "", tomadaPor: r.tomadaPor || "", cuando: r.cuando || ""
+      id: r.id || "",
+      nombre: r.nombre || "",
+      telefono: r.telefono || "",
+      prefijo: r.prefijo || "+34",
+      email: r.email || "",
+      fecha: r.fecha || "",
+      hora: r.hora || "",
+      personas: r.personas || "",
+      mesas: r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : [],
+      mesa: r.mesas && r.mesas.length > 0 ? r.mesas.join("+") : r.mesa || "",
+      estado: r.estado || "",
+      notas: r.notas || "",
+      tomadaPor: r.tomadaPor || "",
+      cuando: r.cuando || ""
     }));
 
     const url = "https://script.google.com/macros/s/AKfycbxslphHn0GNmCT8PQcmJHPzo4M9_bB1OABaiXEs5ugXAVxHtQNTF2v3u1HiYEi0lRrm/exec";
@@ -546,16 +556,18 @@ export default function App() {
     if (pasadas.length === 0) return showToast("No hay reservas pasadas para archivar", "error");
 
     const filas = pasadas.map(r => ({
-      nombre: r.nombre,
+      id: r.id || "",
+      nombre: r.nombre || "",
       telefono: r.telefono || "",
-      fecha: r.fecha,
+      prefijo: r.prefijo || "+34",
+      email: r.email || "",
+      fecha: r.fecha || "",
       hora: r.hora || "",
       personas: r.personas || "",
-      mesas: r.mesas || [],
-      mesa: r.mesa || "",
+      mesas: r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : [],
+      mesa: r.mesas && r.mesas.length > 0 ? r.mesas.join("+") : r.mesa || "",
       estado: r.estado || "",
       notas: r.notas || "",
-      email: r.email || "",
       tomadaPor: r.tomadaPor || "",
       cuando: r.cuando || ""
     }));
