@@ -1387,10 +1387,10 @@ Buenas y Santas`;
         .input-field { background: #ffffff; border: 1px solid #a5d6a7; color: #1a2e1a; padding: 10px 14px; font-family: 'Jost', sans-serif; font-size: 14px; width: 100%; transition: border-color 0.2s; border-radius: 4px; }
         .input-field:focus { border-color: #2e7d32; }
         .badge { display: inline-block; padding: 3px 10px; font-family: 'Jost', sans-serif; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; border-radius: 2px; }
-        .badge-confirmada { background: #e8f5e9; color: #1b5e20; border: 1px solid #81c784; }
+        .badge-confirmada { background: #f3e5f5; color: #6a1b9a; border: 1px solid #ce93d8; }
         .badge-tomada { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
         .badge-cancelada { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
-        .badge-llego { background: #f3e5f5; color: #6a1b9a; border: 1px solid #ce93d8; }
+        .badge-llego { background: #e8f5e9; color: #1b5e20; border: 1px solid #81c784; }
         .row-hover { transition: background 0.15s; }
         .row-hover:hover { background: #f1f8f1; }
         .overlay { position: fixed; inset: 0; background: rgba(0,60,0,0.4); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
@@ -1788,7 +1788,7 @@ Buenas y Santas`;
                                 <div style={{ display: "flex", gap: 8 }}>
                                   <button
                                     onClick={() => asignarMesasTurno(fecha, turno)}
-                                    style={{ padding: "4px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "#2e7d32", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer", fontWeight: 500 }}
+                                    style={{ padding: "6px 18px", fontSize: 14, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "#2e7d32", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer", fontWeight: 600 }}
                                     onMouseEnter={e => e.currentTarget.style.background="#1b5e20"}
                                     onMouseLeave={e => e.currentTarget.style.background="#2e7d32"}
                                   >
@@ -2561,24 +2561,24 @@ Buenas y Santas`;
                 strokeDasharray={esMesaDestino ? "5 3" : "none"}/>
               {esReservaSeleccionada && <rect x={mx-3} y={my-3} width={mw+6} height={mh+6} rx={RR+3} fill="none" stroke="#ff8f00" strokeWidth={2} opacity={0.5}/>}
               <text x={mx + mw/2} y={my + lineH} textAnchor="middle"
-                style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: barra ? 11 : 13, fontWeight: 700, fill: textC, letterSpacing: 0.5 }}>
+                style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: barra ? 13 : 16, fontWeight: 700, fill: textC, letterSpacing: 0.5 }}>
                 {labelMesa}
               </text>
               {res && (
                 <text x={mx + mw/2} y={my + mh * (isMerged ? 0.38 : 0.48)} textAnchor="middle"
-                  style={{ fontFamily: "'Jost', sans-serif", fontSize: 7.5, fontWeight: 600, fill: textC, opacity: 0.85, letterSpacing: 0.5 }}>
+                  style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fontWeight: 600, fill: textC, opacity: 0.85, letterSpacing: 0.5 }}>
                   {res.hora}
                 </text>
               )}
               {res && (
                 <text x={mx + mw/2} y={my + mh * (isMerged ? 0.58 : 0.68)} textAnchor="middle"
-                  style={{ fontFamily: "'Jost', sans-serif", fontSize: 8, fontWeight: 500, fill: textC, letterSpacing: 0.3 }}>
+                  style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 500, fill: textC, letterSpacing: 0.3 }}>
                   {res.nombre.split(" ")[0]}
                 </text>
               )}
               {res && (
                 <text x={mx + mw/2} y={my + mh * (isMerged ? 0.80 : 0.88)} textAnchor="middle"
-                  style={{ fontFamily: "'Jost', sans-serif", fontSize: 7.5, fill: textC, opacity: 0.75, letterSpacing: 0.5 }}>
+                  style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, fill: textC, opacity: 0.75, letterSpacing: 0.5 }}>
                   {res.personas}p
                 </text>
               )}
@@ -3341,16 +3341,16 @@ Buenas y Santas`;
                               strokeWidth={puedeRecibir ? 2 : reservaEnMesa ? 2 : 1.2}
                               strokeDasharray={puedeRecibir ? "4 3" : "none"}/>
                             <text x={mx+mw/2} y={my+mh*(reservaEnMesa && isMergedPrimary ? 0.22 : reservaEnMesa ? 0.28 : 0.5)+4} textAnchor="middle"
-                              style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:13, fontWeight:700, fill:textC }}>
+                              style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, fontWeight:700, fill:textC }}>
                               {label}
                             </text>
                             {reservaEnMesa && <>
                               <text x={mx+mw/2} y={my+mh*(isMergedPrimary?0.48:0.55)} textAnchor="middle"
-                                style={{fontFamily:"'Jost',sans-serif",fontSize:7,fill:"#fff",fontWeight:600}}>
+                                style={{fontFamily:"'Jost',sans-serif",fontSize:10,fill:"#fff",fontWeight:600}}>
                                 {reservaEnMesa.nombre.split(" ")[0]}
                               </text>
                               <text x={mx+mw/2} y={my+mh*(isMergedPrimary?0.65:0.75)} textAnchor="middle"
-                                style={{fontFamily:"'Jost',sans-serif",fontSize:7,fill:"#fff",opacity:0.85}}>
+                                style={{fontFamily:"'Jost',sans-serif",fontSize:10,fill:"#fff",opacity:0.85}}>
                                 {reservaEnMesa.hora}·{reservaEnMesa.personas}p
                               </text>
                               <text x={mx+mw-3} y={my+9} textAnchor="end"
