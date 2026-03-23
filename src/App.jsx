@@ -28,19 +28,32 @@ const EMAILS_PERMITIDOS = [
 const MESAS = [1, 2, 3, 4, 5, 15, 6, 16, 7, 17, 8, 18, 10, 11, 12, 13, 40, 41, 30, 31];
 const MESA_NOMBRE = { 30: "Barra 1", 31: "Barra 2" };
 const getMesaNombre = (m) => MESA_NOMBRE[m] || `${m}`;
-// Horarios: 13:30-16:00 cada 15 min, 20:30-23:30 cada 15 min
-const HORARIOS = (() => {
+// Horarios: 13:30-16:00 cada 15 min (mediodía), 20:30-23:30 cada 15 min (noche)
+const HORARIOS_MEDIODIA = (() => {
   const slots = [];
   for (let h = 13, m = 30; h < 16 || (h === 16 && m === 0); m += 15) {
     slots.push(`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`);
     if (m === 45) { h++; m = -15; }
   }
+  return slots;
+})();
+const HORARIOS_NOCHE = (() => {
+  const slots = [];
   for (let h = 20, m = 30; h < 23 || (h === 23 && m <= 30); m += 15) {
     slots.push(`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`);
     if (m === 45) { h++; m = -15; }
   }
   return slots;
 })();
+const HORARIOS = [...HORARIOS_MEDIODIA, ...HORARIOS_NOCHE];
+
+// Devuelve los horarios permitidos según el día de la semana de una fecha
+// Dom(0) Lun(1) Mar(2) Mié(3) → solo mediodía; Jue(4) Vie(5) Sáb(6) → mediodía + noche
+const getHorariosParaFecha = (fecha) => {
+  if (!fecha) return HORARIOS;
+  const dow = new Date(fecha + "T12:00").getDay(); // 0=dom,1=lun,...,6=sab
+  return (dow >= 4) ? HORARIOS : HORARIOS_MEDIODIA; // jue(4),vie(5),sab(6) → todo
+};
 
 const initialReservas = [];
 
@@ -2156,7 +2169,7 @@ Buenas y Santas`;
                 <label style={{ fontSize: 9, marginBottom: 3 }}>Hora *</label>
                 <select className="input-field" value={form.hora} onChange={e => setForm(f => ({ ...f, hora: e.target.value }))} style={{ padding: "7px 10px", fontSize: 13 }}>
                   <option value="">— Hora —</option>
-                  {HORARIOS.map(h => <option key={h} value={h}>{h}</option>)}
+                  {getHorariosParaFecha(form.fecha).map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
               </div>
 
