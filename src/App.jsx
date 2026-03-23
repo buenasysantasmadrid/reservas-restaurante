@@ -1375,7 +1375,7 @@ Buenas y Santas`;
         .input-field:focus { border-color: #2e7d32; }
         .badge { display: inline-block; padding: 3px 10px; font-family: 'Jost', sans-serif; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; border-radius: 2px; }
         .badge-confirmada { background: #e8f5e9; color: #1b5e20; border: 1px solid #81c784; }
-        .badge-tomada { background: #fff8e1; color: #f57f17; border: 1px solid #ffcc02; }
+        .badge-tomada { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
         .badge-cancelada { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
         .badge-llego { background: #f3e5f5; color: #6a1b9a; border: 1px solid #ce93d8; }
         .row-hover { transition: background 0.15s; }
@@ -2429,9 +2429,9 @@ Buenas y Santas`;
           } else if (esMesaDestino) {
             fill = "#1565c0"; stroke = "#0d47a1"; textC = "#fff";
           } else {
-            fill   = llego ? "#f5f5f5" : ocupada ? (sinConfirmar ? "#fff8e1" : "#2e7d32") : "#e8f5e9";
-            stroke = llego ? "#e0e0e0" : ocupada ? (sinConfirmar ? "#f9a825" : "#1b5e20") : "#81c784";
-            textC  = llego ? "#bdbdbd" : ocupada ? (sinConfirmar ? "#e65100" : "#fff") : "#2e7d32";
+            fill   = llego ? "#f5f5f5" : ocupada ? (sinConfirmar ? "#e3f2fd" : "#2e7d32") : "#e8f5e9";
+            stroke = llego ? "#e0e0e0" : ocupada ? (sinConfirmar ? "#90caf9" : "#1b5e20") : "#81c784";
+            textC  = llego ? "#bdbdbd" : ocupada ? (sinConfirmar ? "#1565c0" : "#fff") : "#2e7d32";
           }
           // En modo reasignar, mesas no relevantes se atenúan un poco
           const opacity = (modoReasignar && hayReservaSeleccionada && !esReservaSeleccionada && !esMesaDestino) ? 0.5 : 1;
@@ -2660,7 +2660,7 @@ Buenas y Santas`;
                 {[
                   { fill: "#e8f5e9", stroke: "#81c784", label: "Libre" },
                   { fill: "#2e7d32", stroke: "#1b5e20", label: "Confirmada" },
-                  { fill: "#fff8e1", stroke: "#f9a825", label: "Sin confirmar" },
+                  { fill: "#e3f2fd", stroke: "#90caf9", label: "Sin confirmar" },
                   { fill: "#f5f5f5", stroke: "#e0e0e0", label: "Llegó" },
                   ...(modoReasignar ? [
                     { fill: "#ff8f00", stroke: "#e65100", label: "Origen" },
@@ -2904,7 +2904,7 @@ Buenas y Santas`;
           // Para 6 pax con nMesas explícito, usar config específico
           let opciones;
           if (r.personas === 6 && nMesas === 2) {
-            opciones = [{internas:[8,18]},{internas:[7,17]},{internas:[1,2]},{internas:[12,13]},{internas:[3,4]},{internas:[5,15]},{internas:[6,16]},{internas:[10,11]}];
+            opciones = [{internas:[8,18]},{internas:[7,17]},{internas:[1,2]},{internas:[12,13]},{internas:[3,4]},{internas:[5,15]},{internas:[6,16]},{internas:[10,11]},{internas:[40,41]},{internas:[30,31]}];
           } else if (r.personas === 6 && nMesas === 3) {
             opciones = MESA_CONFIG[6] || [];
           } else {
@@ -3073,7 +3073,14 @@ Buenas y Santas`;
               const ids2 = Array.isArray(grp) ? grp : grp.ids;
               const uniq2 = [...new Set(ids2)];
               if (uniq2.length === mesasMostrar.length && uniq2.every(m => msSet.has(m))) {
-                mergeGroup = grp; break;
+                // Reordenar para que mesasMostrar[0] sea siempre el primero
+                if (Array.isArray(grp)) {
+                  const reordered = [mesasMostrar[0], ...uniq2.filter(m => m !== mesasMostrar[0])];
+                  mergeGroup = reordered;
+                } else {
+                  mergeGroup = { ...grp, ids: [mesasMostrar[0], ...uniq2.filter(m => m !== mesasMostrar[0])] };
+                }
+                break;
               }
             }
           }
@@ -3353,7 +3360,7 @@ Buenas y Santas`;
                   Reservas del turno
                 </p>
                 <div style={{ display:"grid", gridTemplateColumns:"repeat(5, 1fr)", gap:8, padding:"0 2px" }}>
-                  {[...reservasTurno2].sort((a,b) => (a.hora||"").localeCompare(b.hora||"")).map(r => (
+                  {[...reservasTurno2].sort((a,b) => (b.personas||0)-(a.personas||0) || (a.hora||"").localeCompare(b.hora||"")).map(r => (
                     <ReservaMiniSVG key={r.id} r={r} />
                   ))}
                 </div>
@@ -3379,7 +3386,7 @@ Buenas y Santas`;
                   const r = reservas.find(x => x.id === pregunta6pax.reservaId);
                   if (!r) { setPregunta6pax(null); return; }
                   const ops2 = nM === 2
-                    ? [{internas:[8,18]},{internas:[7,17]},{internas:[1,2]},{internas:[12,13]},{internas:[3,4]},{internas:[5,15]},{internas:[6,16]},{internas:[10,11]}]
+                    ? [{internas:[8,18]},{internas:[7,17]},{internas:[1,2]},{internas:[12,13]},{internas:[3,4]},{internas:[5,15]},{internas:[6,16]},{internas:[10,11]},{internas:[40,41]},{internas:[30,31]}]
                     : MESA_CONFIG[6] || [];
                   const ocupadasPorOtros2 = new Set(
                     reservas.filter(x => x.id !== r.id && x.fecha === r.fecha && getTurno(x.hora) === getTurno(r.hora) && x.estado !== "cancelada")
@@ -3479,7 +3486,7 @@ Buenas y Santas`;
 
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {[
-                { value: "tomada",     label: "Tomada",     bg: "#fff8e1", color: "#f57f17", border: "#ffcc02" },
+                { value: "tomada",     label: "Tomada",     bg: "#e3f2fd", color: "#1565c0", border: "#90caf9" },
                 { value: "confirmada", label: "Confirmada", bg: "#e8f5e9", color: "#1b5e20", border: "#81c784" },
                 { value: "llego",      label: "Llegó",      bg: "#f3e5f5", color: "#6a1b9a", border: "#ce93d8" },
                 { value: "cancelada",  label: "Cancelada",   bg: "#ffebee", color: "#c62828", border: "#ef9a9a" },
