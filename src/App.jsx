@@ -1527,6 +1527,7 @@ Buenas y Santas`;
         .toast { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); padding: 18px 36px; font-family: 'Jost', sans-serif; font-size: 16px; letter-spacing: 1px; z-index: 100; border-radius: 4px; animation: fadeIn 0.3s; text-align: center; white-space: nowrap; box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
         .toast-ok { background: #e8f5e9; border: 1px solid #81c784; color: #1b5e20; }
         .toast-error { background: #ffebee; border: 1px solid #ef9a9a; color: #b71c1c; }
+        @keyframes pulseRed { 0%,100% { box-shadow: 0 4px 16px rgba(183,28,28,0.45); } 50% { box-shadow: 0 4px 28px rgba(183,28,28,0.85); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         label { display: block; font-family: 'Jost', sans-serif; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #4a7a4a; margin-bottom: 6px; }
         .divider { border: none; border-top: 1px solid #c8e6c9; margin: 24px 0; }
@@ -2664,8 +2665,25 @@ Buenas y Santas`;
                   );
                 }
               }
+            }
+            // En modo normal: el menú de estado se abre con doble clic (handleDoubleClick)
+          };
+
+          const handleDoubleClick = () => {
+            if (modoReasignar) return;
+            if (res) {
+              setPlanoModal({ reservaId: res.id, nombre: res.nombre, estado: res.estado, telefono: res.telefono || "", prefijo: res.prefijo || "" });
             } else {
-              if (res) setPlanoModal({ reservaId: res.id, nombre: res.nombre, estado: res.estado, telefono: res.telefono || "", prefijo: res.prefijo || "" });
+              // Mesa vacía: abrir nueva reserva
+              setReservaEditando(null);
+              setForm({
+                nombre: "", telefono: "", email: "",
+                fecha: planoFecha,
+                hora: "", personas: "",
+                mesas: [id], notas: "", estado: "tomada",
+                tomadaPor: "", prefijo: "+34"
+              });
+              setModalAbierto(true);
             }
           };
 
@@ -2676,20 +2694,7 @@ Buenas y Santas`;
           return (
             <g key={id} style={{ cursor: !res && !modoReasignar ? "cell" : cursorStyle, opacity }}
               onClick={handleClick}
-              onDoubleClick={() => {
-                if (res || modoReasignar) return; // solo mesas vacías
-                // Usar la fecha del plano y la mesa como punto de partida
-                const mesaLabel = MESA_NOMBRE[id] || String(id);
-                setReservaEditando(null);
-                setForm({
-                  nombre: "", telefono: "", email: "",
-                  fecha: planoFecha,
-                  hora: "", personas: "",
-                  mesas: [id], notas: "", estado: "tomada",
-                  tomadaPor: "", prefijo: "+34"
-                });
-                setModalAbierto(true);
-              }}
+              onDoubleClick={handleDoubleClick}
               onMouseEnter={!modoReasignar && res && res.notas ? (e) => {
                 const svgEl = e.currentTarget.closest("svg");
                 const svgRect = svgEl.getBoundingClientRect();
@@ -2816,7 +2821,32 @@ Buenas y Santas`;
               </div>
             </div>
 
-            <div className="card" style={{ padding: 24, overflowX: "auto", background: "linear-gradient(135deg, #ffffff 0%, #f7fbf7 100%)", border: "1px solid #e0f0e0" }}>
+            <div className="card" style={{ padding: 24, overflowX: "auto", background: "linear-gradient(135deg, #ffffff 0%, #f7fbf7 100%)", border: "1px solid #e0f0e0", position: "relative" }}>
+              {/* Cartel mesas sin asignar */}
+              {(() => {
+                const sinMesa = reservasTurno.filter(r => r.estado !== "cancelada" && (!r.mesas || r.mesas.length === 0) && !r.mesa);
+                if (sinMesa.length === 0) return null;
+                return (
+                  <div style={{
+                    position: "absolute", top: 16, right: 16, zIndex: 10,
+                    background: "#b71c1c", color: "#fff",
+                    padding: "12px 20px", borderRadius: 8,
+                    boxShadow: "0 4px 16px rgba(183,28,28,0.45)",
+                    display: "flex", alignItems: "center", gap: 10,
+                    animation: "pulseRed 1.4s ease-in-out infinite"
+                  }}>
+                    <span style={{ fontSize: 24 }}>⚠️</span>
+                    <div>
+                      <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 15, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase" }}>
+                        ¡OJO! MESAS SIN ASIGNAR
+                      </div>
+                      <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, opacity: 0.85, marginTop: 2 }}>
+                        {sinMesa.length} reserva{sinMesa.length > 1 ? "s" : ""} sin mesa: {sinMesa.map(r => r.nombre.split(" ")[0]).join(", ")}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
               {/* Leyenda */}
               <div style={{ display: "flex", gap: 20, marginBottom: 20, flexWrap: "wrap" }}>
                 {[
@@ -3390,7 +3420,7 @@ Buenas y Santas`;
             <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
 
               {/* ── PLANO (izquierda) ── con fusión igual que el plano principal */}
-              <div style={{ flex: 1, padding: 20, overflowY: "auto", background: "#f4faf4", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+              <div style={{ flex: 1, padding: 20, overflowY: "auto", background: "#f4faf4", display: "flex", flexDirection: "column", alignItems: "center" }}>
                 {(() => {
                   // Calcular secondary mesas según asignaciones actuales
                   const MGROUPS_P = [
@@ -3425,7 +3455,7 @@ Buenas y Santas`;
                   Object.values(rmg2).forEach(grp => { const ids2 = Array.isArray(grp) ? grp : grp.ids; ids2.slice(1).forEach(m => sec2.add(m)); });
 
                   return (
-                    <svg viewBox={`0 0 ${VW2} ${VH2}`} style={{ width:"100%", maxWidth:620, display:"block", borderRadius:12, boxShadow:"0 4px 24px rgba(0,0,0,0.10)" }}>
+                    <svg viewBox={`0 0 ${VW2} ${VH2}`} style={{ width:"100%", display:"block", borderRadius:12, boxShadow:"0 4px 24px rgba(0,0,0,0.10)" }}>
                       <defs>
                         <pattern id="fg2" x="0" y="0" width={U2*0.5} height={U2*0.5} patternUnits="userSpaceOnUse">
                           <path d={`M ${U2*0.5} 0 L 0 0 0 ${U2*0.5}`} fill="none" stroke="#e8f5e9" strokeWidth="0.5"/>
