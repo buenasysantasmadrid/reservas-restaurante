@@ -124,6 +124,8 @@ export default function App() {
   const [modalWaTodos, setModalWaTodos] = useState(null); // { fecha } o null
   // Pregunta 2 o 3 mesas al asignar reserva de 6 pax en drag&drop
   const [pregunta6pax, setPregunta6pax] = useState(null); // { reservaId, mesaDestino }
+  // Confirmación antes de asignar si ya hay mesas asignadas
+  const [confirmarAsignarMesas, setConfirmarAsignarMesas] = useState(null); // { fecha, turno }
   // Fechas cerradas leídas de Google Sheets (hoja CERRAMOS)
   // Array de { fecha: "YYYY-MM-DD", turno: "todos"|"mediodia"|"noche" }
   const [fechasCerradas, setFechasCerradas] = useState([]);
@@ -684,6 +686,16 @@ export default function App() {
     afectadas.forEach(r => batch.set(doc(db, "reservas", String(r.id)), { ...r, mesas: [], mesa: "" }));
     await batch.commit();
     showToast("Mesas borradas", "error");
+  };
+
+  // Asignar con confirmación si ya hay mesas asignadas
+  const asignarConConfirmacion = (fecha, turno) => {
+    const conMesa = reservas.filter(r => r.fecha === fecha && getTurno(r.hora) === turno && r.estado !== "cancelada" && ((r.mesas && r.mesas.length > 0) || r.mesa));
+    if (conMesa.length > 0) {
+      setConfirmarAsignarMesas({ fecha, turno });
+    } else {
+      asignarMesasTurno(fecha, turno);
+    }
   };
 
   const eliminarReserva = (id) => {
@@ -1803,7 +1815,7 @@ Buenas y Santas`;
                               )}
                               {tStatus.status === "completo" && (
                                 <span style={{ background: "#b71c1c", color: "#fff", fontFamily: "'Jost', sans-serif", fontSize: 16, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", padding: "4px 16px", borderRadius: 4 }}>
-                                  🔴 COMPLETO
+                                  COMPLETO
                                 </span>
                               )}
                             </div>
@@ -1835,7 +1847,7 @@ Buenas y Santas`;
                           {(r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []).map(m => (
                             <span key={m} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#2e7d32", color: "#fff", borderRadius: 4, padding: "2px 8px", fontSize: 12, fontFamily: "'Jost', sans-serif", width: "fit-content" }}>
                               {getMesaNombre(m)}
-                              <button type="button" onClick={() => { const updated = { ...r, mesas: (r.mesas||[r.mesa]||[]).filter(v => v !== m) }; fbSetReserva(updated); }}
+                              <button type="button" onClick={() => { const curr = r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []; const updated = { ...r, mesas: curr.filter(v => Number(v) !== Number(m)), mesa: "" }; fbSetReserva(updated); }}
                                 style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 13, padding: 0, lineHeight: 1 }}>×</button>
                             </span>
                           ))}
@@ -1917,20 +1929,12 @@ Buenas y Santas`;
                                 </span>
                                 <div style={{ display: "flex", gap: 8 }}>
                                   <button
-                                    onClick={() => asignarMesasTurno(fecha, turno)}
+                                    onClick={() => asignarConConfirmacion(fecha, turno)}
                                     style={{ padding: "6px 18px", fontSize: 14, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "#2e7d32", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer", fontWeight: 600 }}
                                     onMouseEnter={e => e.currentTarget.style.background="#1b5e20"}
                                     onMouseLeave={e => e.currentTarget.style.background="#2e7d32"}
                                   >
-                                    ✦ Modificar mesas
-                                  </button>
-                                  <button
-                                    onClick={() => borrarMesasTurno(fecha, turno)}
-                                    style={{ padding: "4px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "none", color: "#b71c1c", border: "1px solid #ef9a9a", borderRadius: 4, cursor: "pointer", fontWeight: 500 }}
-                                    onMouseEnter={e => { e.currentTarget.style.background="#ffebee"; }}
-                                    onMouseLeave={e => { e.currentTarget.style.background="none"; }}
-                                  >
-                                    ✕ Borrar mesas
+                                    ✦ Asignar mesas
                                   </button>
                                   <button
                                   onClick={() => setModalWaTodos({ fecha })}
@@ -1976,7 +1980,7 @@ Buenas y Santas`;
                         {color.label}
                         {tStatus.status === "ok" && <span style={{ fontWeight: 400, color: "#6a9a6a" }}>· {tStatus.mesas} mesas</span>}
                         {tStatus.status === "cuidado" && <span style={{ background: "#e65100", color: "#fff", fontSize: 14, fontWeight: 700, letterSpacing: 1, padding: "3px 12px", borderRadius: 4 }}>⚠ CUIDADO</span>}
-                        {tStatus.status === "completo" && <span style={{ background: "#b71c1c", color: "#fff", fontSize: 14, fontWeight: 700, letterSpacing: 1, padding: "3px 12px", borderRadius: 4 }}>🔴 COMPLETO</span>}
+                        {tStatus.status === "completo" && <span style={{ background: "#b71c1c", color: "#fff", fontSize: 14, fontWeight: 700, letterSpacing: 1, padding: "3px 12px", borderRadius: 4 }}>COMPLETO</span>}
                       </div>
                       {grupo.reservas.map(r => (
                         <div key={r.id} style={{ background: rowBg, border: "1px solid #c8e6c9", borderRadius: 8, padding: 16, marginBottom: 10, opacity: r.estado === "llego" ? 0.22 : 1 }}>
@@ -2007,7 +2011,7 @@ Buenas y Santas`;
                             {(r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []).map(m => (
                               <span key={m} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#2e7d32", color: "#fff", borderRadius: 4, padding: "3px 10px", fontSize: 13, fontFamily: "'Jost', sans-serif" }}>
                                 {getMesaNombre(m)}
-                                <button type="button" onClick={() => { const updated = { ...r, mesas: (r.mesas || (r.mesa ? [r.mesa] : [])).filter(v => v !== m) }; fbSetReserva(updated); }}
+                                <button type="button" onClick={() => { const curr = r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []; const updated = { ...r, mesas: curr.filter(v => Number(v) !== Number(m)), mesa: "" }; fbSetReserva(updated); }}
                                   style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 15, padding: 0, lineHeight: 1 }}>×</button>
                               </span>
                             ))}
@@ -2057,13 +2061,9 @@ Buenas y Santas`;
                               ))}
                             </p>
                             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                              <button onClick={() => asignarMesasTurno(grupo.fecha, grupo.turno)}
+                              <button onClick={() => asignarConConfirmacion(grupo.fecha, grupo.turno)}
                                 style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "#2e7d32", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer" }}>
-                                ✦ Modificar mesas
-                              </button>
-                              <button onClick={() => borrarMesasTurno(grupo.fecha, grupo.turno)}
-                                style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "none", color: "#b71c1c", border: "1px solid #ef9a9a", borderRadius: 4, cursor: "pointer" }}>
-                                ✕ Borrar mesas
+                                ✦ Asignar mesas
                               </button>
                               <button onClick={() => setModalWaTodos({ fecha: grupo.fecha })}
                                 style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "#25D366", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer" }}>
@@ -2351,7 +2351,7 @@ Buenas y Santas`;
                   if (status === "ok") return null;
                   return (
                     <div style={{ marginTop: 6, padding: "5px 10px", borderRadius: 6, background: status === "completo" ? "#ffebee" : "#fff3e0", border: `1px solid ${status === "completo" ? "#ef9a9a" : "#ffcc80"}`, display: "inline-flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ fontSize: 13 }}>{status === "completo" ? "🔴" : "⚠️"}</span>
+                      <span style={{ fontSize: 13 }}>{status === "completo" ? "⛔" : "⚠️"}</span>
                       <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 700, color: status === "completo" ? "#b71c1c" : "#e65100", textTransform: "uppercase", letterSpacing: 1 }}>
                         {status === "completo" ? "COMPLETO" : "CUIDADO"}
                       </span>
@@ -2944,7 +2944,7 @@ Buenas y Santas`;
                               {mesasActuales.map(m => (
                                 <span key={m} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#2e7d32", color: "#fff", borderRadius: 4, padding: "2px 8px", fontSize: 12, fontFamily: "'Jost', sans-serif", width: "fit-content" }}>
                                   {getMesaNombre(m)}
-                                  <button type="button" onClick={() => fbSetReserva({ ...r, mesas: mesasActuales.filter(v => v !== m) })}
+                                  <button type="button" onClick={() => fbSetReserva({ ...r, mesas: mesasActuales.filter(v => Number(v) !== Number(m)), mesa: "" })}
                                     style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 13, padding: 0, lineHeight: 1 }}>×</button>
                                 </span>
                               ))}
@@ -3016,13 +3016,9 @@ Buenas y Santas`;
                   })()}
                   <div style={{ display: "flex", gap: 8 }}>
                   <button
-                    onClick={() => asignarMesasTurno(planoFecha, planoTurno)}
+                    onClick={() => asignarConConfirmacion(planoFecha, planoTurno)}
                     style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "#2e7d32", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer", fontWeight: 500 }}
-                  >✦ Modificar mesas</button>
-                  <button
-                    onClick={() => borrarMesasTurno(planoFecha, planoTurno)}
-                    style={{ padding: "6px 14px", fontSize: 11, fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase", background: "none", color: "#b71c1c", border: "1px solid #ef9a9a", borderRadius: 4, cursor: "pointer", fontWeight: 500 }}
-                  >✕ Borrar mesas</button>
+                  >✦ Asignar mesas</button>
                   </div>
                 </div>
               </div>
@@ -3833,6 +3829,35 @@ Buenas y Santas`;
               onClick={() => setConfirmarAjuste6(null)}>
               Cancelar
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL CONFIRMAR ASIGNAR MESAS ── */}
+      {confirmarAsignarMesas && (
+        <div className="overlay" style={{ zIndex: 65 }}>
+          <div className="modal" style={{ maxWidth: 400, textAlign: "center", padding: "40px 36px" }}>
+            <div style={{ fontSize: 36, marginBottom: 14 }}>🗑️</div>
+            <h2 style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", marginBottom: 10 }}>
+              Ya hay mesas asignadas
+            </h2>
+            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a", lineHeight: 1.7, marginBottom: 24 }}>
+              ¿Quieres borrar las mesas existentes y reasignar?
+            </p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button className="btn-outline" onClick={() => setConfirmarAsignarMesas(null)}>
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  const { fecha, turno } = confirmarAsignarMesas;
+                  setConfirmarAsignarMesas(null);
+                  borrarMesasTurno(fecha, turno).then(() => asignarMesasTurno(fecha, turno));
+                }}
+                style={{ padding: "10px 22px", fontFamily: "'Jost', sans-serif", fontSize: 12, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", borderRadius: 4, background: "#2e7d32", color: "#fff", border: "none", fontWeight: 600 }}>
+                Sí, borrar y reasignar
+              </button>
+            </div>
           </div>
         </div>
       )}
