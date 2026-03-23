@@ -157,7 +157,22 @@ export default function App() {
         return `${m[3]}-${String(m[1]).padStart(2,"0")}-${String(m[2]).padStart(2,"0")}`;
       }
 
-      // 4) Número serial de Excel/Sheets (días desde 30/12/1899)
+      // 4) "lunes, 30 de marzo" / "30 de marzo" / "30 de marzo de 2026"
+      const MESES_ES = { enero:1, febrero:2, marzo:3, abril:4, mayo:5, junio:6, julio:7, agosto:8, septiembre:9, octubre:10, noviembre:11, diciembre:12 };
+      m = s.match(/(\d{1,2})\s+de\s+([a-záéíóúüñ]+)(?:\s+de\s+(\d{4}))?/i);
+      if (m) {
+        const dia = parseInt(m[1]);
+        const mesNum = MESES_ES[m[2].toLowerCase()];
+        if (mesNum) {
+          let anyo = m[3] ? parseInt(m[3]) : new Date().getFullYear();
+          // Si la fecha ya pasó este año, usar el siguiente
+          const fechaCandidata = new Date(anyo, mesNum - 1, dia);
+          if (!m[3] && fechaCandidata < new Date() - 86400000) anyo++;
+          return `${anyo}-${String(mesNum).padStart(2,"0")}-${String(dia).padStart(2,"0")}`;
+        }
+      }
+
+      // 5) Número serial de Excel/Sheets (días desde 30/12/1899)
       const serial = parseInt(s);
       if (!isNaN(serial) && serial > 40000 && serial < 60000) {
         const d = new Date(Date.UTC(1899, 11, 30) + serial * 86400000);
