@@ -132,30 +132,76 @@ export default function App() {
   useEffect(() => {
     const SHEET_ID = "1b-RaZ3yQxQov1xgQS8QIBEeHMg4FA0ZIrjH6vWNtdFA";
     const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=CERRAMOS`;
+
+    const parsarFechaCerramos = (raw) => {
+      // Limpiar comillas, espacios, caracteres raros
+      const s = raw.replace(/^"|"$/g, "").replace(/\u00a0/g, " ").trim();
+      if (!s) return "";
+
+      // 1) YYYY-MM-DD
+      let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+
+      // 2) DD/MM/YYYY o DD-MM-YYYY (español: día primero, año 4 dígitos al final)
+      m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+      if (m) {
+        // Si el primer número > 12 es seguro que es DD/MM
+        // Si ambos ≤ 12 asumimos DD/MM (formato español)
+        return `${m[3]}-${String(m[2]).padStart(2,"0")}-${String(m[1]).padStart(2,"0")}`;
+      }
+
+      // 3) M/D/YYYY o MM/DD/YYYY (Google Sheets en locale americano)
+      m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (m) {
+        // Google Sheets americano: mes/día/año
+        return `${m[3]}-${String(m[1]).padStart(2,"0")}-${String(m[2]).padStart(2,"0")}`;
+      }
+
+      // 4) Número serial de Excel/Sheets (días desde 30/12/1899)
+      const serial = parseInt(s);
+      if (!isNaN(serial) && serial > 40000 && serial < 60000) {
+        const d = new Date(Date.UTC(1899, 11, 30) + serial * 86400000);
+        return d.toISOString().slice(0, 10);
+      }
+
+      console.warn("[CERRAMOS] Fecha no reconocida:", JSON.stringify(s));
+      return "";
+    };
+
     fetch(url)
       .then(r => r.text())
       .then(csv => {
+        console.log("[CERRAMOS] CSV crudo:\n", csv);
         const lineas = csv.trim().split(/\r?\n/).slice(1); // saltar cabecera
         const parsed = [];
         lineas.forEach(linea => {
-          const cols = linea.split(",").map(c => c.replace(/^"|"$/g, "").trim());
+          if (!linea.trim()) return;
+          // Split CSV respetando comas dentro de comillas
+          const cols = [];
+          let cur = "", dentro = false;
+          for (let i = 0; i < linea.length; i++) {
+            if (linea[i] === '"') { dentro = !dentro; }
+            else if (linea[i] === ',' && !dentro) { cols.push(cur); cur = ""; }
+            else cur += linea[i];
+          }
+          cols.push(cur);
+
           const rawFecha = cols[0] || "";
-          const rawTurno = (cols[1] || "").toLowerCase().trim();
-          if (!rawFecha) return;
-          let fecha = "";
-          const mISO = rawFecha.match(/^(\d{4})-(\d{2})-(\d{2})/);
-          const mES  = rawFecha.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-          if (mISO) fecha = `${mISO[1]}-${mISO[2]}-${mISO[3]}`;
-          else if (mES) fecha = `${mES[3]}-${String(mES[2]).padStart(2,"0")}-${String(mES[1]).padStart(2,"0")}`;
+          const rawTurno = (cols[1] || "").replace(/^"|"$/g, "").toLowerCase().trim();
+          const fecha = parsarFechaCerramos(rawFecha);
           if (!fecha) return;
+
           let turno = "todos";
           if (rawTurno.includes("noche")) turno = "noche";
           else if (rawTurno.includes("medio")) turno = "mediodia";
+
+          console.log("[CERRAMOS] →", fecha, turno);
           parsed.push({ fecha, turno });
         });
         setFechasCerradas(parsed);
+        console.log("[CERRAMOS] Total bloqueadas:", parsed.length, parsed);
       })
-      .catch(() => {});
+      .catch(err => console.warn("[CERRAMOS] Error al cargar:", err));
   }, []);
 
   // Helper: qué turnos están bloqueados para una fecha
