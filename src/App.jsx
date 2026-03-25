@@ -2424,7 +2424,7 @@ Buenas y Santas`;
                   const filtrados = nombresClientes.filter(n => n.toLowerCase().includes(form.nombre.toLowerCase()) && n.toLowerCase() !== form.nombre.toLowerCase());
                   if (filtrados.length === 0) return null;
                   return (
-                    <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid #c8e6c9", borderRadius: 4, zIndex: 200, maxHeight: 220, overflowY: "auto", boxShadow: "0 4px 12px rgba(0,0,0,0.10)" }}>
+                    <div style={{ position: "absolute", top: 0, left: "100%", marginLeft: 8, width: 260, background: "#fff", border: "1px solid #c8e6c9", borderRadius: 4, zIndex: 200, maxHeight: 220, overflowY: "auto", boxShadow: "0 4px 12px rgba(0,0,0,0.10)" }}>
                       {filtrados.slice(0, 12).map(n => {
                         const cliente = reservas.find(r => r.nombre === n) || clientesArchivados.find(c => c.nombre === n);
                         return (
