@@ -700,6 +700,13 @@ export default function App() {
     afectadas.forEach(r => batch.set(doc(db, "reservas", String(r.id)), { ...r, mesas: [], mesa: "" }));
     await batch.commit();
     showToast("Mesas borradas", "error");
+    // Devuelve el estado actual de reservas con las mesas de este turno vaciadas,
+    // para que asignarMesasTurno no tenga que esperar al onSnapshot
+    return reservas.map(r =>
+      r.fecha === fecha && getTurno(r.hora) === turno && r.estado !== "cancelada"
+        ? { ...r, mesas: [], mesa: "" }
+        : r
+    );
   };
 
   // Asignar con confirmación si ya hay mesas asignadas
@@ -3894,8 +3901,8 @@ Buenas y Santas`;
                 onClick={async () => {
                   const { fecha, turno } = confirmarAsignarMesas;
                   setConfirmarAsignarMesas(null);
-                  await borrarMesasTurno(fecha, turno);
-                  asignarMesasTurno(fecha, turno);
+                  const reservasActualizadas = await borrarMesasTurno(fecha, turno);
+                  asignarMesasTurno(fecha, turno, null, reservasActualizadas);
                 }}
                 style={{ padding: "12px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", borderRadius: 4, background: "#2e7d32", color: "#fff", border: "none", fontWeight: 600 }}>
                 ✓ Borrar y reasignar
