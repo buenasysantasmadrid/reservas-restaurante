@@ -2408,50 +2408,50 @@ Buenas y Santas`;
               </div>
 
               {/* Fila 3: Cliente */}
-              <div style={{ gridColumn: "1/-1" }}>
+              <div style={{ gridColumn: "1/-1", position: "relative" }}>
                 <label style={{ fontSize: 9, marginBottom: 3 }}>Cliente *</label>
                 <input
                   className="input-field"
-                  list="lista-clientes"
                   value={form.nombre}
                   onChange={e => {
-                    const val = e.target.value;
-                    setForm(f => ({ ...f, nombre: val }));
-                    // Solo rellenar datos si el valor coincide exactamente con un cliente
-                    // (indica selección con Enter o ratón desde el datalist)
-                    const esSeleccionExacta = nombresClientes.includes(val);
-                    if (esSeleccionExacta) {
-                      const existente = reservas.find(r => r.nombre === val) || clientesArchivados.find(c => c.nombre === val);
-                      if (existente) {
-                        // Usar setTimeout para distinguir selección real de escritura coincidente
-                        setTimeout(() => {
-                          setForm(f => {
-                            // Solo aplicar si el nombre sigue siendo el mismo (no cambió mientras tanto)
-                            if (f.nombre !== val) return f;
-                            return { ...f, nombre: existente.nombre, telefono: existente.telefono || "", email: existente.email || "", prefijo: existente.prefijo || "+34" };
-                          });
-                        }, 0);
-                      }
-                    }
-                  }}
-                  onKeyDown={e => {
-                    // Si pulsa Tab, evitar que se apliquen los datos del cliente sugerido
-                    if (e.key === "Tab") {
-                      // No hacemos nada especial, el onChange no debería dispararse con Tab
-                      // pero si el navegador autocompleta, revertimos a solo el texto escrito
-                    }
+                    setForm(f => ({ ...f, nombre: e.target.value }));
                   }}
                   placeholder="Escribe o busca un cliente..."
                   autoComplete="off"
                   style={{ padding: "7px 10px", fontSize: 13 }}
                 />
-                <datalist id="lista-clientes">
-                  {nombresClientes.map(n => {
-                    const cliente = reservas.find(r => r.nombre === n) || clientesArchivados.find(c => c.nombre === n);
-                    const tel = cliente?.telefono ? ` · ${cliente.telefono}` : "";
-                    return <option key={n} value={n} label={`${n}${tel}`} />;
-                  })}
-                </datalist>
+                {form.nombre.length > 0 && (() => {
+                  const filtrados = nombresClientes.filter(n => n.toLowerCase().includes(form.nombre.toLowerCase()) && n.toLowerCase() !== form.nombre.toLowerCase());
+                  if (filtrados.length === 0) return null;
+                  return (
+                    <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid #c8e6c9", borderRadius: 4, zIndex: 200, maxHeight: 220, overflowY: "auto", boxShadow: "0 4px 12px rgba(0,0,0,0.10)" }}>
+                      {filtrados.slice(0, 12).map(n => {
+                        const cliente = reservas.find(r => r.nombre === n) || clientesArchivados.find(c => c.nombre === n);
+                        return (
+                          <div
+                            key={n}
+                            onMouseDown={e => {
+                              e.preventDefault(); // evita que el input pierda el foco antes del click
+                              setForm(f => ({
+                                ...f,
+                                nombre: cliente?.nombre || n,
+                                telefono: cliente?.telefono || "",
+                                email: cliente?.email || "",
+                                prefijo: cliente?.prefijo || "+34"
+                              }));
+                            }}
+                            style={{ padding: "9px 12px", cursor: "pointer", fontFamily: "'Jost', sans-serif", fontSize: 13, borderBottom: "1px solid #f0f8f0" }}
+                            onMouseEnter={e => e.currentTarget.style.background = "#f1f8f1"}
+                            onMouseLeave={e => e.currentTarget.style.background = "#fff"}
+                          >
+                            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 700 }}>{n}</span>
+                            {cliente?.telefono && <span style={{ color: "#4a7a4a", fontSize: 11, marginLeft: 8 }}>{cliente.telefono}</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Fila 4: Prefijo+Teléfono y Mail */}
