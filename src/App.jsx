@@ -1764,7 +1764,6 @@ Buenas y Santas`;
               </div>
               <div className="header-actions" style={{ display: "flex", gap: 12 }}>
                 <button className="btn-outline" style={{ borderColor: "#81c784", color: "#2e7d32", fontSize: 11 }} onClick={imprimirReservas}>🖨 Imprimir</button>
-                <button className="btn-outline" style={{ borderColor: "#e57373", color: "#c62828", fontSize: 11 }} onClick={archivarReservasPasadas}>📦 Archivar pasadas</button>
                 <button className="btn-gold" onClick={abrirNueva}>+ Nueva reserva</button>
               </div>
             </div>
