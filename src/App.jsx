@@ -574,15 +574,15 @@ export default function App() {
 
     try {
       const url = "https://script.google.com/macros/s/AKfycbxslphHn0GNmCT8PQcmJHPzo4M9_bB1OABaiXEs5ugXAVxHtQNTF2v3u1HiYEi0lRrm/exec";
-      const res = await fetch(url, { method: "POST", body: JSON.stringify(filas) });
+      const res = await fetch(url, {
+        method: "POST",
+        body: JSON.stringify({ action: "archivarEnViejas", reservas: filas })
+      });
       if (!res.ok) throw new Error("Error al conectar con Google Sheets");
       // Guardar clientes en Firestore
-      const nuevosClientes = [];
       pasadas.forEach(r => {
         if (!clientesArchivados.find(c => c.nombre === r.nombre)) {
-          const cliente = { nombre: r.nombre, telefono: r.telefono || "", email: r.email || "" };
-          nuevosClientes.push(cliente);
-          fbSetCliente(cliente);
+          fbSetCliente({ nombre: r.nombre, telefono: r.telefono || "", email: r.email || "" });
         }
       });
       // Borrar reservas archivadas de Firestore
@@ -1713,6 +1713,7 @@ Buenas y Santas`;
               </div>
               <div className="header-actions" style={{ display: "flex", gap: 12 }}>
                 <button className="btn-outline" style={{ borderColor: "#81c784", color: "#2e7d32", fontSize: 11 }} onClick={imprimirReservas}>🖨 Imprimir</button>
+                <button className="btn-outline" style={{ borderColor: "#e57373", color: "#c62828", fontSize: 11 }} onClick={archivarReservasPasadas}>📦 Archivar pasadas</button>
                 <button className="btn-gold" onClick={abrirNueva}>+ Nueva reserva</button>
               </div>
             </div>
