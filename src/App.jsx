@@ -574,15 +574,15 @@ export default function App() {
 
     try {
       const url = "https://script.google.com/macros/s/AKfycbxslphHn0GNmCT8PQcmJHPzo4M9_bB1OABaiXEs5ugXAVxHtQNTF2v3u1HiYEi0lRrm/exec";
-      const res = await fetch(url, {
-        method: "POST",
-        body: JSON.stringify({ action: "archivarEnViejas", reservas: filas })
-      });
+      const res = await fetch(url, { method: "POST", body: JSON.stringify(filas) });
       if (!res.ok) throw new Error("Error al conectar con Google Sheets");
       // Guardar clientes en Firestore
+      const nuevosClientes = [];
       pasadas.forEach(r => {
         if (!clientesArchivados.find(c => c.nombre === r.nombre)) {
-          fbSetCliente({ nombre: r.nombre, telefono: r.telefono || "", email: r.email || "" });
+          const cliente = { nombre: r.nombre, telefono: r.telefono || "", email: r.email || "" };
+          nuevosClientes.push(cliente);
+          fbSetCliente(cliente);
         }
       });
       // Borrar reservas archivadas de Firestore
@@ -1713,7 +1713,6 @@ Buenas y Santas`;
               </div>
               <div className="header-actions" style={{ display: "flex", gap: 12 }}>
                 <button className="btn-outline" style={{ borderColor: "#81c784", color: "#2e7d32", fontSize: 11 }} onClick={imprimirReservas}>🖨 Imprimir</button>
-                <button className="btn-outline" style={{ borderColor: "#e57373", color: "#c62828", fontSize: 11 }} onClick={archivarReservasPasadas}>📦 Archivar pasadas</button>
                 <button className="btn-gold" onClick={abrirNueva}>+ Nueva reserva</button>
               </div>
             </div>
@@ -2409,56 +2408,51 @@ Buenas y Santas`;
               </div>
 
               {/* Fila 3: Cliente */}
-              {(() => {
-                const [nombreFoco, setNombreFoco] = React.useState(false);
-                const filtrados = nombreFoco && form.nombre.length > 0
-                  ? nombresClientes.filter(n => n.toLowerCase().includes(form.nombre.toLowerCase()) && n.toLowerCase() !== form.nombre.toLowerCase())
-                  : [];
-                return (
-                  <div style={{ gridColumn: "1/-1", position: "relative" }}>
-                    <label style={{ fontSize: 9, marginBottom: 3 }}>Cliente *</label>
-                    <input
-                      className="input-field"
-                      value={form.nombre}
-                      onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-                      onFocus={() => setNombreFoco(true)}
-                      onBlur={() => setTimeout(() => setNombreFoco(false), 150)}
-                      placeholder="Escribe o busca un cliente..."
-                      autoComplete="off"
-                      style={{ padding: "7px 10px", fontSize: 13 }}
-                    />
-                    {filtrados.length > 0 && (
-                      <div style={{ position: "absolute", bottom: "100%", left: 0, right: 0, marginBottom: 4, background: "#fff", border: "1px solid #c8e6c9", borderRadius: 4, zIndex: 200, maxHeight: 220, overflowY: "auto", boxShadow: "0 -4px 12px rgba(0,0,0,0.10)" }}>
-                        {filtrados.slice(0, 12).map(n => {
-                          const cliente = reservas.find(r => r.nombre === n) || clientesArchivados.find(c => c.nombre === n);
-                          return (
-                            <div
-                              key={n}
-                              onMouseDown={e => {
-                                e.preventDefault();
-                                setForm(f => ({
-                                  ...f,
-                                  nombre: cliente?.nombre || n,
-                                  telefono: cliente?.telefono || "",
-                                  email: cliente?.email || "",
-                                  prefijo: cliente?.prefijo || "+34"
-                                }));
-                                setNombreFoco(false);
-                              }}
-                              style={{ padding: "9px 12px", cursor: "pointer", fontFamily: "'Jost', sans-serif", fontSize: 13, borderBottom: "1px solid #f0f8f0" }}
-                              onMouseEnter={e => e.currentTarget.style.background = "#f1f8f1"}
-                              onMouseLeave={e => e.currentTarget.style.background = "#fff"}
-                            >
-                              <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 700 }}>{n}</span>
-                              {cliente?.telefono && <span style={{ color: "#4a7a4a", fontSize: 11, marginLeft: 8 }}>{cliente.telefono}</span>}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
+              <div style={{ gridColumn: "1/-1" }}>
+                <label style={{ fontSize: 9, marginBottom: 3 }}>Cliente *</label>
+                <input
+                  className="input-field"
+                  list="lista-clientes"
+                  value={form.nombre}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setForm(f => ({ ...f, nombre: val }));
+                    // Solo rellenar datos si el valor coincide exactamente con un cliente
+                    // (indica selección con Enter o ratón desde el datalist)
+                    const esSeleccionExacta = nombresClientes.includes(val);
+                    if (esSeleccionExacta) {
+                      const existente = reservas.find(r => r.nombre === val) || clientesArchivados.find(c => c.nombre === val);
+                      if (existente) {
+                        // Usar setTimeout para distinguir selección real de escritura coincidente
+                        setTimeout(() => {
+                          setForm(f => {
+                            // Solo aplicar si el nombre sigue siendo el mismo (no cambió mientras tanto)
+                            if (f.nombre !== val) return f;
+                            return { ...f, nombre: existente.nombre, telefono: existente.telefono || "", email: existente.email || "", prefijo: existente.prefijo || "+34" };
+                          });
+                        }, 0);
+                      }
+                    }
+                  }}
+                  onKeyDown={e => {
+                    // Si pulsa Tab, evitar que se apliquen los datos del cliente sugerido
+                    if (e.key === "Tab") {
+                      // No hacemos nada especial, el onChange no debería dispararse con Tab
+                      // pero si el navegador autocompleta, revertimos a solo el texto escrito
+                    }
+                  }}
+                  placeholder="Escribe o busca un cliente..."
+                  autoComplete="off"
+                  style={{ padding: "7px 10px", fontSize: 13 }}
+                />
+                <datalist id="lista-clientes">
+                  {nombresClientes.map(n => {
+                    const cliente = reservas.find(r => r.nombre === n) || clientesArchivados.find(c => c.nombre === n);
+                    const tel = cliente?.telefono ? ` · ${cliente.telefono}` : "";
+                    return <option key={n} value={n} label={`${n}${tel}`} />;
+                  })}
+                </datalist>
+              </div>
 
               {/* Fila 4: Prefijo+Teléfono y Mail */}
               <div>
