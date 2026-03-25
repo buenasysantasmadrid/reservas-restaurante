@@ -608,9 +608,11 @@ export default function App() {
     1: [{internas:[3]}, {internas:[10]}, {internas:[11]}, {internas:[4]}, {internas:[5]}, {internas:[15]}, {internas:[7]}, {internas:[17]}, {internas:[8]}, {internas:[18]}, {internas:[1]}, {internas:[2]}, {internas:[6]}, {internas:[16]}, {internas:[12]}, {internas:[13]}, {internas:[40]}, {internas:[41]}, {internas:[30]}, {internas:[31]}],
   };
 
-  const asignarMesasTurno = async (fecha, turno, ajuste6 = null) => {
+  const asignarMesasTurno = async (fecha, turno, ajuste6 = null, reservasSnapshot = null) => {
     // Get all reservas for this fecha+turno, excluding canceladas
-    const reservasTurno = reservas.filter(r => r.fecha === fecha && getTurno(r.hora) === turno && r.estado !== "cancelada");
+    // Use reservasSnapshot if provided (avoids stale closure when called right after an edit)
+    const fuenteReservas = reservasSnapshot || reservas;
+    const reservasTurno = fuenteReservas.filter(r => r.fecha === fecha && getTurno(r.hora) === turno && r.estado !== "cancelada");
     if (reservasTurno.length === 0) return;
 
     // Si hay reservas de 6 pax y no se ha decidido aún, mostrar modal
@@ -2408,13 +2410,28 @@ Buenas y Santas`;
                   onChange={e => {
                     const val = e.target.value;
                     setForm(f => ({ ...f, nombre: val }));
-                  }}
-                  onBlur={e => {
-                    const val = e.target.value;
-                    const esDelDesplegable = nombresClientes.includes(val);
-                    if (esDelDesplegable) {
+                    // Solo rellenar datos si el valor coincide exactamente con un cliente
+                    // (indica selección con Enter o ratón desde el datalist)
+                    const esSeleccionExacta = nombresClientes.includes(val);
+                    if (esSeleccionExacta) {
                       const existente = reservas.find(r => r.nombre === val) || clientesArchivados.find(c => c.nombre === val);
-                      if (existente) setForm(f => ({ ...f, nombre: existente.nombre, telefono: existente.telefono || "", email: existente.email || "", prefijo: existente.prefijo || "+34" }));
+                      if (existente) {
+                        // Usar setTimeout para distinguir selección real de escritura coincidente
+                        setTimeout(() => {
+                          setForm(f => {
+                            // Solo aplicar si el nombre sigue siendo el mismo (no cambió mientras tanto)
+                            if (f.nombre !== val) return f;
+                            return { ...f, nombre: existente.nombre, telefono: existente.telefono || "", email: existente.email || "", prefijo: existente.prefijo || "+34" };
+                          });
+                        }, 0);
+                      }
+                    }
+                  }}
+                  onKeyDown={e => {
+                    // Si pulsa Tab, evitar que se apliquen los datos del cliente sugerido
+                    if (e.key === "Tab") {
+                      // No hacemos nada especial, el onChange no debería dispararse con Tab
+                      // pero si el navegador autocompleta, revertimos a solo el texto escrito
                     }
                   }}
                   placeholder="Escribe o busca un cliente..."
