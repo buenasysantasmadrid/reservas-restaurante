@@ -1187,11 +1187,12 @@ export default function App() {
       // Formato español de Google Sheets: 22/03/2026 15:15:00
       const mES  = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
       if (mISO) {
-        // Google Sheets ya manda hora local (Madrid), no UTC → no sumar offset
-        let h = parseInt(mISO[4]);
+        // La Z indica UTC; sumamos 1h para convertir a Madrid (UTC+1)
+        let h = parseInt(mISO[4]) + 1;
         let d = parseInt(mISO[3]);
         let mo = mISO[2];
         let y = mISO[1];
+        if (h >= 24) { h = 0; d += 1; } // medianoche, caso extremo
         fechaFmt = `${y}-${mo}-${String(d).padStart(2,"0")}`;
         horaFmt  = `${String(h).padStart(2,"0")}:${mISO[5]}`;
       } else if (mES) {
@@ -2319,7 +2320,8 @@ Buenas y Santas`;
                             const fechaStr = m ? `${m[3]}/${m[2]}/${m[1]}` : s;
                             let horaStr = m ? `${m[4]}:${m[5]}` : "";
                             if (m) {
-                              let h = parseInt(m[4]);
+                              let h = parseInt(m[4]) + 1;
+                              if (h >= 24) h = 0;
                               horaStr = `${String(h).padStart(2,"0")}:${m[5]}`;
                             }
                             return (
@@ -3989,17 +3991,15 @@ Buenas y Santas`;
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {[
-                { label: "1º Turno Mediodía", turno: "t1" },
-                { label: "2º Turno Mediodía", turno: "t2" },
+                { label: "Mediodía", turno: "mediodia" },
                 { label: "Noche", turno: "noche" },
-                { label: "Todos los turnos", turno: "todos" },
               ].map(op => {
                 const fecha = modalWaTodos.fecha;
                 const conTel = reservas.filter(x =>
                   x.fecha === fecha &&
                   x.estado !== "cancelada" &&
                   x.telefono &&
-                  (op.turno === "todos" || getTurno(x.hora) === op.turno)
+                  (op.turno === "mediodia" ? (getTurno(x.hora) === "t1" || getTurno(x.hora) === "t2") : getTurno(x.hora) === op.turno)
                 );
                 return (
                   <button key={op.turno}
