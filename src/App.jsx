@@ -1462,9 +1462,14 @@ Buenas y Santas`;
     }
 
     const waUrl = `https://wa.me/${tel}?text=${encodeURIComponent(msg)}`;
-    // iOS Safari blocks window.open unless called synchronously from a user gesture.
-    // Using location.href works reliably on all platforms including iPhone.
-    window.location.href = waUrl;
+    // iOS Safari blocks window.open when called indirectly (e.g. inside a function triggered by a button).
+    // On iOS we use location.href; on desktop we keep window.open to open a new tab.
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isIOS) {
+      window.location.href = waUrl;
+    } else {
+      window.open(waUrl, "_blank");
+    }
   };
 
   // ── Botón WhatsApp reutilizable ──────────────────────────────────────────────
