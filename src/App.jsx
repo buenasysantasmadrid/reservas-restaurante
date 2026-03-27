@@ -598,7 +598,7 @@ export default function App() {
       setPendingPegar(false);
       setVista("pegar");
     }
-    if (vista === "sheet") setVista("sheet");
+    if (pendingSheetIdx !== null || vista === "sheet") setVista("reservas");
     setTimeout(() => setGuardando(false), 800);
   };
 
@@ -1461,7 +1461,10 @@ Saludos, nos vemos
 Buenas y Santas`;
     }
 
-    window.open(`https://wa.me/+${tel}?text=${encodeURIComponent(msg)}`, "_blank");
+    const waUrl = `https://wa.me/${tel}?text=${encodeURIComponent(msg)}`;
+    // iOS Safari blocks window.open unless called synchronously from a user gesture.
+    // Using location.href works reliably on all platforms including iPhone.
+    window.location.href = waUrl;
   };
 
   // ── Botón WhatsApp reutilizable ──────────────────────────────────────────────
