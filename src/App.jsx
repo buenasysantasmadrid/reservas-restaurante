@@ -598,7 +598,7 @@ export default function App() {
       setPendingPegar(false);
       setVista("pegar");
     }
-    if (pendingSheetIdx !== null || vista === "sheet") setVista("reservas");
+    if (vista === "sheet") { setVista("reservas"); setFiltroFecha(getTodayStr()); }
     setTimeout(() => setGuardando(false), 800);
   };
 
@@ -1462,14 +1462,8 @@ Buenas y Santas`;
     }
 
     const waUrl = `https://wa.me/${tel}?text=${encodeURIComponent(msg)}`;
-    // iOS Safari blocks window.open when called indirectly (e.g. inside a function triggered by a button).
-    // On iOS we use location.href; on desktop we keep window.open to open a new tab.
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (isIOS) {
-      window.location.href = waUrl;
-    } else {
-      window.open(waUrl, "_blank");
-    }
+    if (isIOS) { window.location.href = waUrl; } else { window.open(waUrl, "_blank"); }
   };
 
   // ── Botón WhatsApp reutilizable ──────────────────────────────────────────────
