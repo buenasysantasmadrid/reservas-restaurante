@@ -4000,7 +4000,7 @@ Buenas y Santas`;
                 const fecha = modalWaTodos.fecha;
                 const conTel = reservas.filter(x =>
                   x.fecha === fecha &&
-                  x.estado !== "cancelada" &&
+                  x.estado === "tomada" &&
                   x.telefono &&
                   (op.turno === "mediodia" ? (getTurno(x.hora) === "t1" || getTurno(x.hora) === "t2") : getTurno(x.hora) === op.turno)
                 );
