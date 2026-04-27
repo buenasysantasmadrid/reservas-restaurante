@@ -112,6 +112,97 @@ function ClienteInput({ form, setForm, nombresClientes, reservas, clientesArchiv
   );
 }
 
+function TelefonoInput({ form, setForm, reservas, clientesArchivados }) {
+  const [telFoco, setTelFoco] = useState(false);
+
+  const normalizarTel = (t) => String(t || "").replace(/\D/g, "").slice(-9);
+
+  const clientesFiltrados = telFoco && form.telefono.length >= 3
+    ? (() => {
+        const query = normalizarTel(form.telefono);
+        const vistos = new Set();
+        const todos = [
+          ...reservas.map(r => ({ nombre: r.nombre, telefono: r.telefono, email: r.email, prefijo: r.prefijo })),
+          ...clientesArchivados.map(c => ({ nombre: c.nombre, telefono: c.telefono, email: c.email, prefijo: c.prefijo }))
+        ];
+        return todos.filter(c => {
+          if (!c.telefono) return false;
+          const tel = normalizarTel(c.telefono);
+          if (!tel.includes(query)) return false;
+          if (tel === normalizarTel(form.telefono) && c.nombre === form.nombre) return false;
+          if (vistos.has(c.nombre + c.telefono)) return false;
+          vistos.add(c.nombre + c.telefono);
+          return true;
+        }).slice(0, 8);
+      })()
+    : [];
+
+  return (
+    <div style={{ position: "relative" }}>
+      <label style={{ fontSize: 9, marginBottom: 3 }}>Teléfono</label>
+      <div style={{ display: "flex", gap: 6 }}>
+        <input
+          className="input-field"
+          value={form.prefijo ?? "+34"}
+          onChange={e => setForm(f => ({ ...f, prefijo: e.target.value }))}
+          autoComplete="off"
+          style={{ width: 64, padding: "7px 8px", fontSize: 13 }}
+          placeholder="+34"
+        />
+        <input
+          className="input-field"
+          value={form.telefono}
+          onChange={e => setForm(f => ({ ...f, telefono: e.target.value.replace(/\s/g, "") }))}
+          onFocus={() => setTelFoco(true)}
+          onBlur={() => setTimeout(() => setTelFoco(false), 150)}
+          autoComplete="off"
+          style={{ padding: "7px 10px", fontSize: 13 }}
+        />
+      </div>
+      {clientesFiltrados.length > 0 && (
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: 2, background: "#fff", border: "1px solid #c8e6c9", borderRadius: 4, zIndex: 200, maxHeight: 220, overflowY: "auto", boxShadow: "0 4px 12px rgba(0,0,0,0.10)" }}>
+          {clientesFiltrados.map((c, i) => (
+            <div
+              key={i}
+              onMouseDown={e => {
+                e.preventDefault();
+                setForm(f => ({
+                  ...f,
+                  nombre: c.nombre || f.nombre,
+                  telefono: c.telefono || f.telefono,
+                  email: c.email || f.email,
+                  prefijo: c.prefijo || "+34"
+                }));
+                setTelFoco(false);
+              }}
+              style={{ padding: "9px 12px", cursor: "pointer", fontFamily: "'Jost', sans-serif", fontSize: 13, borderBottom: "1px solid #f0f8f0" }}
+              onMouseEnter={e => e.currentTarget.style.background = "#f1f8f1"}
+              onMouseLeave={e => e.currentTarget.style.background = "#fff"}
+            >
+              <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 700 }}>{c.nombre}</span>
+              <span style={{ color: "#4a7a4a", fontSize: 11, marginLeft: 8 }}>{c.telefono}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {form.telefono && (() => {
+        const digits = form.telefono.replace(/\D/g, "");
+        if (digits.length !== 9) {
+          return (
+            <div style={{ marginTop: 5, padding: "4px 10px", borderRadius: 5, background: "#fff3e0", border: "1px solid #ffcc80", display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 12 }}>⚠️</span>
+              <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#e65100", fontWeight: 700, letterSpacing: 0.5 }}>
+                {digits.length < 9 ? "Número de teléfono corto" : "Número de teléfono largo"}
+              </span>
+            </div>
+          );
+        }
+        return null;
+      })()}
+    </div>
+  );
+}
+
 export default function App() {
   useEffect(() => {
     document.title = "Reservas · Buenas y Santas";
@@ -2493,27 +2584,12 @@ Buenas y Santas`;
               />
 
               {/* Fila 4: Prefijo+Teléfono y Mail */}
-              <div>
-                <label style={{ fontSize: 9, marginBottom: 3 }}>Teléfono</label>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <input className="input-field" value={form.prefijo ?? "+34"} onChange={e => setForm(f => ({ ...f, prefijo: e.target.value }))} autoComplete="off" style={{ width: 64, padding: "7px 8px", fontSize: 13 }} placeholder="+34" />
-                  <input className="input-field" value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value.replace(/\s/g, "") }))} autoComplete="off" style={{ padding: "7px 10px", fontSize: 13 }} />
-                </div>
-                {form.telefono && (() => {
-                  const digits = form.telefono.replace(/\D/g, "");
-                  if (digits.length !== 9) {
-                    return (
-                      <div style={{ marginTop: 5, padding: "4px 10px", borderRadius: 5, background: "#fff3e0", border: "1px solid #ffcc80", display: "inline-flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ fontSize: 12 }}>⚠️</span>
-                        <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#e65100", fontWeight: 700, letterSpacing: 0.5 }}>
-                          {digits.length < 9 ? "Número de teléfono corto" : "Número de teléfono largo"}
-                        </span>
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
-              </div>
+              <TelefonoInput
+                form={form}
+                setForm={setForm}
+                reservas={reservas}
+                clientesArchivados={clientesArchivados}
+              />
               <div>
                 <label style={{ fontSize: 9, marginBottom: 3 }}>Email</label>
                 <input className="input-field" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} autoComplete="off" style={{ padding: "7px 10px", fontSize: 13 }} />
