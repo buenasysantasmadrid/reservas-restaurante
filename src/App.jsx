@@ -1435,7 +1435,7 @@ export default function App() {
       else tel = "34" + digits;
     }
 
-    const nombreCapital = r.nombre.split(" ")[0];
+    const nombreCapital = r.nombre;
     let msg;
 
     if (tipo === "confirmar") {
