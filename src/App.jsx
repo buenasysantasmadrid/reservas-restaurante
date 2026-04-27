@@ -61,11 +61,7 @@ function getTodayStr() {
   return new Date().toISOString().split("T")[0];
 }
 
-function ClienteInput({ form, setForm, nombresClientes, reservas, clientesArchivados }) {
-  const [nombreFoco, setNombreFoco] = useState(false);
-  const filtrados = nombreFoco && form.nombre.length > 0
-    ? nombresClientes.filter(n => n.toLowerCase().includes(form.nombre.toLowerCase()) && n.toLowerCase() !== form.nombre.toLowerCase())
-    : [];
+function ClienteInput({ form, setForm }) {
   return (
     <div style={{ gridColumn: "1/-1", position: "relative" }}>
       <label style={{ fontSize: 9, marginBottom: 3 }}>Cliente *</label>
@@ -73,41 +69,10 @@ function ClienteInput({ form, setForm, nombresClientes, reservas, clientesArchiv
         className="input-field"
         value={form.nombre}
         onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-        onFocus={() => setNombreFoco(true)}
-        onBlur={() => setTimeout(() => setNombreFoco(false), 150)}
-        placeholder="Escribe o busca un cliente..."
+        placeholder="Escribe el nombre del cliente..."
         autoComplete="off"
         style={{ padding: "7px 10px", fontSize: 13 }}
       />
-      {filtrados.length > 0 && (
-        <div style={{ position: "absolute", bottom: "100%", left: 0, right: 0, marginBottom: 4, background: "#fff", border: "1px solid #c8e6c9", borderRadius: 4, zIndex: 200, maxHeight: 220, overflowY: "auto", boxShadow: "0 -4px 12px rgba(0,0,0,0.10)" }}>
-          {filtrados.slice(0, 12).map(n => {
-            const cliente = reservas.find(r => r.nombre === n) || clientesArchivados.find(c => c.nombre === n);
-            return (
-              <div
-                key={n}
-                onMouseDown={e => {
-                  e.preventDefault();
-                  setForm(f => ({
-                    ...f,
-                    nombre: cliente?.nombre || n,
-                    telefono: cliente?.telefono || "",
-                    email: cliente?.email || "",
-                    prefijo: cliente?.prefijo || "+34"
-                  }));
-                  setNombreFoco(false);
-                }}
-                style={{ padding: "9px 12px", cursor: "pointer", fontFamily: "'Jost', sans-serif", fontSize: 13, borderBottom: "1px solid #f0f8f0" }}
-                onMouseEnter={e => e.currentTarget.style.background = "#f1f8f1"}
-                onMouseLeave={e => e.currentTarget.style.background = "#fff"}
-              >
-                <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 700 }}>{n}</span>
-                {cliente?.telefono && <span style={{ color: "#4a7a4a", fontSize: 11, marginLeft: 8 }}>{cliente.telefono}</span>}
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }
