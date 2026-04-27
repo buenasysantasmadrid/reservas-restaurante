@@ -582,7 +582,12 @@ export default function App() {
         setSheetFilas(fs => [fs[0], ...fs.slice(1).filter((_, idx) => idx + 1 !== pendingSheetIdx)]);
         fetch("https://script.google.com/macros/s/AKfycbxslphHn0GNmCT8PQcmJHPzo4M9_bB1OABaiXEs5ugXAVxHtQNTF2v3u1HiYEi0lRrm/exec", {
           method: "POST",
-          body: JSON.stringify({ action: "marcarComoImportada", nombre: nuevaReserva.nombre, fecha: nuevaReserva.fecha })
+          body: JSON.stringify({
+            action: "marcarComoImportada",
+            nombre: nuevaReserva.nombre,
+            fecha: nuevaReserva.fecha,
+            telefono: ((nuevaReserva.prefijo || "+34") + (nuevaReserva.telefono || "")).replace(/\s/g, "")
+          })
         }).catch(() => {});
         setPendingSheetIdx(null);
       }
