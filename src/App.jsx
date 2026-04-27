@@ -596,7 +596,7 @@ export default function App() {
     showToast(toastMsg);
     setConfirmarWA(false);
     setModalAbierto(false);
-    if (sendWA && form.telefono) enviarWhatsApp(form, "nueva");
+    if (sendWA && form.telefono) setTimeout(() => enviarWhatsApp(form, "nueva"), 1500);
     if (pendingPegar) {
       setTextoPegado("");
       setDatosInterpretados(null);
