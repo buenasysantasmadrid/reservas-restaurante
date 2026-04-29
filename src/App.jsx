@@ -2455,7 +2455,28 @@ Buenas y Santas`;
             </h2>
             <div className="modal-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
 
-              {/* Fila 1: Fecha y Hora */}
+              {/* Fila 1: Prefijo+Teléfono y Mail */}
+              <TelefonoInput
+                form={form}
+                setForm={setForm}
+                reservas={reservas}
+                clientesArchivados={clientesArchivados}
+              />
+              <div>
+                <label style={{ fontSize: 9, marginBottom: 3 }}>Email</label>
+                <input className="input-field" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} autoComplete="off" style={{ padding: "7px 10px", fontSize: 13 }} />
+              </div>
+
+              {/* Fila 2: Cliente */}
+              <ClienteInput
+                form={form}
+                setForm={setForm}
+                nombresClientes={nombresClientes}
+                reservas={reservas}
+                clientesArchivados={clientesArchivados}
+              />
+
+              {/* Fila 3: Fecha y Hora */}
               <div>
                 <label style={{ fontSize: 9, marginBottom: 3 }}>Fecha *</label>
                 <input type="date" className="input-field" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value, hora: "" }))} autoComplete="off" style={{ padding: "7px 10px", fontSize: 13 }} />
@@ -2488,7 +2509,7 @@ Buenas y Santas`;
                 )}
               </div>
 
-              {/* Fila 2: Nº personas y Tomada por */}
+              {/* Fila 4: Nº personas y Tomada por */}
               <div>
                 <label style={{ fontSize: 9, marginBottom: 3 }}>Nº de personas *</label>
                 <input
@@ -2537,27 +2558,6 @@ Buenas y Santas`;
                     <option key={n} value={n}>{n}</option>
                   ))}
                 </select>
-              </div>
-
-              {/* Fila 3: Cliente */}
-              <ClienteInput
-                form={form}
-                setForm={setForm}
-                nombresClientes={nombresClientes}
-                reservas={reservas}
-                clientesArchivados={clientesArchivados}
-              />
-
-              {/* Fila 4: Prefijo+Teléfono y Mail */}
-              <TelefonoInput
-                form={form}
-                setForm={setForm}
-                reservas={reservas}
-                clientesArchivados={clientesArchivados}
-              />
-              <div>
-                <label style={{ fontSize: 9, marginBottom: 3 }}>Email</label>
-                <input className="input-field" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} autoComplete="off" style={{ padding: "7px 10px", fontSize: 13 }} />
               </div>
 
               {/* Fila 5: Observaciones */}
