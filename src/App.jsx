@@ -79,6 +79,8 @@ function ClienteInput({ form, setForm }) {
 
 function TelefonoInput({ form, setForm, reservas, clientesArchivados }) {
   const [telFoco, setTelFoco] = useState(false);
+  const [zoiperPopup, setZoiperPopup] = useState(false);
+  const [zoiperInput, setZoiperInput] = useState("");
 
   const normalizarTel = (t) => String(t || "").replace(/\D/g, "").slice(-9);
 
@@ -123,7 +125,86 @@ function TelefonoInput({ form, setForm, reservas, clientesArchivados }) {
           autoComplete="off"
           style={{ padding: "7px 10px", fontSize: 13 }}
         />
+        <button
+          type="button"
+          title="Pegar número de Zoiper"
+          onClick={() => { setZoiperInput(""); setZoiperPopup(true); }}
+          style={{
+            padding: "7px 10px", fontSize: 16, cursor: "pointer",
+            background: "#e8f5e9", border: "1.5px solid #81c784",
+            borderRadius: 4, color: "#2e7d32", flexShrink: 0,
+            display: "flex", alignItems: "center", gap: 4,
+            fontFamily: "'Jost', sans-serif", fontWeight: 600
+          }}
+        >
+          📞
+        </button>
       </div>
+
+      {/* ── POPUP ZOIPER ── */}
+      {zoiperPopup && (
+        <div style={{
+          position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4,
+          background: "#fff", border: "1.5px solid #81c784", borderRadius: 8,
+          zIndex: 300, padding: "14px 14px 12px", boxShadow: "0 6px 20px rgba(0,0,0,0.13)"
+        }}>
+          <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#2e7d32", fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 8 }}>
+            📞 Número de Zoiper
+          </div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <input
+              autoFocus
+              value={zoiperInput}
+              onChange={e => setZoiperInput(e.target.value.replace(/\s/g, ""))}
+              onKeyDown={e => {
+                if (e.key === "Enter" && zoiperInput) {
+                  const num = zoiperInput.replace(/\D/g, "").slice(-9);
+                  setForm(f => ({ ...f, telefono: num }));
+                  setZoiperPopup(false);
+                }
+                if (e.key === "Escape") setZoiperPopup(false);
+              }}
+              placeholder="Pega o escribe el número..."
+              style={{
+                flex: 1, padding: "7px 10px", fontSize: 13,
+                border: "1px solid #c8e6c9", borderRadius: 4,
+                fontFamily: "'Jost', sans-serif"
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                if (zoiperInput) {
+                  const num = zoiperInput.replace(/\D/g, "").slice(-9);
+                  setForm(f => ({ ...f, telefono: num }));
+                  setZoiperPopup(false);
+                }
+              }}
+              style={{
+                padding: "7px 14px", background: "#2e7d32", color: "#fff",
+                border: "none", borderRadius: 4, cursor: "pointer",
+                fontFamily: "'Jost', sans-serif", fontSize: 12, fontWeight: 700
+              }}
+            >
+              ✓
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoiperPopup(false)}
+              style={{
+                padding: "7px 10px", background: "#f5f5f5", color: "#888",
+                border: "1px solid #ddd", borderRadius: 4, cursor: "pointer",
+                fontFamily: "'Jost', sans-serif", fontSize: 12
+              }}
+            >
+              ✕
+            </button>
+          </div>
+          <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, color: "#999", marginTop: 6 }}>
+            Pega el número que aparece en Zoiper y pulsa ✓ o Enter
+          </div>
+        </div>
+      )}
       {clientesFiltrados.length > 0 && (
         <div style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: 2, background: "#fff", border: "1px solid #c8e6c9", borderRadius: 4, zIndex: 200, maxHeight: 220, overflowY: "auto", boxShadow: "0 4px 12px rgba(0,0,0,0.10)" }}>
           {clientesFiltrados.map((c, i) => (
