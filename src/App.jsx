@@ -79,27 +79,8 @@ function ClienteInput({ form, setForm }) {
 
 function TelefonoInput({ form, setForm, reservas, clientesArchivados }) {
   const [telFoco, setTelFoco] = useState(false);
-  const [llamadaEntrante, setLlamadaEntrante] = useState(null);
-  const [buscando, setBuscando] = useState(false);
 
   const normalizarTel = (t) => String(t || "").replace(/\D/g, "").slice(-9);
-
-  const traerNumeroDeMicroSIP = async () => {
-    setBuscando(true);
-    try {
-      const res = await fetch("http://localhost:3333/numero");
-      const data = await res.json();
-      if (data.numero) {
-        setLlamadaEntrante(data.numero);
-      } else {
-        alert("No hay ninguna llamada entrante en MicroSIP en este momento.");
-      }
-    } catch (e) {
-      alert("No se puede conectar con el servidor de MicroSIP. ¿Está corriendo el server.js en el CMD?");
-    } finally {
-      setBuscando(false);
-    }
-  };
 
   const clientesFiltrados = telFoco && form.telefono.length >= 3
     ? (() => {
@@ -124,47 +105,6 @@ function TelefonoInput({ form, setForm, reservas, clientesArchivados }) {
   return (
     <div style={{ position: "relative" }}>
       <label style={{ fontSize: 9, marginBottom: 3 }}>Teléfono</label>
-
-      {/* ── BANNER LLAMADA ENTRANTE MICROSIP ── */}
-      {llamadaEntrante && (
-        <div style={{
-          display: "flex", alignItems: "center", gap: 10, marginBottom: 6,
-          padding: "8px 12px", background: "#e8f5e9", border: "2px solid #2e7d32",
-          borderRadius: 8, boxShadow: "0 2px 10px rgba(46,125,50,0.2)"
-        }}>
-          <span style={{ fontSize: 18 }}>📞</span>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, color: "#2e7d32", fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>Llamada entrante</div>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 700, color: "#1a2e1a", letterSpacing: 1 }}>{llamadaEntrante}</div>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setForm(f => ({ ...f, telefono: llamadaEntrante }));
-              setLlamadaEntrante(null);
-            }}
-            style={{
-              padding: "7px 14px", background: "#2e7d32", color: "#fff",
-              border: "none", borderRadius: 4, cursor: "pointer",
-              fontFamily: "'Jost', sans-serif", fontSize: 12, fontWeight: 700
-            }}
-          >
-            ✓ Usar
-          </button>
-          <button
-            type="button"
-            onClick={() => setLlamadaEntrante(null)}
-            style={{
-              padding: "7px 10px", background: "#fff", color: "#888",
-              border: "1px solid #ddd", borderRadius: 4, cursor: "pointer",
-              fontFamily: "'Jost', sans-serif", fontSize: 12
-            }}
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
       <div style={{ display: "flex", gap: 6 }}>
         <input
           className="input-field"
@@ -183,21 +123,6 @@ function TelefonoInput({ form, setForm, reservas, clientesArchivados }) {
           autoComplete="off"
           style={{ padding: "7px 10px", fontSize: 13 }}
         />
-        <button
-          type="button"
-          title="Traer número de MicroSIP"
-          onClick={traerNumeroDeMicroSIP}
-          disabled={buscando}
-          style={{
-            padding: "7px 10px", fontSize: 16, cursor: buscando ? "wait" : "pointer",
-            background: "#e8f5e9", border: "1.5px solid #81c784",
-            borderRadius: 4, color: "#2e7d32", flexShrink: 0,
-            display: "flex", alignItems: "center",
-            opacity: buscando ? 0.6 : 1
-          }}
-        >
-          {buscando ? "⏳" : "📞"}
-        </button>
       </div>
       {clientesFiltrados.length > 0 && (
         <div style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: 2, background: "#fff", border: "1px solid #c8e6c9", borderRadius: 4, zIndex: 200, maxHeight: 220, overflowY: "auto", boxShadow: "0 4px 12px rgba(0,0,0,0.10)" }}>
