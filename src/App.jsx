@@ -79,6 +79,8 @@ function ClienteInput({ form, setForm }) {
 
 function TelefonoInput({ form, setForm, reservas, clientesArchivados }) {
   const [telFoco, setTelFoco] = useState(false);
+  const [cargandoLlamante, setCargandoLlamante] = useState(false);
+  const [estadoLlamante, setEstadoLlamante] = useState(null); // "ok" | "vacio" | "error"
 
   const normalizarTel = (t) => String(t || "").replace(/\D/g, "").slice(-9);
 
@@ -102,6 +104,28 @@ function TelefonoInput({ form, setForm, reservas, clientesArchivados }) {
       })()
     : [];
 
+  const usarLlamante = async () => {
+    setCargandoLlamante(true);
+    setEstadoLlamante(null);
+    try {
+      const res = await fetch("http://localhost:8765/numero", { signal: AbortSignal.timeout(2000) });
+      const datos = await res.json();
+      if (datos.numero && datos.numero !== "Numero oculto" && datos.numero !== "") {
+        setForm(f => ({ ...f, telefono: datos.numero }));
+        setEstadoLlamante("ok");
+        setTimeout(() => setEstadoLlamante(null), 3000);
+      } else {
+        setEstadoLlamante("vacio");
+        setTimeout(() => setEstadoLlamante(null), 3000);
+      }
+    } catch {
+      setEstadoLlamante("error");
+      setTimeout(() => setEstadoLlamante(null), 3000);
+    } finally {
+      setCargandoLlamante(false);
+    }
+  };
+
   return (
     <div style={{ position: "relative" }}>
       <label style={{ fontSize: 9, marginBottom: 3 }}>Teléfono</label>
@@ -123,6 +147,46 @@ function TelefonoInput({ form, setForm, reservas, clientesArchivados }) {
           autoComplete="off"
           style={{ padding: "7px 10px", fontSize: 13 }}
         />
+        <button
+          type="button"
+          onClick={usarLlamante}
+          disabled={cargandoLlamante}
+          title={
+            estadoLlamante === "ok"    ? "¡Número cargado!" :
+            estadoLlamante === "error" ? "Identificador no disponible — ¿está abierto caller_id.py?" :
+            estadoLlamante === "vacio" ? "No hay llamada activa" :
+            "Rellenar con el número de la llamada entrante"
+          }
+          style={{
+            flexShrink: 0,
+            padding: "0 10px",
+            background: estadoLlamante === "ok"    ? "#e8f5e9"
+                       : estadoLlamante === "error" ? "#ffebee"
+                       : estadoLlamante === "vacio" ? "#fff3e0"
+                       : "#f1f8f1",
+            border: `1px solid ${
+              estadoLlamante === "ok"    ? "#81c784"
+            : estadoLlamante === "error" ? "#ef9a9a"
+            : estadoLlamante === "vacio" ? "#ffcc80"
+            : "#a5d6a7"}`,
+            borderRadius: 4,
+            cursor: cargandoLlamante ? "wait" : "pointer",
+            fontSize: 18,
+            lineHeight: 1,
+            transition: "all 0.2s",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minWidth: 38,
+          }}
+        >
+          {cargandoLlamante ? (
+            <span style={{ fontSize: 12, color: "#888" }}>...</span>
+          ) : estadoLlamante === "ok" ? "✅"
+            : estadoLlamante === "error" ? "❌"
+            : estadoLlamante === "vacio" ? "📵"
+            : "📞"}
+        </button>
       </div>
       {clientesFiltrados.length > 0 && (
         <div style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: 2, background: "#fff", border: "1px solid #c8e6c9", borderRadius: 4, zIndex: 200, maxHeight: 220, overflowY: "auto", boxShadow: "0 4px 12px rgba(0,0,0,0.10)" }}>
@@ -1497,7 +1561,7 @@ export default function App() {
     if (tipo === "confirmar") {
       msg =
 `Hola ${nombreCapital}!
-Necesitamos por favor que *CONFIRMES* tu reserva para hoy para *${r.personas}* personas a las *${r.hora}* hs.
+Necesitamos por favor que *RECONFIRMES* tu reserva para hoy para *${r.personas}* personas a las *${r.hora}* hs.
 
 Esperamos tu respuesta
 
