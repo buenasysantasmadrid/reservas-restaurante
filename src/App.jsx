@@ -114,6 +114,7 @@ function TelefonoInput({ form, setForm, reservas, clientesArchivados }) {
         setForm(f => ({ ...f, telefono: datos.numero }));
         setEstadoLlamante("ok");
         setTimeout(() => setEstadoLlamante(null), 3000);
+        fetch("http://localhost:8765/limpiar").catch(() => {});
       } else {
         setEstadoLlamante("vacio");
         setTimeout(() => setEstadoLlamante(null), 3000);
