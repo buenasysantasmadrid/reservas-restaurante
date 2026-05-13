@@ -84,6 +84,28 @@ function TelefonoInput({ form, setForm, reservas, clientesArchivados }) {
 
   const normalizarTel = (t) => String(t || "").replace(/\D/g, "").slice(-9);
 
+  // Busca un cliente por teléfono y rellena nombre/email si lo encuentra
+  const buscarYRellenarCliente = (telefono) => {
+    const query = normalizarTel(telefono);
+    if (query.length < 6) return;
+    const todos = [
+      ...reservas.map(r => ({ nombre: r.nombre, telefono: r.telefono, email: r.email, prefijo: r.prefijo })),
+      ...clientesArchivados.map(c => ({ nombre: c.nombre, telefono: c.telefono, email: c.email, prefijo: c.prefijo }))
+    ];
+    const coincidencia = todos.find(c => {
+      if (!c.telefono || !c.nombre) return false;
+      return normalizarTel(c.telefono) === query;
+    });
+    if (coincidencia) {
+      setForm(f => ({
+        ...f,
+        nombre: coincidencia.nombre || f.nombre,
+        email: coincidencia.email || f.email,
+        prefijo: coincidencia.prefijo || f.prefijo || "+34",
+      }));
+    }
+  };
+
   const clientesFiltrados = telFoco && form.telefono.length >= 3
     ? (() => {
         const query = normalizarTel(form.telefono);
@@ -115,6 +137,8 @@ function TelefonoInput({ form, setForm, reservas, clientesArchivados }) {
         setEstadoLlamante("ok");
         setTimeout(() => setEstadoLlamante(null), 3000);
         fetch("http://localhost:8765/limpiar").catch(() => {});
+        // Buscar cliente automáticamente tras cargar el número
+        buscarYRellenarCliente(datos.numero);
       } else {
         setEstadoLlamante("vacio");
         setTimeout(() => setEstadoLlamante(null), 3000);
@@ -142,7 +166,16 @@ function TelefonoInput({ form, setForm, reservas, clientesArchivados }) {
         <input
           className="input-field"
           value={form.telefono}
-          onChange={e => setForm(f => ({ ...f, telefono: e.target.value.replace(/\s/g, "") }))}
+          onChange={e => {
+            const val = e.target.value.replace(/\s/g, "");
+            setForm(f => ({ ...f, telefono: val }));
+            buscarYRellenarCliente(val);
+          }}
+          onPaste={e => {
+            // Al pegar, usar el texto pegado directamente (antes de que onChange lo procese)
+            const pegado = e.clipboardData.getData("text").replace(/\s/g, "");
+            setTimeout(() => buscarYRellenarCliente(pegado), 50);
+          }}
           onFocus={() => setTelFoco(true)}
           onBlur={() => setTimeout(() => setTelFoco(false), 150)}
           autoComplete="off"
@@ -3024,7 +3057,7 @@ Buenas y Santas`;
                 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: barra ? 11 : 14, fontWeight: 700, fill: textC, letterSpacing: 0.5 }}>
                 {labelMesa}
               </text>
-              {res && (
+              {res && res.nombre !== "OCUPADO" && (
                 <text x={mx + mw/2} y={my + mh * (isMerged ? 0.38 : 0.48)} textAnchor="middle"
                   style={{ fontFamily: "'Jost', sans-serif", fontSize: 8.5, fontWeight: 600, fill: textC, opacity: 0.85, letterSpacing: 0.5 }}>
                   {res.hora}
