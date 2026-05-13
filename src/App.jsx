@@ -276,6 +276,7 @@ export default function App() {
   // ── EDICIÓN INLINE DE MESAS EN PLANO ─────────────────────
   const [mesaDragging, setMesaDragging] = useState(null);
   const [modoEdicionPlano, setModoEdicionPlano] = useState(true);
+  const quitarMesaClickRef = useRef(false); // bloquea el handleClick cuando se pulsa la ✕
   const [guardando, setGuardando] = useState(false);
   const [confirmarSalida, setConfirmarSalida] = useState(null); // callback a ejecutar si confirma salir
   const [confirmarSalidaPagina, setConfirmarSalidaPagina] = useState(null); // guardia para pegar/sheet
@@ -627,7 +628,13 @@ export default function App() {
   const quitarMesaInline = async (reservaId, mesa) => {
     const reserva = reservas.find(r => r.id === reservaId);
     if (!reserva) return;
-    const nuevasMesas = (reserva.mesas || []).filter(m => Number(m) !== Number(mesa));
+    // Normalizar: considerar tanto mesas[] como mesa (legacy)
+    const actuales = reserva.mesas && reserva.mesas.length > 0
+      ? reserva.mesas
+      : reserva.mesa
+      ? String(reserva.mesa).split("+").map(Number).filter(Boolean)
+      : [];
+    const nuevasMesas = actuales.filter(m => Number(m) !== Number(mesa));
     await fbSetReserva({ ...reserva, mesas: nuevasMesas, mesa: nuevasMesas[0] || "" });
   };
 
@@ -2916,6 +2923,7 @@ Buenas y Santas`;
           const lineH = isMerged ? mh * 0.22 : (res ? mh * 0.28 : mh / 2 + 4);
 
           const handleClick = () => {
+            if (quitarMesaClickRef.current) { quitarMesaClickRef.current = false; return; }
             if (modoReasignar) {
               if (!reasignarReservaId) {
                 // Paso 1: seleccionar reserva origen (solo mesas ocupadas)
@@ -2938,6 +2946,7 @@ Buenas y Santas`;
           };
 
           const handleDoubleClick = () => {
+            if (quitarMesaClickRef.current) { quitarMesaClickRef.current = false; return; }
             if (modoReasignar) return;
             if (res) {
               setPlanoModal({ reservaId: res.id, nombre: res.nombre, estado: res.estado, telefono: res.telefono || "", prefijo: res.prefijo || "" });
@@ -3012,7 +3021,15 @@ Buenas y Santas`;
               )}
               {/* Cruz para desasignar mesa */}
               {modoEdicionPlano && res && !modoReasignar && (
-                <g onClick={(e) => { e.stopPropagation(); quitarMesaInline(res.id, id); }} style={{ cursor: "pointer" }} opacity={0.55}>
+                <g
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    quitarMesaClickRef.current = true;
+                    quitarMesaInline(res.id, id);
+                  }}
+                  style={{ cursor: "pointer" }}
+                  opacity={0.55}
+                >
                   <circle cx={mx + mw - 8} cy={my + 8} r={6} fill="none" stroke="#fff" strokeWidth={1.2}/>
                   <line x1={mx + mw - 11} y1={my + 5} x2={mx + mw - 5} y2={my + 11} stroke="#fff" strokeWidth={1.4} strokeLinecap="round"/>
                   <line x1={mx + mw - 5} y1={my + 5} x2={mx + mw - 11} y2={my + 11} stroke="#fff" strokeWidth={1.4} strokeLinecap="round"/>
@@ -3195,7 +3212,12 @@ Buenas y Santas`;
 
             {/* ── PANEL RESERVAS SIN MESA (derecha) ── */}
             {planoFecha && (() => {
-              const sinMesaPanel = reservasTurno.filter(r => r.estado !== "cancelada" && (!r.mesas || r.mesas.length === 0) && !r.mesa);
+              const sinMesaPanel = reservasTurno.filter(r => {
+                if (r.estado === "cancelada") return false;
+                const tieneMesas = r.mesas && r.mesas.length > 0;
+                const tieneMesaLegacy = r.mesa && String(r.mesa).replace(/\D/g, "").length > 0;
+                return !tieneMesas && !tieneMesaLegacy;
+              });
               return (
               <div style={{
                 width: 210, minWidth: 210,
