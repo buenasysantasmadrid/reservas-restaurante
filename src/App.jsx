@@ -3158,7 +3158,7 @@ Buenas y Santas`;
                           <td style={{ padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: "#1b5e20" }}>{r.hora}</td>
                           <td style={{ padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 700, color: "#1a2e1a" }}>
                             <div>{r.nombre}</div>
-                            {r.telefono && <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a", marginTop: 2 }}>{String(r.prefijo || "").trim() ? String(r.prefijo).trim() + " " : ""}{String(r.telefono).trim()}</div>}
+                            {r.telefono && <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a", marginTop: 2 }}>{String(r.telefono).trim()}</div>}
                           </td>
                           <td style={{ padding: "10px 16px", fontFamily: "'Jost', sans-serif", fontSize: 15, fontWeight: 700, color: "#4a7a4a" }}>{r.personas} pax</td>
                           <td style={{ padding: "10px 16px" }}>
@@ -3882,26 +3882,49 @@ Buenas y Santas`;
           if (!ocupadoHasta) return showToast("Selecciona hasta qué hora", "error");
           if (!ocupadoPax || Number(ocupadoPax) < 1) return showToast("Indica el número de pax", "error");
           const pax = Number(ocupadoPax);
-          // Determinar qué mesas ocupar según pax
-          let mesasAOcupar = [modalOcupado.mesaId];
-          if (pax > 5) {
-            const VECINOS2 = {
-              1:[2,3], 2:[1,4], 3:[4,1], 4:[3,2], 5:[15,3], 15:[5,4],
-              6:[16,5], 16:[6,15], 7:[17,6], 17:[7,16], 8:[18,7], 18:[8,17],
-              10:[11,12], 11:[10,13], 12:[13,10], 13:[12,11],
-              40:[41,12], 41:[40,13], 30:[31,40], 31:[30,41]
-            };
-            const vec2 = VECINOS2[modalOcupado.mesaId] || [];
-            mesasAOcupar = [modalOcupado.mesaId, ...vec2].slice(0, 3);
-          } else if (pax > 2) {
-            const VECINOS = {
-              1:[2], 2:[1], 3:[4], 4:[3], 5:[15], 15:[5],
-              6:[16], 16:[6], 7:[17], 17:[7], 8:[18], 18:[8],
-              10:[11], 11:[10], 12:[13], 13:[12],
-              40:[41], 41:[40], 30:[31], 31:[30]
-            };
-            const vec = VECINOS[modalOcupado.mesaId] || [];
-            mesasAOcupar = [modalOcupado.mesaId, ...(vec.length > 0 ? [vec[0]] : [])];
+          // Usar la misma lógica de MESA_CONFIG que el sistema de reservas:
+          // <=2 pax → 1 mesa, >2 pax → 2 mesas, >5 pax → 3 mesas, >7 pax → 4 mesas
+          const numMesas = pax > 7 ? 4 : pax > 5 ? 3 : pax > 2 ? 2 : 1;
+          // Buscar en MESA_CONFIG el grupo que contiene mesaId con el tamaño adecuado
+          const mesaIdN = Number(modalOcupado.mesaId);
+          let mesasAOcupar = [mesaIdN];
+          if (numMesas > 1) {
+            // Buscar el primer grupo de MESA_CONFIG (para pax<=1 usa key 1, etc.)
+            // Recorrer desde el tamaño exacto hacia arriba para encontrar un grupo que contenga la mesa
+            const clavesPax = [numMesas, numMesas + 1, numMesas + 2, numMesas + 3, 8].filter(k => MESA_CONFIG[k]);
+            let encontrado = false;
+            for (const clave of clavesPax) {
+              const grupos = MESA_CONFIG[clave] || [];
+              for (const g of grupos) {
+                if (g.internas && g.internas.includes(mesaIdN) && g.internas.length >= numMesas) {
+                  mesasAOcupar = g.internas.slice(0, numMesas);
+                  encontrado = true;
+                  break;
+                }
+              }
+              if (encontrado) break;
+            }
+            // Si no se encontró un grupo que la contenga, buscar el grupo más cercano de tamaño numMesas
+            if (!encontrado) {
+              // Fallback: columnas fijas del local
+              const COLUMNAS = [
+                [8, 2, 18, 1],   // columna 1
+                [7, 17, 4, 3],   // columna 2
+                [6, 16, 15, 5],  // columna 3
+                [12, 13, 11, 10],// columna 4
+                [40, 41],
+                [30, 31],
+              ];
+              for (const col of COLUMNAS) {
+                const idx = col.indexOf(mesaIdN);
+                if (idx !== -1) {
+                  // Tomar desde idx hacia delante, o ajustar si no alcanza
+                  const start = Math.min(idx, col.length - numMesas);
+                  mesasAOcupar = col.slice(Math.max(0, start), Math.max(0, start) + numMesas);
+                  break;
+                }
+              }
+            }
           }
           const horaReserva = esNoche ? "21:00" : "13:30";
           const notasTexto = `Hasta ${ocupadoHasta} hs`;
@@ -3967,10 +3990,12 @@ Buenas y Santas`;
                 {ocupadoPax && Number(ocupadoPax) > 0 && (
                   <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a", marginTop: 6 }}>
                     {Number(ocupadoPax) <= 2
-                      ? "→ Solo esta mesa"
+                      ? "→ Solo esta mesa (1 mesa)"
                       : Number(ocupadoPax) <= 5
-                      ? "→ Se ocuparán 2 mesas (esta + contigua)"
-                      : "→ Se ocuparán 3 mesas (esta + 2 contiguas)"}
+                      ? "→ 2 mesas de la misma columna"
+                      : Number(ocupadoPax) <= 7
+                      ? "→ 3 mesas de la misma columna"
+                      : "→ 4 mesas de la misma columna"}
                   </p>
                 )}
               </div>
