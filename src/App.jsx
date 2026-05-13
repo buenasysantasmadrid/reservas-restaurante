@@ -273,6 +273,9 @@ export default function App() {
   const [turnoHasta, setTurnoHasta] = useState("16:00");
   const [turnoPersonalizado, setTurnoPersonalizado] = useState(null); // { desde, hasta } when active
   const [hoveredMesa, setHoveredMesa] = useState(null);
+  // ── EDICIÓN INLINE DE MESAS EN PLANO ─────────────────────
+  const [mesaDragging, setMesaDragging] = useState(null);
+  const [modoEdicionPlano, setModoEdicionPlano] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [confirmarSalida, setConfirmarSalida] = useState(null); // callback a ejecutar si confirma salir
   const [confirmarSalidaPagina, setConfirmarSalidaPagina] = useState(null); // guardia para pegar/sheet
@@ -593,6 +596,48 @@ export default function App() {
       return remaining;
     }
     return MESAS.filter(m => !mesasActuales.includes(m) && !mesasOcupadas.includes(m));
+  };
+
+  // ── HELPERS EDICIÓN INLINE ───────────────────────────────
+  const getReservasPlanoActual = () => {
+    return reservas.filter(r => {
+      if (!planoFecha || r.fecha !== planoFecha) return false;
+      if (r.estado === "cancelada") return false;
+      if (planoTurnoFiltro === "custom" && planoTurnoPersonalizado) {
+        const [hD, mD] = planoTurnoPersonalizado.desde.split(":").map(Number);
+        const [hH, mH] = planoTurnoPersonalizado.hasta.split(":").map(Number);
+        const [hR, mR] = (r.hora || "00:00").split(":").map(Number);
+        const minsR = hR * 60 + mR;
+        return minsR >= hD * 60 + mD && minsR <= hH * 60 + mH;
+      }
+      const turnoPlano = planoTurnoFiltro === "todos" || planoTurnoFiltro === "mediodia" ? "t1" : planoTurnoFiltro;
+      return getTurno(r.hora) === turnoPlano;
+    });
+  };
+
+  const getMesasSinAsignar = () => {
+    const usadas = new Set();
+    getReservasPlanoActual().forEach(r => {
+      const mesas = r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : [];
+      mesas.forEach(m => usadas.add(Number(m)));
+    });
+    return MESAS.filter(m => !usadas.has(Number(m)));
+  };
+
+  const quitarMesaInline = async (reservaId, mesa) => {
+    const reserva = reservas.find(r => r.id === reservaId);
+    if (!reserva) return;
+    const nuevasMesas = (reserva.mesas || []).filter(m => Number(m) !== Number(mesa));
+    await fbSetReserva({ ...reserva, mesas: nuevasMesas, mesa: nuevasMesas[0] || "" });
+  };
+
+  const agregarMesaInline = async (reservaId, mesa) => {
+    const reserva = reservas.find(r => r.id === reservaId);
+    if (!reserva) return;
+    const actuales = reserva.mesas && reserva.mesas.length > 0 ? reserva.mesas : reserva.mesa ? [reserva.mesa] : [];
+    if (actuales.map(Number).includes(Number(mesa))) return;
+    const nuevasMesas = [...actuales, Number(mesa)];
+    await fbSetReserva({ ...reserva, mesas: nuevasMesas, mesa: nuevasMesas[0] || "" });
   };
 
   const reservasFiltradas = reservas.filter(r => {
@@ -2914,6 +2959,13 @@ Buenas y Santas`;
             <g key={id} style={{ cursor: !res && !modoReasignar ? "cell" : cursorStyle, opacity }}
               onClick={handleClick}
               onDoubleClick={handleDoubleClick}
+              onDragOver={res ? (e) => e.preventDefault() : undefined}
+              onDrop={res ? async (e) => {
+                e.preventDefault();
+                if (!mesaDragging) return;
+                await agregarMesaInline(res.id, mesaDragging);
+                setMesaDragging(null);
+              } : undefined}
               onMouseEnter={!modoReasignar && res && res.notas ? (e) => {
                 const svgEl = e.currentTarget.closest("svg");
                 const svgRect = svgEl.getBoundingClientRect();
@@ -2955,6 +3007,14 @@ Buenas y Santas`;
                   {res.personas}p
                 </text>
               )}
+              {/* Cruz para desasignar mesa */}
+              {modoEdicionPlano && res && !modoReasignar && (
+                <g onClick={(e) => { e.stopPropagation(); quitarMesaInline(res.id, id); }} style={{ cursor: "pointer" }}>
+                  <circle cx={mx + mw - 7} cy={my + 7} r={8} fill="#c62828" opacity={0.9}/>
+                  <text x={mx + mw - 7} y={my + 11} textAnchor="middle"
+                    style={{ fontFamily: "sans-serif", fontSize: 10, fontWeight: 700, fill: "#fff", pointerEvents: "none" }}>✕</text>
+                </g>
+              )}
             </g>
           );
         };
@@ -2971,7 +3031,7 @@ Buenas y Santas`;
         };
 
         return (
-          <div style={{ padding: "40px", maxWidth: 1000, margin: "0 auto", position: "relative", zIndex: 1 }}>
+          <div style={{ padding: "40px", maxWidth: 1280, margin: "0 auto", position: "relative", zIndex: 1 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24 }}>
               <div>
                 <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 3, color: "#4a7a4a", textTransform: "uppercase", marginBottom: 8 }}>Vista sala</p>
@@ -3040,7 +3100,8 @@ Buenas y Santas`;
               </div>
             </div>
 
-            <div className="card" style={{ padding: 24, overflowX: "auto", background: "linear-gradient(135deg, #ffffff 0%, #f7fbf7 100%)", border: "1px solid #e0f0e0", position: "relative" }}>
+            <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+            <div className="card" style={{ flex: 1, minWidth: 0, padding: 24, overflowX: "auto", background: "linear-gradient(135deg, #ffffff 0%, #f7fbf7 100%)", border: "1px solid #e0f0e0", position: "relative" }}>
               {/* Cartel mesas sin asignar */}
               {(() => {
                 const sinMesa = reservasTurno.filter(r => r.estado !== "cancelada" && (!r.mesas || r.mesas.length === 0) && !r.mesa);
@@ -3128,6 +3189,77 @@ Buenas y Santas`;
                 </p>
               )}
             </div>
+
+            {/* ── PANEL MESAS LIBRES (derecha) ── */}
+            {planoFecha && (
+              <div style={{
+                width: 200, minWidth: 200,
+                background: "#fff",
+                border: "1px solid #dfe7df",
+                borderRadius: 10,
+                padding: 16,
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+                height: "fit-content",
+                position: "sticky",
+                top: 80,
+              }}>
+                <div style={{
+                  fontFamily: "'Jost', sans-serif",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: 1.5,
+                  textTransform: "uppercase",
+                  color: getMesasSinAsignar().length > 0 ? "#b71c1c" : "#2e7d32",
+                }}>
+                  {getMesasSinAsignar().length > 0
+                    ? `⚠ Sin asignar (${getMesasSinAsignar().length})`
+                    : "✓ Todas asignadas"}
+                </div>
+                {getMesasSinAsignar().length > 0 && (
+                  <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, color: "#888", margin: 0 }}>
+                    Arrastra una mesa sobre una reserva para asignarla
+                  </p>
+                )}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {getMesasSinAsignar().map(mesa => (
+                    <div
+                      key={mesa}
+                      draggable
+                      onDragStart={() => setMesaDragging(mesa)}
+                      onDragEnd={() => setMesaDragging(null)}
+                      style={{
+                        padding: "8px 12px",
+                        borderRadius: 8,
+                        background: mesaDragging === mesa ? "#c8e6c9" : "#f5f8f5",
+                        border: `2px solid ${mesaDragging === mesa ? "#2e7d32" : "#c8d8c8"}`,
+                        cursor: "grab",
+                        fontSize: 13,
+                        fontWeight: 700,
+                        fontFamily: "'Cormorant Garamond', serif",
+                        userSelect: "none",
+                        transition: "all 0.15s",
+                        color: "#1a2e1a",
+                      }}
+                    >
+                      {getMesaNombre(mesa)}
+                    </div>
+                  ))}
+                  {getMesasSinAsignar().length === 0 && (
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, color: "#4a7a4a" }}>
+                      🎉 Todo asignado
+                    </div>
+                  )}
+                </div>
+                <div style={{ borderTop: "1px solid #e8f0e8", paddingTop: 10, marginTop: 4 }}>
+                  <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, color: "#aaa", letterSpacing: 1, textTransform: "uppercase", margin: 0 }}>
+                    Doble clic en mesa libre → marcar ocupado<br/>✕ en mesa → desasignar
+                  </p>
+                </div>
+              </div>
+            )}
+            </div>{/* fin flex row plano + panel */}
 
             {/* ── LISTADO DEBAJO DEL PLANO ── */}
             {planoFecha && reservasTurno.length > 0 && (
