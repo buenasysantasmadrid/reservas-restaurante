@@ -3045,8 +3045,9 @@ Buenas y Santas`;
               {/* Cruz para desasignar mesa */}
               {modoEdicionPlano && res && !modoReasignar && (
                 <g
-                  onClick={(e) => {
+                  onMouseDown={(e) => {
                     e.stopPropagation();
+                    e.preventDefault();
                     quitarMesaClickRef.current = true;
                     quitarMesaInline(res.id);
                   }}
@@ -3081,19 +3082,6 @@ Buenas y Santas`;
                 <h1 className="page-title" style={{ fontFamily: "'Lora', serif", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Plano</h1>
               </div>
               <div style={{ display: "flex", gap: 10 }}>
-                <button
-                  onClick={() => {
-                    setModoAsignarMesas(true);
-                    setAsignarPendiente({});
-                    setAsignarDragReservaId(null);
-                  }}
-                  style={{
-                    padding: "10px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12,
-                    letterSpacing: 2, textTransform: "uppercase", cursor: "pointer", borderRadius: 4,
-                    background: "#2e7d32", color: "#fff", border: "none", fontWeight: 600
-                  }}>
-                  ✦ Modificar mesas
-                </button>
                 <button className="btn-outline" style={{ borderColor: "#81c784", color: "#2e7d32", fontSize: 11 }} onClick={imprimirPlano}>🖨 Imprimir plano</button>
               </div>
             </div>
