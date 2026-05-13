@@ -258,6 +258,9 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [planoModal, setPlanoModal] = useState(null); // { reservaId, mesaId, nombre }
+  const [modalOcupado, setModalOcupado] = useState(null); // { mesaId, fecha, turno, paso: "hora"|"pax", hastaHora }
+
+  const [modalOcupado, setModalOcupado] = useState(null); // { mesaId, fecha, turno } — flujo rápido OCUPADO
   const [confirmarWA, setConfirmarWA] = useState(false);
   const [pendingSheetIdx, setPendingSheetIdx] = useState(null);
   const [pendingPegar, setPendingPegar] = useState(false);
@@ -2893,16 +2896,11 @@ Buenas y Santas`;
             if (res) {
               setPlanoModal({ reservaId: res.id, nombre: res.nombre, estado: res.estado, telefono: res.telefono || "", prefijo: res.prefijo || "" });
             } else {
-              // Mesa vacía: abrir nueva reserva
-              setReservaEditando(null);
-              setForm({
-                nombre: "", telefono: "", email: "",
-                fecha: planoFecha,
-                hora: "", personas: "",
-                mesas: [id], notas: "", estado: "tomada",
-                tomadaPor: "", prefijo: "+34"
-              });
-              setModalAbierto(true);
+              // Mesa vacía: flujo rápido OCUPADO
+              const turnoActual = planoTurnoFiltro === "custom" ? "custom"
+                : (planoTurnoFiltro === "todos" || planoTurnoFiltro === "mediodia") ? "t1"
+                : planoTurnoFiltro;
+              setModalOcupado({ mesaId: id, fecha: planoFecha, turno: turnoActual, paso: "hora", hastaHora: null });
             }
           };
 
@@ -3868,6 +3866,142 @@ Buenas y Santas`;
           </div>
         </div>
       )}
+
+      {/* ── MODAL RÁPIDO OCUPADO ── */}
+      {modalOcupado && (() => {
+        const esMediodia = modalOcupado.turno === "t1" || modalOcupado.turno === "t2";
+        const opcionesHora = esMediodia
+          ? ["15:00", "15:10", "15:15", "15:30"]
+          : ["22:00", "22:15", "22:30", "22:45"];
+
+        // Hora de inicio por defecto según turno
+        const horaInicio = esMediodia ? "13:30" : "20:30";
+
+        // Mesas adyacentes por mesa según MESA_BLOCKS
+        const ADYACENTES = {
+          3: [4], 4: [3], 7: [17], 17: [7],
+          10: [11], 11: [10], 12: [13], 13: [12],
+          5: [15], 15: [5], 6: [16], 16: [6],
+          1: [2], 2: [1], 8: [18], 18: [8],
+          40: [41], 41: [40], 30: [31], 31: [30],
+        };
+        // Para 3 mesas: grupo completo de 4 dividido en pares
+        const GRUPOS_3 = {
+          3: [3,4,17], 4: [4,3,17], 7: [7,17,4], 17: [17,7,4],
+          10: [10,11,13], 11: [11,10,13], 12: [12,13,10], 13: [13,12,10],
+          5: [5,15,16], 15: [15,5,16], 6: [6,16,15], 16: [16,6,15],
+          1: [1,2,18], 2: [2,1,18], 8: [8,18,2], 18: [18,8,2],
+        };
+
+        const confirmarOcupado = async (pax) => {
+          const mesa = modalOcupado.mesaId;
+          const hastaHora = modalOcupado.hastaHora;
+          let mesas = [mesa];
+          if (pax > 2 && pax <= 5) {
+            const ady = ADYACENTES[mesa];
+            if (ady) mesas = [mesa, ...ady];
+          } else if (pax > 5) {
+            const grp = GRUPOS_3[mesa];
+            mesas = grp ? grp : (ADYACENTES[mesa] ? [mesa, ...ADYACENTES[mesa]] : [mesa]);
+          }
+
+          const ahora = new Date();
+          const cuando = `${String(ahora.getDate()).padStart(2,"0")}/${String(ahora.getMonth()+1).padStart(2,"0")}/${ahora.getFullYear()} ${String(ahora.getHours()).padStart(2,"0")}:${String(ahora.getMinutes()).padStart(2,"0")}`;
+          const nuevoId = Date.now() * 1000 + Math.floor(Math.random() * 1000);
+          const nuevaReserva = {
+            id: nuevoId,
+            nombre: "OCUPADO",
+            telefono: "",
+            email: "",
+            prefijo: "+34",
+            fecha: modalOcupado.fecha,
+            hora: horaInicio,
+            personas: pax,
+            mesas,
+            mesa: mesas.join("+"),
+            notas: hastaHora ? `Hasta las ${hastaHora} hs` : "",
+            estado: "confirmada",
+            tomadaPor: "plano",
+            cuando,
+          };
+          await fbSetReserva(nuevaReserva);
+          showToast(`Mesa ${mesa} bloqueada como OCUPADO ✓`);
+          setModalOcupado(null);
+        };
+
+        return (
+          <div className="overlay" style={{ zIndex: 70 }} onClick={e => e.target === e.currentTarget && setModalOcupado(null)}>
+            <div className="modal" style={{ maxWidth: 360, padding: "36px 32px", textAlign: "center" }}>
+
+              {modalOcupado.paso === "hora" && (
+                <>
+                  <div style={{ fontSize: 30, marginBottom: 10 }}>🔒</div>
+                  <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", marginBottom: 6 }}>
+                    Mesa {modalOcupado.mesaId} · {esMediodia ? "Mediodía" : "Noche"}
+                  </p>
+                  <h2 style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", marginBottom: 24 }}>
+                    ¿Hasta qué hora?
+                  </h2>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {opcionesHora.map(h => (
+                      <button key={h} onClick={() => setModalOcupado(m => ({ ...m, hastaHora: h, paso: "pax" }))}
+                        style={{
+                          padding: "13px 20px", fontFamily: "'Jost', sans-serif", fontSize: 16, fontWeight: 700,
+                          cursor: "pointer", background: "#e8f5e9", color: "#1b5e20",
+                          border: "2px solid #81c784", borderRadius: 8, transition: "all 0.15s",
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = "#2e7d32"; e.currentTarget.style.color = "#fff"; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = "#e8f5e9"; e.currentTarget.style.color = "#1b5e20"; }}
+                      >
+                        {h}
+                      </button>
+                    ))}
+                  </div>
+                  <button className="btn-outline" style={{ marginTop: 18, fontSize: 11, color: "#888", borderColor: "#ccc" }}
+                    onClick={() => setModalOcupado(null)}>Cancelar</button>
+                </>
+              )}
+
+              {modalOcupado.paso === "pax" && (
+                <>
+                  <div style={{ fontSize: 30, marginBottom: 10 }}>🪑</div>
+                  <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", marginBottom: 6 }}>
+                    Mesa {modalOcupado.mesaId} · hasta {modalOcupado.hastaHora}
+                  </p>
+                  <h2 style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", marginBottom: 8 }}>
+                    ¿Cuántos pax?
+                  </h2>
+                  <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#6a9a6a", marginBottom: 22, lineHeight: 1.5 }}>
+                    1–2 pax → 1 mesa · 3–5 pax → 2 mesas · 6+ pax → 3 mesas
+                  </p>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 8 }}>
+                    {[1,2,3,4,5,6,7,8].map(n => (
+                      <button key={n} onClick={() => confirmarOcupado(n)}
+                        style={{
+                          padding: "14px 0", fontFamily: "'Jost', sans-serif", fontSize: 18, fontWeight: 800,
+                          cursor: "pointer", background: "#e8f5e9", color: "#1b5e20",
+                          border: "2px solid #81c784", borderRadius: 8, transition: "all 0.15s",
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = "#2e7d32"; e.currentTarget.style.color = "#fff"; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = "#e8f5e9"; e.currentTarget.style.color = "#1b5e20"; }}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 10 }}>
+                    <button className="btn-outline" style={{ fontSize: 11, color: "#888", borderColor: "#ccc" }}
+                      onClick={() => setModalOcupado(m => ({ ...m, paso: "hora", hastaHora: null }))}>← Atrás</button>
+                    <button className="btn-outline" style={{ fontSize: 11, color: "#888", borderColor: "#ccc" }}
+                      onClick={() => setModalOcupado(null)}>Cancelar</button>
+                  </div>
+                </>
+              )}
+
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── PLANO ESTADO MODAL ── */}
       {planoModal && (
