@@ -625,26 +625,49 @@ export default function App() {
     return MESAS.filter(m => !usadas.has(Number(m)));
   };
 
-  const quitarMesaInline = async (reservaId, mesa) => {
+  const quitarMesaInline = async (reservaId) => {
     const reserva = reservas.find(r => r.id === reservaId);
     if (!reserva) return;
-    // Normalizar: considerar tanto mesas[] como mesa (legacy)
-    const actuales = reserva.mesas && reserva.mesas.length > 0
-      ? reserva.mesas
-      : reserva.mesa
-      ? String(reserva.mesa).split("+").map(Number).filter(Boolean)
-      : [];
-    const nuevasMesas = actuales.filter(m => Number(m) !== Number(mesa));
-    await fbSetReserva({ ...reserva, mesas: nuevasMesas, mesa: nuevasMesas[0] || "" });
+    await fbSetReserva({ ...reserva, mesas: [], mesa: "" });
   };
 
-  const agregarMesaInline = async (reservaId, mesa) => {
+  const agregarMesaInline = async (reservaId, mesaDestino) => {
     const reserva = reservas.find(r => r.id === reservaId);
     if (!reserva) return;
-    const actuales = reserva.mesas && reserva.mesas.length > 0 ? reserva.mesas : reserva.mesa ? [reserva.mesa] : [];
-    if (actuales.map(Number).includes(Number(mesa))) return;
-    const nuevasMesas = [...actuales, Number(mesa)];
-    await fbSetReserva({ ...reserva, mesas: nuevasMesas, mesa: nuevasMesas[0] || "" });
+    const pax = Math.min(Number(reserva.personas) || 1, 8);
+    const opciones = MESA_CONFIG[pax] || MESA_CONFIG[1];
+
+    // Calcular mesas ya ocupadas en ese turno (excluyendo esta reserva)
+    const turnoR = getTurno(reserva.hora);
+    const mesasOcupadas = new Set(
+      reservas
+        .filter(x => x.id !== reservaId && x.fecha === reserva.fecha && getTurno(x.hora) === turnoR && x.estado !== "cancelada")
+        .flatMap(x => x.mesas && x.mesas.length > 0 ? x.mesas : x.mesa ? String(x.mesa).split("+").map(Number).filter(Boolean) : [])
+        .map(Number)
+    );
+
+    // Buscar en MESA_CONFIG el grupo preferido que contenga mesaDestino y esté libre
+    let mesasAsignadas = null;
+    for (const op of opciones) {
+      if (op.internas.map(Number).includes(Number(mesaDestino)) && op.internas.every(m => !mesasOcupadas.has(Number(m)))) {
+        mesasAsignadas = op.internas;
+        break;
+      }
+    }
+    // Si no encontró grupo con mesaDestino, buscar cualquier grupo libre
+    if (!mesasAsignadas) {
+      for (const op of opciones) {
+        if (op.internas.every(m => !mesasOcupadas.has(Number(m)))) {
+          mesasAsignadas = op.internas;
+          break;
+        }
+      }
+    }
+    // Fallback: solo la mesa destino
+    if (!mesasAsignadas) mesasAsignadas = [Number(mesaDestino)];
+
+    await fbSetReserva({ ...reserva, mesas: mesasAsignadas, mesa: mesasAsignadas[0] || "" });
+    showToast(`${reserva.nombre.split(" ")[0]} → Mesa${mesasAsignadas.length > 1 ? "s" : ""} ${mesasAsignadas.join("+")} ✓`);
   };
 
   const reservasFiltradas = reservas.filter(r => {
@@ -3025,7 +3048,7 @@ Buenas y Santas`;
                   onClick={(e) => {
                     e.stopPropagation();
                     quitarMesaClickRef.current = true;
-                    quitarMesaInline(res.id, id);
+                    quitarMesaInline(res.id);
                   }}
                   style={{ cursor: "pointer" }}
                   opacity={0.55}
