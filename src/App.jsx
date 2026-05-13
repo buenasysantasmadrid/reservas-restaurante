@@ -301,6 +301,10 @@ export default function App() {
   // Fechas cerradas leídas de Google Sheets (hoja CERRAMOS)
   // Array de { fecha: "YYYY-MM-DD", turno: "todos"|"mediodia"|"noche" }
   const [fechasCerradas, setFechasCerradas] = useState([]);
+  // Modal OCUPADO al hacer doble clic en mesa vacía
+  const [modalOcupado, setModalOcupado] = useState(null); // { mesaId, fecha, hora_turno }
+  const [ocupadoHasta, setOcupadoHasta] = useState("");
+  const [ocupadoPax, setOcupadoPax] = useState("");
 
   // ── Cargar hoja CERRAMOS de Google Sheets ───────────────────────────────
   useEffect(() => {
@@ -2893,16 +2897,12 @@ Buenas y Santas`;
             if (res) {
               setPlanoModal({ reservaId: res.id, nombre: res.nombre, estado: res.estado, telefono: res.telefono || "", prefijo: res.prefijo || "" });
             } else {
-              // Mesa vacía: abrir nueva reserva
-              setReservaEditando(null);
-              setForm({
-                nombre: "", telefono: "", email: "",
-                fecha: planoFecha,
-                hora: "", personas: "",
-                mesas: [id], notas: "", estado: "tomada",
-                tomadaPor: "", prefijo: "+34"
-              });
-              setModalAbierto(true);
+              // Mesa vacía: mostrar modal OCUPADO
+              // Detectar turno según filtro activo para ofrecer horas correctas
+              const turnoActivo = planoTurnoFiltro === "noche" ? "noche" : "mediodia";
+              setOcupadoHasta("");
+              setOcupadoPax("");
+              setModalOcupado({ mesaId: id, fecha: planoFecha, turno: turnoActivo });
             }
           };
 
@@ -3156,7 +3156,10 @@ Buenas y Santas`;
                       return (
                         <tr key={r.id} style={{ borderBottom: "1px solid #d6edd6", background: planoBg }}>
                           <td style={{ padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: "#1b5e20" }}>{r.hora}</td>
-                          <td style={{ padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 700, color: "#1a2e1a" }}>{r.nombre}</td>
+                          <td style={{ padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 700, color: "#1a2e1a" }}>
+                            <div>{r.nombre}</div>
+                            {r.telefono && <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a", marginTop: 2 }}>{String(r.prefijo || "").trim() ? String(r.prefijo).trim() + " " : ""}{String(r.telefono).trim()}</div>}
+                          </td>
                           <td style={{ padding: "10px 16px", fontFamily: "'Jost', sans-serif", fontSize: 15, fontWeight: 700, color: "#4a7a4a" }}>{r.personas} pax</td>
                           <td style={{ padding: "10px 16px" }}>
                             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -3868,6 +3871,121 @@ Buenas y Santas`;
           </div>
         </div>
       )}
+
+      {/* ── MODAL OCUPADO (doble clic mesa vacía en plano) ── */}
+      {modalOcupado && (() => {
+        const esNoche = modalOcupado.turno === "noche";
+        const horasOptions = esNoche
+          ? ["22:00", "22:15", "22:30", "22:45"]
+          : ["15:00", "15:10", "15:15", "15:30"];
+        const confirmOcupado = async () => {
+          if (!ocupadoHasta) return showToast("Selecciona hasta qué hora", "error");
+          if (!ocupadoPax || Number(ocupadoPax) < 1) return showToast("Indica el número de pax", "error");
+          const pax = Number(ocupadoPax);
+          // Determinar qué mesas ocupar según pax
+          let mesasAOcupar = [modalOcupado.mesaId];
+          if (pax > 5) {
+            const VECINOS2 = {
+              1:[2,3], 2:[1,4], 3:[4,1], 4:[3,2], 5:[15,3], 15:[5,4],
+              6:[16,5], 16:[6,15], 7:[17,6], 17:[7,16], 8:[18,7], 18:[8,17],
+              10:[11,12], 11:[10,13], 12:[13,10], 13:[12,11],
+              40:[41,12], 41:[40,13], 30:[31,40], 31:[30,41]
+            };
+            const vec2 = VECINOS2[modalOcupado.mesaId] || [];
+            mesasAOcupar = [modalOcupado.mesaId, ...vec2].slice(0, 3);
+          } else if (pax > 2) {
+            const VECINOS = {
+              1:[2], 2:[1], 3:[4], 4:[3], 5:[15], 15:[5],
+              6:[16], 16:[6], 7:[17], 17:[7], 8:[18], 18:[8],
+              10:[11], 11:[10], 12:[13], 13:[12],
+              40:[41], 41:[40], 30:[31], 31:[30]
+            };
+            const vec = VECINOS[modalOcupado.mesaId] || [];
+            mesasAOcupar = [modalOcupado.mesaId, ...(vec.length > 0 ? [vec[0]] : [])];
+          }
+          const horaReserva = esNoche ? "21:00" : "13:30";
+          const notasTexto = `Hasta ${ocupadoHasta} hs`;
+          const nuevoId = Date.now() * 1000 + Math.floor(Math.random() * 1000);
+          const ahora = new Date();
+          const cuando = `${String(ahora.getDate()).padStart(2,"0")}/${String(ahora.getMonth()+1).padStart(2,"0")}/${ahora.getFullYear()} ${String(ahora.getHours()).padStart(2,"0")}:${String(ahora.getMinutes()).padStart(2,"0")}`;
+          const nuevaReserva = {
+            id: nuevoId,
+            nombre: "OCUPADO",
+            telefono: "",
+            email: "",
+            prefijo: "+34",
+            fecha: modalOcupado.fecha,
+            hora: horaReserva,
+            personas: pax,
+            mesas: mesasAOcupar,
+            mesa: mesasAOcupar[0],
+            notas: notasTexto,
+            estado: "confirmada",
+            tomadaPor: "PLANO",
+            cuando,
+          };
+          await fbSetReserva(nuevaReserva);
+          showToast(`Mesa${mesasAOcupar.length > 1 ? "s" : ""} ${mesasAOcupar.join("+")} → OCUPADO hasta ${ocupadoHasta} ✓`);
+          setModalOcupado(null);
+        };
+        return (
+          <div className="overlay" style={{ zIndex: 70 }} onClick={e => e.target === e.currentTarget && setModalOcupado(null)}>
+            <div className="modal" style={{ maxWidth: 380, textAlign: "center", padding: "40px 36px" }}>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>🪑</div>
+              <h2 style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", marginBottom: 8 }}>
+                Marcar como OCUPADO
+              </h2>
+              <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a", marginBottom: 24 }}>
+                Mesa <strong>{modalOcupado.mesaId}</strong> · {esNoche ? "Noche" : "Mediodía"}
+              </p>
+              <div style={{ marginBottom: 20, textAlign: "left" }}>
+                <label style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", display: "block", marginBottom: 8 }}>¿Hasta qué hora?</label>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {horasOptions.map(h => (
+                    <button key={h} onClick={() => setOcupadoHasta(h)}
+                      style={{
+                        padding: "10px 16px", fontFamily: "'Jost', sans-serif", fontSize: 14, fontWeight: 600,
+                        cursor: "pointer", borderRadius: 6,
+                        background: ocupadoHasta === h ? "#2e7d32" : "#f1f8f1",
+                        color: ocupadoHasta === h ? "#fff" : "#2e7d32",
+                        border: `2px solid ${ocupadoHasta === h ? "#1b5e20" : "#c8e6c9"}`,
+                        transition: "all 0.15s"
+                      }}>{h}</button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ marginBottom: 28, textAlign: "left" }}>
+                <label style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", display: "block", marginBottom: 8 }}>¿Cuántos pax?</label>
+                <input
+                  type="number" min="1" max="20"
+                  value={ocupadoPax}
+                  onChange={e => setOcupadoPax(e.target.value)}
+                  className="input-field"
+                  style={{ padding: "8px 12px", fontSize: 15, width: "100%" }}
+                  placeholder="Nº de personas"
+                />
+                {ocupadoPax && Number(ocupadoPax) > 0 && (
+                  <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a", marginTop: 6 }}>
+                    {Number(ocupadoPax) <= 2
+                      ? "→ Solo esta mesa"
+                      : Number(ocupadoPax) <= 5
+                      ? "→ Se ocuparán 2 mesas (esta + contigua)"
+                      : "→ Se ocuparán 3 mesas (esta + 2 contiguas)"}
+                  </p>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+                <button className="btn-outline" onClick={() => setModalOcupado(null)}>Cancelar</button>
+                <button
+                  onClick={confirmOcupado}
+                  style={{ padding: "10px 22px", fontFamily: "'Jost', sans-serif", fontSize: 13, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", borderRadius: 4, background: "#2e7d32", color: "#fff", border: "none", fontWeight: 600 }}>
+                  ✓ Confirmar
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── PLANO ESTADO MODAL ── */}
       {planoModal && (
