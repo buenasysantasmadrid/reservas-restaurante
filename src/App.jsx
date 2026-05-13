@@ -3085,11 +3085,10 @@ Buenas y Santas`;
                     quitarMesaInline(res.id);
                   }}
                   style={{ cursor: "pointer" }}
-                  opacity={0.55}
                 >
-                  <circle cx={mx + mw - 8} cy={my + 8} r={6} fill="none" stroke="#fff" strokeWidth={1.2}/>
-                  <line x1={mx + mw - 11} y1={my + 5} x2={mx + mw - 5} y2={my + 11} stroke="#fff" strokeWidth={1.4} strokeLinecap="round"/>
-                  <line x1={mx + mw - 5} y1={my + 5} x2={mx + mw - 11} y2={my + 11} stroke="#fff" strokeWidth={1.4} strokeLinecap="round"/>
+                  <circle cx={mx + mw - 8} cy={my + 8} r={7} fill="rgba(0,0,0,0.18)" stroke="rgba(255,255,255,0.5)" strokeWidth={0.8}/>
+                  <line x1={mx + mw - 11} y1={my + 5} x2={mx + mw - 5} y2={my + 11} stroke="#fff" strokeWidth={1.5} strokeLinecap="round"/>
+                  <line x1={mx + mw - 5} y1={my + 5} x2={mx + mw - 11} y2={my + 11} stroke="#fff" strokeWidth={1.5} strokeLinecap="round"/>
                 </g>
               )}
             </g>
@@ -3109,14 +3108,8 @@ Buenas y Santas`;
 
         return (
           <div style={{ padding: "40px", maxWidth: 1280, margin: "0 auto", position: "relative", zIndex: 1 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24 }}>
-              <div>
-                <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, letterSpacing: 3, color: "#4a7a4a", textTransform: "uppercase", marginBottom: 8 }}>Vista sala</p>
-                <h1 className="page-title" style={{ fontFamily: "'Lora', serif", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Plano</h1>
-              </div>
-              <div style={{ display: "flex", gap: 10 }}>
-                <button className="btn-outline" style={{ borderColor: "#81c784", color: "#2e7d32", fontSize: 11 }} onClick={imprimirPlano}>🖨 Imprimir plano</button>
-              </div>
+            <div style={{ marginBottom: 24 }}>
+              <h1 className="page-title" style={{ fontFamily: "'Lora', serif", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Plano</h1>
             </div>
 
             {/* Filtros */}
@@ -3161,6 +3154,9 @@ Buenas y Santas`;
                     ? `${planoTurnoPersonalizado.desde} – ${planoTurnoPersonalizado.hasta}`
                     : "Turno?"}
                 </button>
+              </div>
+              <div style={{ marginLeft: "auto" }}>
+                <button className="btn-outline" style={{ borderColor: "#81c784", color: "#2e7d32", fontSize: 11 }} onClick={imprimirPlano}>🖨 Imprimir</button>
               </div>
             </div>
 
@@ -3328,10 +3324,6 @@ Buenas y Santas`;
                 )}
 
                 <div style={{ borderTop: "1px solid #e8f0e8", paddingTop: 10, marginTop: 4 }}>
-                  <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, color: "#bbb", letterSpacing: 1, textTransform: "uppercase", margin: 0, lineHeight: 1.7 }}>
-                    ✕ en mesa del plano → desasignar<br/>
-                    doble clic en mesa libre → ocupado
-                  </p>
                 </div>
               </div>
               );
