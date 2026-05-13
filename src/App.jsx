@@ -2959,13 +2959,16 @@ Buenas y Santas`;
             <g key={id} style={{ cursor: !res && !modoReasignar ? "cell" : cursorStyle, opacity }}
               onClick={handleClick}
               onDoubleClick={handleDoubleClick}
-              onDragOver={res ? (e) => e.preventDefault() : undefined}
-              onDrop={res ? async (e) => {
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={async (e) => {
                 e.preventDefault();
                 if (!mesaDragging) return;
-                await agregarMesaInline(res.id, mesaDragging);
-                setMesaDragging(null);
-              } : undefined}
+                if (mesaDragging.tipo === "reserva" && !res) {
+                  // Soltar reserva sobre mesa libre → asignar esa mesa a la reserva
+                  await agregarMesaInline(mesaDragging.reservaId, id);
+                  setMesaDragging(null);
+                }
+              }}
               onMouseEnter={!modoReasignar && res && res.notas ? (e) => {
                 const svgEl = e.currentTarget.closest("svg");
                 const svgRect = svgEl.getBoundingClientRect();
@@ -3009,10 +3012,10 @@ Buenas y Santas`;
               )}
               {/* Cruz para desasignar mesa */}
               {modoEdicionPlano && res && !modoReasignar && (
-                <g onClick={(e) => { e.stopPropagation(); quitarMesaInline(res.id, id); }} style={{ cursor: "pointer" }}>
-                  <circle cx={mx + mw - 7} cy={my + 7} r={8} fill="#c62828" opacity={0.9}/>
-                  <text x={mx + mw - 7} y={my + 11} textAnchor="middle"
-                    style={{ fontFamily: "sans-serif", fontSize: 10, fontWeight: 700, fill: "#fff", pointerEvents: "none" }}>✕</text>
+                <g onClick={(e) => { e.stopPropagation(); quitarMesaInline(res.id, id); }} style={{ cursor: "pointer" }} opacity={0.55}>
+                  <circle cx={mx + mw - 8} cy={my + 8} r={6} fill="none" stroke="#fff" strokeWidth={1.2}/>
+                  <line x1={mx + mw - 11} y1={my + 5} x2={mx + mw - 5} y2={my + 11} stroke="#fff" strokeWidth={1.4} strokeLinecap="round"/>
+                  <line x1={mx + mw - 5} y1={my + 5} x2={mx + mw - 11} y2={my + 11} stroke="#fff" strokeWidth={1.4} strokeLinecap="round"/>
                 </g>
               )}
             </g>
@@ -3190,12 +3193,14 @@ Buenas y Santas`;
               )}
             </div>
 
-            {/* ── PANEL MESAS LIBRES (derecha) ── */}
-            {planoFecha && (
+            {/* ── PANEL RESERVAS SIN MESA (derecha) ── */}
+            {planoFecha && (() => {
+              const sinMesaPanel = reservasTurno.filter(r => r.estado !== "cancelada" && (!r.mesas || r.mesas.length === 0) && !r.mesa);
+              return (
               <div style={{
-                width: 200, minWidth: 200,
+                width: 210, minWidth: 210,
                 background: "#fff",
-                border: "1px solid #dfe7df",
+                border: `1px solid ${sinMesaPanel.length > 0 ? "#f5c6c6" : "#dfe7df"}`,
                 borderRadius: 10,
                 padding: 16,
                 display: "flex",
@@ -3211,54 +3216,60 @@ Buenas y Santas`;
                   fontWeight: 700,
                   letterSpacing: 1.5,
                   textTransform: "uppercase",
-                  color: getMesasSinAsignar().length > 0 ? "#b71c1c" : "#2e7d32",
+                  color: sinMesaPanel.length > 0 ? "#b71c1c" : "#2e7d32",
                 }}>
-                  {getMesasSinAsignar().length > 0
-                    ? `⚠ Sin asignar (${getMesasSinAsignar().length})`
-                    : "✓ Todas asignadas"}
+                  {sinMesaPanel.length > 0
+                    ? `⚠ Sin mesa (${sinMesaPanel.length})`
+                    : "✓ Todas con mesa"}
                 </div>
-                {getMesasSinAsignar().length > 0 && (
-                  <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, color: "#888", margin: 0 }}>
-                    Arrastra una mesa sobre una reserva para asignarla
-                  </p>
+
+                {sinMesaPanel.length > 0 ? (
+                  <>
+                    <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, color: "#888", margin: 0 }}>
+                      Arrastra una de estas reservas sobre una mesa libre del plano para asignarla
+                    </p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {sinMesaPanel.map(r => (
+                        <div
+                          key={r.id}
+                          draggable
+                          onDragStart={() => setMesaDragging({ tipo: "reserva", reservaId: r.id })}
+                          onDragEnd={() => setMesaDragging(null)}
+                          style={{
+                            padding: "10px 12px",
+                            borderRadius: 8,
+                            background: "#fff5f5",
+                            border: "1px solid #f5c6c6",
+                            cursor: "grab",
+                            userSelect: "none",
+                            transition: "all 0.15s",
+                          }}
+                        >
+                          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 700, color: "#1a2e1a" }}>
+                            {r.nombre.split(" ")[0]}
+                          </div>
+                          <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, color: "#888", marginTop: 2 }}>
+                            {r.hora} · {r.personas} pax
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 15, color: "#4a7a4a" }}>
+                    Todas las reservas tienen mesa asignada
+                  </div>
                 )}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {getMesasSinAsignar().map(mesa => (
-                    <div
-                      key={mesa}
-                      draggable
-                      onDragStart={() => setMesaDragging(mesa)}
-                      onDragEnd={() => setMesaDragging(null)}
-                      style={{
-                        padding: "8px 12px",
-                        borderRadius: 8,
-                        background: mesaDragging === mesa ? "#c8e6c9" : "#f5f8f5",
-                        border: `2px solid ${mesaDragging === mesa ? "#2e7d32" : "#c8d8c8"}`,
-                        cursor: "grab",
-                        fontSize: 13,
-                        fontWeight: 700,
-                        fontFamily: "'Cormorant Garamond', serif",
-                        userSelect: "none",
-                        transition: "all 0.15s",
-                        color: "#1a2e1a",
-                      }}
-                    >
-                      {getMesaNombre(mesa)}
-                    </div>
-                  ))}
-                  {getMesasSinAsignar().length === 0 && (
-                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, color: "#4a7a4a" }}>
-                      🎉 Todo asignado
-                    </div>
-                  )}
-                </div>
+
                 <div style={{ borderTop: "1px solid #e8f0e8", paddingTop: 10, marginTop: 4 }}>
-                  <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, color: "#aaa", letterSpacing: 1, textTransform: "uppercase", margin: 0 }}>
-                    Doble clic en mesa libre → marcar ocupado<br/>✕ en mesa → desasignar
+                  <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, color: "#bbb", letterSpacing: 1, textTransform: "uppercase", margin: 0, lineHeight: 1.7 }}>
+                    ✕ en mesa del plano → desasignar<br/>
+                    doble clic en mesa libre → ocupado
                   </p>
                 </div>
               </div>
-            )}
+              );
+            })()}
             </div>{/* fin flex row plano + panel */}
 
             {/* ── LISTADO DEBAJO DEL PLANO ── */}
