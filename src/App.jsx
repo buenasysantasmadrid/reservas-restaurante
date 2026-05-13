@@ -3359,7 +3359,7 @@ Buenas y Santas`;
                           <td style={{ padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: "#1b5e20" }}>{r.hora}</td>
                           <td style={{ padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 700, color: "#1a2e1a" }}>
                             <div>{r.nombre}</div>
-                            {r.telefono && <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a", marginTop: 2 }}>{String(r.telefono).trim()}</div>}
+                            {r.telefono && <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#888", marginTop: 2, fontWeight: 300, letterSpacing: 0.3 }}>{String(r.telefono).trim()}</div>}
                           </td>
                           <td style={{ padding: "10px 16px", fontFamily: "'Jost', sans-serif", fontSize: 15, fontWeight: 700, color: "#4a7a4a" }}>{r.personas} pax</td>
                           <td style={{ padding: "10px 16px" }}>
