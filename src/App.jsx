@@ -1831,7 +1831,7 @@ Buenas y Santas`;
       </svg>
       
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400;1,600&family=Cormorant+Garamond:wght@300;400;600;700&family=Jost:wght@300;400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400;1,600&family=Cormorant+Garamond:wght@300;400;600;700&family=Jost:wght@300;400;500&family=Forum&family=Playfair+Display:ital,wght@0,700;1,400;1,700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         :root { --gold: #2e7d32; --gold-light: #43a047; --cream: #1a2e1a; }
         body { background: #b8ddb8; }
@@ -3118,24 +3118,24 @@ Buenas y Santas`;
                 strokeDasharray={isDropTarget ? "5 3" : esMesaDestino ? "5 3" : "none"}/>
               {esReservaSeleccionada && <rect x={mx-3} y={my-3} width={mw+6} height={mh+6} rx={RR+3} fill="none" stroke="#ff8f00" strokeWidth={2} opacity={0.5}/>}
               <text x={mx + mw/2} y={my + lineH} textAnchor="middle"
-                style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: barra ? 11 : 14, fontWeight: 700, fill: textC, letterSpacing: 0.5 }}>
+                style={{ fontFamily: "'Forum', serif", fontSize: barra ? 11 : 14, fontWeight: 700, fill: textC, letterSpacing: 1 }}>
                 {labelMesa}
               </text>
               {res && res.nombre !== "OCUPADO" && (
                 <text x={mx + mw/2} y={my + mh * (isMerged ? 0.38 : 0.48)} textAnchor="middle"
-                  style={{ fontFamily: "'Jost', sans-serif", fontSize: 8.5, fontWeight: 600, fill: textC, opacity: 0.85, letterSpacing: 0.5 }}>
+                  style={{ fontFamily: "'Forum', serif", fontSize: 8.5, fontWeight: 400, fontStyle: "italic", fill: textC, opacity: 0.9, letterSpacing: 0.3 }}>
                   {res.hora}
                 </text>
               )}
               {res && (
                 <text x={mx + mw/2} y={my + mh * (isMerged ? 0.58 : 0.68)} textAnchor="middle"
-                  style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 500, fill: textC, letterSpacing: 0.3 }}>
+                  style={{ fontFamily: "'Forum', serif", fontSize: 9, fontWeight: 700, fill: textC, letterSpacing: 0.3 }}>
                   {res.nombre.split(" ")[0]}
                 </text>
               )}
               {res && (
                 <text x={mx + mw/2} y={my + mh * (isMerged ? 0.80 : 0.88)} textAnchor="middle"
-                  style={{ fontFamily: "'Jost', sans-serif", fontSize: 8.5, fill: textC, opacity: 0.75, letterSpacing: 0.5 }}>
+                  style={{ fontFamily: "'Forum', serif", fontSize: 8, fontWeight: 400, fontStyle: "italic", fill: textC, opacity: 0.75, letterSpacing: 0.3 }}>
                   {res.personas}p
                 </text>
               )}
@@ -3330,10 +3330,10 @@ Buenas y Santas`;
                       <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" floodColor="#1b5e20" floodOpacity="0.18"/>
                     </filter>
                     <pattern id="floorGrid" x="0" y="0" width={U*0.5} height={U*0.5} patternUnits="userSpaceOnUse">
-                      <path d={`M ${U*0.5} 0 L 0 0 0 ${U*0.5}`} fill="none" stroke="#e0e0e0" strokeWidth="0.5"/>
+                      <path d={`M ${U*0.5} 0 L 0 0 0 ${U*0.5}`} fill="none" stroke="#e8f5e9" strokeWidth="0.5"/>
                     </pattern>
                   </defs>
-                  <rect x={0} y={0} width={VW} height={VH} fill="#e4e4e4" rx={12}/>
+                  <rect x={0} y={0} width={VW} height={VH} fill="#f4faf4" rx={12}/>
                   <rect x={0} y={0} width={VW} height={VH} fill="url(#floorGrid)" rx={12}/>
                   <line x1={PAD + 0.2*U} y1={PAD + 1.15*U} x2={PAD + 6.5*U} y2={PAD + 1.15*U} stroke="#c8e6c9" strokeWidth={0.8} strokeDasharray="5 5" opacity="0.7"/>
                   {MESAS_POS.map(m => <MesaSVG key={m.id} mesa={m} />)}
