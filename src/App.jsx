@@ -2934,9 +2934,9 @@ Buenas y Santas`;
           } else if (esMesaDestino) {
             fill = "#1565c0"; stroke = "#0d47a1"; textC = "#fff";
           } else {
-            fill   = llego ? "#f5f5f5" : ocupada ? (sinConfirmar ? "#e3f2fd" : "#2e7d32") : "#e8f5e9";
-            stroke = llego ? "#e0e0e0" : ocupada ? (sinConfirmar ? "#90caf9" : "#1b5e20") : "#81c784";
-            textC  = llego ? "#bdbdbd" : ocupada ? (sinConfirmar ? "#1565c0" : "#fff") : "#2e7d32";
+            fill   = llego ? "#c8c0b0" : ocupada ? (sinConfirmar ? "#b8cfc0" : "#3d5247") : "#e2dfd8";
+            stroke = llego ? "#b0a898" : ocupada ? (sinConfirmar ? "#8aaa96" : "#2d4237") : "#ccc9c0";
+            textC  = llego ? "#706858" : ocupada ? (sinConfirmar ? "#1e3828" : "#d8ead0") : "#aaa89f";
           }
           // En modo reasignar, mesas no relevantes se atenúan un poco
           const opacity = (modoReasignar && hayReservaSeleccionada && !esReservaSeleccionada && !esMesaDestino) ? 0.5 : 1;
@@ -3132,13 +3132,13 @@ Buenas y Santas`;
               onMouseLeave={!modoReasignar && res && res.notas ? () => setHoveredMesa(null) : null}>
               <rect x={mx+1} y={my+2} width={mw} height={mh} rx={RR+1} fill="rgba(0,0,0,0.06)"/>
               <rect x={mx} y={my} width={mw} height={mh} rx={RR}
-                fill={isDropTarget ? "#e8f5e9" : fill}
-                stroke={isDropTarget ? "#2e7d32" : stroke}
+                fill={isDropTarget ? "#b8cfc0" : fill}
+                stroke={isDropTarget ? "#3d5247" : stroke}
                 strokeWidth={(isDropTarget || esReservaSeleccionada || esMesaDestino) ? 2.5 : ocupada ? 2 : 1.2}
                 strokeDasharray={isDropTarget ? "5 3" : esMesaDestino ? "5 3" : "none"}/>
               {esReservaSeleccionada && <rect x={mx-3} y={my-3} width={mw+6} height={mh+6} rx={RR+3} fill="none" stroke="#ff8f00" strokeWidth={2} opacity={0.5}/>}
               <text x={mx + mw/2} y={my + lineH} textAnchor="middle"
-                style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: barra ? 11 : 14, fontWeight: 700, fill: textC, letterSpacing: 0.5 }}>
+                style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: barra ? 11 : 14, fontWeight: 700, fill: textC, letterSpacing: 0.3 }}>
                 {labelMesa}
               </text>
               {res && res.nombre !== "OCUPADO" && (
@@ -3149,7 +3149,7 @@ Buenas y Santas`;
               )}
               {res && (
                 <text x={mx + mw/2} y={my + mh * (isMerged ? 0.58 : 0.68)} textAnchor="middle"
-                  style={{ fontFamily: "'Jost', sans-serif", fontSize: 9, fontWeight: 500, fill: textC, letterSpacing: 0.3 }}>
+                  style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: 9, fontWeight: 700, fill: textC, letterSpacing: 0.2 }}>
                   {res.nombre.split(" ")[0]}
                 </text>
               )}
@@ -3245,7 +3245,7 @@ Buenas y Santas`;
             </div>
 
             <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-            <div className="card" style={{ flex: 1, minWidth: 0, padding: esMobil ? "8px 4px" : 24, overflowX: "auto", background: "linear-gradient(135deg, #ffffff 0%, #f7fbf7 100%)", border: "1px solid #e0f0e0", position: "relative" }}>
+            <div className="card" style={{ flex: 1, minWidth: 0, padding: esMobil ? "8px 4px" : 24, overflowX: "auto", background: "#f0ede8", border: "1px solid #d8d4cc", position: "relative" }}>
               {/* Cartel mesas sin asignar */}
               {(() => {
                 const sinMesa = reservasTurno.filter(r => r.estado !== "cancelada" && (!r.mesas || r.mesas.length === 0) && !r.mesa);
@@ -3296,15 +3296,15 @@ Buenas y Santas`;
                   onMouseLeave={() => { if (mesaDragging && mesaDragging.tipo === "mover") setMesaDragging(null); }}>
                   <defs>
                     <filter id="mesaShadow" x="-15%" y="-15%" width="130%" height="130%">
-                      <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" floodColor="#1b5e20" floodOpacity="0.18"/>
+                      <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" floodColor="#2d4237" floodOpacity="0.22"/>
                     </filter>
                     <pattern id="floorGrid" x="0" y="0" width={U*0.5} height={U*0.5} patternUnits="userSpaceOnUse">
-                      <path d={`M ${U*0.5} 0 L 0 0 0 ${U*0.5}`} fill="none" stroke="#e8f5e9" strokeWidth="0.5"/>
+                      <path d={`M ${U*0.5} 0 L 0 0 0 ${U*0.5}`} fill="none" stroke="#ddd9d2" strokeWidth="0.6"/>
                     </pattern>
                   </defs>
-                  <rect x={0} y={0} width={VW} height={VH} fill="#f4faf4" rx={12}/>
+                  <rect x={0} y={0} width={VW} height={VH} fill="#edeae4" rx={12}/>
                   <rect x={0} y={0} width={VW} height={VH} fill="url(#floorGrid)" rx={12}/>
-                  <line x1={PAD + 0.2*U} y1={PAD + 1.15*U} x2={PAD + 6.5*U} y2={PAD + 1.15*U} stroke="#c8e6c9" strokeWidth={0.8} strokeDasharray="5 5" opacity="0.7"/>
+                  <line x1={PAD + 0.2*U} y1={PAD + 1.15*U} x2={PAD + 6.5*U} y2={PAD + 1.15*U} stroke="#b8b0a4" strokeWidth={0.8} strokeDasharray="5 5" opacity="0.6"/>
                   {MESAS_POS.map(m => <MesaSVG key={m.id} mesa={m} />)}
                 </svg>
                 {hoveredMesa && (() => {
