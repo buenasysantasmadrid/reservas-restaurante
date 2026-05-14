@@ -3299,10 +3299,10 @@ Buenas y Santas`;
                       <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" floodColor="#1b5e20" floodOpacity="0.18"/>
                     </filter>
                     <pattern id="floorGrid" x="0" y="0" width={U*0.5} height={U*0.5} patternUnits="userSpaceOnUse">
-                      <path d={`M ${U*0.5} 0 L 0 0 0 ${U*0.5}`} fill="none" stroke="#e8f5e9" strokeWidth="0.5"/>
+                      <path d={`M ${U*0.5} 0 L 0 0 0 ${U*0.5}`} fill="none" stroke="#e0e0e0" strokeWidth="0.5"/>
                     </pattern>
                   </defs>
-                  <rect x={0} y={0} width={VW} height={VH} fill="#f4faf4" rx={12}/>
+                  <rect x={0} y={0} width={VW} height={VH} fill="#f0f0f0" rx={12}/>
                   <rect x={0} y={0} width={VW} height={VH} fill="url(#floorGrid)" rx={12}/>
                   <line x1={PAD + 0.2*U} y1={PAD + 1.15*U} x2={PAD + 6.5*U} y2={PAD + 1.15*U} stroke="#c8e6c9" strokeWidth={0.8} strokeDasharray="5 5" opacity="0.7"/>
                   {MESAS_POS.map(m => <MesaSVG key={m.id} mesa={m} />)}
