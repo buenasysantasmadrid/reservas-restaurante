@@ -3033,7 +3033,28 @@ Buenas y Santas`;
 
           // ── Drag desde mesa ocupada ──────────────────────────
           const isDraggingThis = mesaDragging && mesaDragging.tipo === "mover" && mesaDragging.reservaId === res?.id;
-          const isDropTarget   = mesaDragging && mesaDragging.tipo === "mover" && !res && !esMobil;
+
+          // Calcular si esta mesa libre es destino válido para el drag activo
+          const esDestinoValido = (() => {
+            if (!mesaDragging || mesaDragging.tipo !== "mover" || res || esMobil) return false;
+            const reservaMoviendo = reservas.find(r => r.id === mesaDragging.reservaId);
+            if (!reservaMoviendo) return false;
+            const paxM = Math.min(Number(reservaMoviendo.personas) || 1, 8);
+            const opcionesM = MESA_CONFIG[paxM] || MESA_CONFIG[1];
+            const turnoM = getTurno(reservaMoviendo.hora);
+            const mesasOcupadasM = new Set(
+              reservas
+                .filter(x => x.id !== reservaMoviendo.id && x.fecha === reservaMoviendo.fecha && getTurno(x.hora) === turnoM && x.estado !== "cancelada")
+                .flatMap(x => x.mesas && x.mesas.length > 0 ? x.mesas : x.mesa ? String(x.mesa).split("+").map(Number).filter(Boolean) : [])
+                .map(Number)
+            );
+            return opcionesM.some(op =>
+              op.internas.map(Number).includes(Number(id)) &&
+              op.internas.every(m => !mesasOcupadasM.has(Number(m)))
+            );
+          })();
+
+          const isDropTarget = esDestinoValido;
 
           return (
             <g key={id}
@@ -3060,7 +3081,6 @@ Buenas y Santas`;
                 if (!mesaDragging || mesaDragging.tipo !== "mover") return;
                 const reserva = reservas.find(r => r.id === mesaDragging.reservaId);
                 if (!reserva) { setMesaDragging(null); return; }
-                // Calcular mesas ocupadas por otros (excluyendo la reserva que se mueve)
                 const turnoR = getTurno(reserva.hora);
                 const mesasOcupadas = new Set(
                   reservas
@@ -3070,7 +3090,6 @@ Buenas y Santas`;
                 );
                 const pax = Math.min(Number(reserva.personas) || 1, 8);
                 const opciones = MESA_CONFIG[pax] || MESA_CONFIG[1];
-                // Buscar grupo que contenga la mesa destino y esté libre
                 let mesasAsignadas = null;
                 for (const op of opciones) {
                   if (op.internas.map(Number).includes(Number(id)) && op.internas.every(m => !mesasOcupadas.has(Number(m)))) {
@@ -3078,7 +3097,11 @@ Buenas y Santas`;
                     break;
                   }
                 }
-                if (!mesasAsignadas) mesasAsignadas = [Number(id)];
+                if (!mesasAsignadas) {
+                  showToast("No hay espacio suficiente para esta reserva aquí", "error");
+                  setMesaDragging(null);
+                  return;
+                }
                 await fbSetReserva({ ...reserva, mesas: mesasAsignadas, mesa: mesasAsignadas[0] || "" });
                 showToast(`${reserva.nombre.split(" ")[0]} → Mesa${mesasAsignadas.length > 1 ? "s" : ""} ${mesasAsignadas.join("+")} ✓`);
                 setMesaDragging(null);
