@@ -3081,36 +3081,6 @@ Buenas y Santas`;
                   setMesaDragging({ tipo: "mover", reservaId: res.id, mesaOrigen: id });
                 }, 200);
               } : undefined}
-              onMouseUp={isDropTarget ? async (e) => {
-                e.preventDefault();
-                if (!mesaDragging || mesaDragging.tipo !== "mover") return;
-                const reserva = reservas.find(r => r.id === mesaDragging.reservaId);
-                if (!reserva) { setMesaDragging(null); return; }
-                const turnoR = getTurno(reserva.hora);
-                const mesasOcupadas = new Set(
-                  reservas
-                    .filter(x => x.id !== reserva.id && x.fecha === reserva.fecha && getTurno(x.hora) === turnoR && x.estado !== "cancelada")
-                    .flatMap(x => x.mesas && x.mesas.length > 0 ? x.mesas : x.mesa ? String(x.mesa).split("+").map(Number).filter(Boolean) : [])
-                    .map(Number)
-                );
-                const pax = Math.min(Number(reserva.personas) || 1, 8);
-                const opciones = MESA_CONFIG[pax] || MESA_CONFIG[1];
-                let mesasAsignadas = null;
-                for (const op of opciones) {
-                  if (op.internas.map(Number).includes(Number(id)) && op.internas.every(m => !mesasOcupadas.has(Number(m)))) {
-                    mesasAsignadas = op.internas;
-                    break;
-                  }
-                }
-                if (!mesasAsignadas) {
-                  showToast("No hay espacio suficiente para esta reserva aquí", "error");
-                  setMesaDragging(null);
-                  return;
-                }
-                await fbSetReserva({ ...reserva, mesas: mesasAsignadas, mesa: mesasAsignadas[0] || "" });
-                showToast(`${reserva.nombre.split(" ")[0]} → Mesa${mesasAsignadas.length > 1 ? "s" : ""} ${mesasAsignadas.join("+")} ✓`);
-                setMesaDragging(null);
-              } : undefined}
               onDragOver={(e) => e.preventDefault()}
               onDrop={async (e) => {
                 e.preventDefault();
@@ -3302,7 +3272,58 @@ Buenas y Santas`;
               </div>
               <div style={{ position: "relative", display: "inline-block", width: "100%", maxWidth: 640 }}>
                 <svg viewBox={`0 0 ${VW} ${VH}`} style={{ width: "100%", display: "block", borderRadius: 12, boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}
-                  onMouseUp={() => { if (mesaDragging && mesaDragging.tipo === "mover") setMesaDragging(null); }}
+                  onMouseUp={async (e) => {
+                    if (!mesaDragging || mesaDragging.tipo !== "mover") {
+                      if (mesaDragging && mesaDragging.tipo === "mover") setMesaDragging(null);
+                      return;
+                    }
+                    // Buscar qué mesa hay bajo el cursor usando elementFromPoint
+                    const svgEl = e.currentTarget;
+                    const svgRect = svgEl.getBoundingClientRect();
+                    const scaleX = VW / svgRect.width;
+                    const scaleY = VH / svgRect.height;
+                    const svgX = (e.clientX - svgRect.left) * scaleX;
+                    const svgY = (e.clientY - svgRect.top) * scaleY;
+                    // Buscar mesa libre bajo el cursor
+                    let mesaDestino = null;
+                    for (const m of MESAS_POS) {
+                      const mx2 = PAD + m.cx * U - (m.w * U) / 2;
+                      const my2 = PAD + m.cy * U - (m.h * U) / 2;
+                      const mw2 = m.w * U;
+                      const mh2 = m.h * U;
+                      if (svgX >= mx2 && svgX <= mx2 + mw2 && svgY >= my2 && svgY <= my2 + mh2) {
+                        mesaDestino = m.id;
+                        break;
+                      }
+                    }
+                    if (!mesaDestino) { setMesaDragging(null); return; }
+                    const reserva = reservas.find(r => r.id === mesaDragging.reservaId);
+                    if (!reserva) { setMesaDragging(null); return; }
+                    const turnoR = getTurno(reserva.hora);
+                    const mesasOcupadas = new Set(
+                      reservas
+                        .filter(x => x.id !== reserva.id && x.fecha === reserva.fecha && getTurno(x.hora) === turnoR && x.estado !== "cancelada")
+                        .flatMap(x => x.mesas && x.mesas.length > 0 ? x.mesas : x.mesa ? String(x.mesa).split("+").map(Number).filter(Boolean) : [])
+                        .map(Number)
+                    );
+                    const pax = Math.min(Number(reserva.personas) || 1, 8);
+                    const opciones = MESA_CONFIG[pax] || MESA_CONFIG[1];
+                    let mesasAsignadas = null;
+                    for (const op of opciones) {
+                      if (op.internas.map(Number).includes(Number(mesaDestino)) && op.internas.every(m => !mesasOcupadas.has(Number(m)))) {
+                        mesasAsignadas = op.internas;
+                        break;
+                      }
+                    }
+                    if (!mesasAsignadas) {
+                      showToast("No hay espacio suficiente para esta reserva aquí", "error");
+                      setMesaDragging(null);
+                      return;
+                    }
+                    await fbSetReserva({ ...reserva, mesas: mesasAsignadas, mesa: mesasAsignadas[0] || "" });
+                    showToast(`${reserva.nombre.split(" ")[0]} → Mesa${mesasAsignadas.length > 1 ? "s" : ""} ${mesasAsignadas.join("+")} ✓`);
+                    setMesaDragging(null);
+                  }}
                   onMouseLeave={() => { if (mesaDragging && mesaDragging.tipo === "mover") setMesaDragging(null); }}>
                   <defs>
                     <filter id="mesaShadow" x="-15%" y="-15%" width="130%" height="130%">
