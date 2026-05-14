@@ -316,6 +316,7 @@ export default function App() {
   const [mesaDragging, setMesaDragging] = useState(null);
   const [modoEdicionPlano, setModoEdicionPlano] = useState(true);
   const quitarMesaClickRef = useRef(false); // bloquea el handleClick cuando se pulsa la ✕
+  const dragTimerRef = useRef(null); // timer para distinguir drag de doble clic
   const [guardando, setGuardando] = useState(false);
   const [confirmarSalida, setConfirmarSalida] = useState(null); // callback a ejecutar si confirma salir
   const [confirmarSalidaPagina, setConfirmarSalidaPagina] = useState(null); // guardia para pegar/sheet
@@ -3038,13 +3039,21 @@ Buenas y Santas`;
             <g key={id}
               style={{ cursor: isDraggingThis ? "grabbing" : !res && isDropTarget ? "copy" : !res && !modoReasignar ? "cell" : cursorStyle, opacity: isDraggingThis ? 0.45 : opacity }}
               onClick={handleClick}
-              onDoubleClick={handleDoubleClick}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                if (dragTimerRef.current) { clearTimeout(dragTimerRef.current); dragTimerRef.current = null; }
+                setMesaDragging(null);
+                handleDoubleClick();
+              }}
+
               onMouseDown={modoEdicionPlano && res && !modoReasignar && !esMobil ? (e) => {
-                // Solo botón izquierdo, no sobre la cruz
                 if (e.button !== 0) return;
                 if (quitarMesaClickRef.current) return;
-                e.preventDefault();
-                setMesaDragging({ tipo: "mover", reservaId: res.id, mesaOrigen: id });
+                // Esperar 200ms antes de activar el drag, para no interferir con doble clic
+                dragTimerRef.current = setTimeout(() => {
+                  dragTimerRef.current = null;
+                  setMesaDragging({ tipo: "mover", reservaId: res.id, mesaOrigen: id });
+                }, 200);
               } : undefined}
               onMouseUp={isDropTarget ? async (e) => {
                 e.preventDefault();
