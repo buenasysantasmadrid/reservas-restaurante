@@ -3030,16 +3030,55 @@ Buenas y Santas`;
             ? (!reasignarReservaId ? (res ? "pointer" : "default") : "pointer")
             : (res ? "pointer" : "default");
 
+          // ── Drag desde mesa ocupada ──────────────────────────
+          const isDraggingThis = mesaDragging && mesaDragging.tipo === "mover" && mesaDragging.reservaId === res?.id;
+          const isDropTarget   = mesaDragging && mesaDragging.tipo === "mover" && !res && !esMobil;
+
           return (
-            <g key={id} style={{ cursor: !res && !modoReasignar ? "cell" : cursorStyle, opacity }}
+            <g key={id}
+              style={{ cursor: isDraggingThis ? "grabbing" : !res && isDropTarget ? "copy" : !res && !modoReasignar ? "cell" : cursorStyle, opacity: isDraggingThis ? 0.45 : opacity }}
               onClick={handleClick}
               onDoubleClick={handleDoubleClick}
+              onMouseDown={modoEdicionPlano && res && !modoReasignar && !esMobil ? (e) => {
+                // Solo botón izquierdo, no sobre la cruz
+                if (e.button !== 0) return;
+                if (quitarMesaClickRef.current) return;
+                e.preventDefault();
+                setMesaDragging({ tipo: "mover", reservaId: res.id, mesaOrigen: id });
+              } : undefined}
+              onMouseUp={isDropTarget ? async (e) => {
+                e.preventDefault();
+                if (!mesaDragging || mesaDragging.tipo !== "mover") return;
+                const reserva = reservas.find(r => r.id === mesaDragging.reservaId);
+                if (!reserva) { setMesaDragging(null); return; }
+                // Calcular mesas ocupadas por otros (excluyendo la reserva que se mueve)
+                const turnoR = getTurno(reserva.hora);
+                const mesasOcupadas = new Set(
+                  reservas
+                    .filter(x => x.id !== reserva.id && x.fecha === reserva.fecha && getTurno(x.hora) === turnoR && x.estado !== "cancelada")
+                    .flatMap(x => x.mesas && x.mesas.length > 0 ? x.mesas : x.mesa ? String(x.mesa).split("+").map(Number).filter(Boolean) : [])
+                    .map(Number)
+                );
+                const pax = Math.min(Number(reserva.personas) || 1, 8);
+                const opciones = MESA_CONFIG[pax] || MESA_CONFIG[1];
+                // Buscar grupo que contenga la mesa destino y esté libre
+                let mesasAsignadas = null;
+                for (const op of opciones) {
+                  if (op.internas.map(Number).includes(Number(id)) && op.internas.every(m => !mesasOcupadas.has(Number(m)))) {
+                    mesasAsignadas = op.internas;
+                    break;
+                  }
+                }
+                if (!mesasAsignadas) mesasAsignadas = [Number(id)];
+                await fbSetReserva({ ...reserva, mesas: mesasAsignadas, mesa: mesasAsignadas[0] || "" });
+                showToast(`${reserva.nombre.split(" ")[0]} → Mesa${mesasAsignadas.length > 1 ? "s" : ""} ${mesasAsignadas.join("+")} ✓`);
+                setMesaDragging(null);
+              } : undefined}
               onDragOver={(e) => e.preventDefault()}
               onDrop={async (e) => {
                 e.preventDefault();
                 if (!mesaDragging) return;
                 if (mesaDragging.tipo === "reserva" && !res) {
-                  // Soltar reserva sobre mesa libre → asignar esa mesa a la reserva
                   await agregarMesaInline(mesaDragging.reservaId, id);
                   setMesaDragging(null);
                 }
@@ -3060,8 +3099,11 @@ Buenas y Santas`;
               } : null}
               onMouseLeave={!modoReasignar && res && res.notas ? () => setHoveredMesa(null) : null}>
               <rect x={mx+1} y={my+2} width={mw} height={mh} rx={RR+1} fill="rgba(0,0,0,0.06)"/>
-              <rect x={mx} y={my} width={mw} height={mh} rx={RR} fill={fill} stroke={stroke} strokeWidth={(esReservaSeleccionada || esMesaDestino) ? 3 : ocupada ? 2 : 1.2}
-                strokeDasharray={esMesaDestino ? "5 3" : "none"}/>
+              <rect x={mx} y={my} width={mw} height={mh} rx={RR}
+                fill={isDropTarget ? "#e8f5e9" : fill}
+                stroke={isDropTarget ? "#2e7d32" : stroke}
+                strokeWidth={(isDropTarget || esReservaSeleccionada || esMesaDestino) ? 2.5 : ocupada ? 2 : 1.2}
+                strokeDasharray={isDropTarget ? "5 3" : esMesaDestino ? "5 3" : "none"}/>
               {esReservaSeleccionada && <rect x={mx-3} y={my-3} width={mw+6} height={mh+6} rx={RR+3} fill="none" stroke="#ff8f00" strokeWidth={2} opacity={0.5}/>}
               <text x={mx + mw/2} y={my + lineH} textAnchor="middle"
                 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: barra ? 11 : 14, fontWeight: 700, fill: textC, letterSpacing: 0.5 }}>
@@ -3217,7 +3259,9 @@ Buenas y Santas`;
                 ))}
               </div>
               <div style={{ position: "relative", display: "inline-block", width: "100%", maxWidth: 640 }}>
-                <svg viewBox={`0 0 ${VW} ${VH}`} style={{ width: "100%", display: "block", borderRadius: 12, boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
+                <svg viewBox={`0 0 ${VW} ${VH}`} style={{ width: "100%", display: "block", borderRadius: 12, boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}
+                  onMouseUp={() => { if (mesaDragging && mesaDragging.tipo === "mover") setMesaDragging(null); }}
+                  onMouseLeave={() => { if (mesaDragging && mesaDragging.tipo === "mover") setMesaDragging(null); }}>
                   <defs>
                     <filter id="mesaShadow" x="-15%" y="-15%" width="130%" height="130%">
                       <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" floodColor="#1b5e20" floodOpacity="0.18"/>
