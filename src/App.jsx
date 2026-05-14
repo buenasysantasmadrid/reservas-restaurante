@@ -306,6 +306,12 @@ export default function App() {
   const [turnoHasta, setTurnoHasta] = useState("16:00");
   const [turnoPersonalizado, setTurnoPersonalizado] = useState(null); // { desde, hasta } when active
   const [hoveredMesa, setHoveredMesa] = useState(null);
+  const [esMobil, setEsMobil] = useState(() => window.innerWidth <= 768);
+  useEffect(() => {
+    const handler = () => setEsMobil(window.innerWidth <= 768);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
   // ── EDICIÓN INLINE DE MESAS EN PLANO ─────────────────────
   const [mesaDragging, setMesaDragging] = useState(null);
   const [modoEdicionPlano, setModoEdicionPlano] = useState(true);
@@ -661,6 +667,7 @@ export default function App() {
   const quitarMesaInline = async (reservaId) => {
     const reserva = reservas.find(r => r.id === reservaId);
     if (!reserva) return;
+    setHoveredMesa(null);
     await fbSetReserva({ ...reserva, mesas: [], mesa: "" });
   };
 
@@ -3076,7 +3083,7 @@ Buenas y Santas`;
                 </text>
               )}
               {/* Cruz para desasignar mesa */}
-              {modoEdicionPlano && res && !modoReasignar && (
+              {modoEdicionPlano && res && !modoReasignar && !esMobil && (
                 <g
                   onMouseDown={(e) => {
                     e.stopPropagation();
@@ -3107,7 +3114,7 @@ Buenas y Santas`;
         };
 
         return (
-          <div style={{ padding: "40px", maxWidth: 1280, margin: "0 auto", position: "relative", zIndex: 1 }}>
+          <div style={{ padding: esMobil ? "12px 8px" : "40px", maxWidth: 1280, margin: "0 auto", position: "relative", zIndex: 1 }}>
             <div style={{ marginBottom: 24 }}>
               <h1 className="page-title" style={{ fontFamily: "'Lora', serif", fontSize: 44, fontWeight: 700, color: "#1a1a1a" }}>Plano</h1>
             </div>
@@ -3161,7 +3168,7 @@ Buenas y Santas`;
             </div>
 
             <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-            <div className="card" style={{ flex: 1, minWidth: 0, padding: 24, overflowX: "auto", background: "linear-gradient(135deg, #ffffff 0%, #f7fbf7 100%)", border: "1px solid #e0f0e0", position: "relative" }}>
+            <div className="card" style={{ flex: 1, minWidth: 0, padding: esMobil ? "8px 4px" : 24, overflowX: "auto", background: "linear-gradient(135deg, #ffffff 0%, #f7fbf7 100%)", border: "1px solid #e0f0e0", position: "relative" }}>
               {/* Cartel mesas sin asignar */}
               {(() => {
                 const sinMesa = reservasTurno.filter(r => r.estado !== "cancelada" && (!r.mesas || r.mesas.length === 0) && !r.mesa);
@@ -3251,7 +3258,7 @@ Buenas y Santas`;
             </div>
 
             {/* ── PANEL RESERVAS SIN MESA (derecha) ── */}
-            {planoFecha && (() => {
+            {planoFecha && !esMobil && (() => {
               const sinMesaPanel = reservasTurno.filter(r => {
                 if (r.estado === "cancelada") return false;
                 const tieneMesas = r.mesas && r.mesas.length > 0;
