@@ -274,7 +274,7 @@ export default function App() {
     document.head.appendChild(link);
   }, []);
 
-  const [vista, setVista] = useState("reservas");
+  const [vista, setVista] = useState("plano");
   const [reservas, setReservas] = useState([]);
   const [clientesArchivados, setClientesArchivados] = useState([]);
   const [fbCargando, setFbCargando] = useState(true);
@@ -3019,7 +3019,7 @@ Buenas y Santas`;
             } else {
               // Mesa vacía: mostrar modal OCUPADO
               // Detectar turno según filtro activo para ofrecer horas correctas
-              const turnoActivo = planoTurnoFiltro === "noche" ? "noche" : "mediodia";
+              const turnoActivo = planoTurnoFiltro === "noche" ? "noche" : planoTurnoFiltro === "t2" ? "t2" : "t1";
               setOcupadoHasta("");
               setOcupadoPax("");
               setModalOcupado({ mesaId: id, fecha: planoFecha, turno: turnoActivo });
@@ -4130,22 +4130,19 @@ Buenas y Santas`;
       {/* ── MODAL OCUPADO (doble clic mesa vacía en plano) ── */}
       {modalOcupado && (() => {
         const esNoche = modalOcupado.turno === "noche";
+        const esT2 = modalOcupado.turno === "t2";
         const horasOptions = esNoche
           ? ["22:00", "22:15", "22:30", "22:45"]
           : ["15:00", "15:10", "15:15", "15:30"];
         const confirmOcupado = async () => {
-          if (!ocupadoHasta) return showToast("Selecciona hasta qué hora", "error");
+          if (!esT2 && !esNoche && !ocupadoHasta) return showToast("Selecciona hasta qué hora", "error");
+          if (esNoche && !ocupadoHasta) return showToast("Selecciona hasta qué hora", "error");
           if (!ocupadoPax || Number(ocupadoPax) < 1) return showToast("Indica el número de pax", "error");
           const pax = Number(ocupadoPax);
-          // Usar la misma lógica de MESA_CONFIG que el sistema de reservas:
-          // <=2 pax → 1 mesa, >2 pax → 2 mesas, >5 pax → 3 mesas, >7 pax → 4 mesas
           const numMesas = pax > 7 ? 4 : pax > 5 ? 3 : pax > 2 ? 2 : 1;
-          // Buscar en MESA_CONFIG el grupo que contiene mesaId con el tamaño adecuado
           const mesaIdN = Number(modalOcupado.mesaId);
           let mesasAOcupar = [mesaIdN];
           if (numMesas > 1) {
-            // Buscar el primer grupo de MESA_CONFIG (para pax<=1 usa key 1, etc.)
-            // Recorrer desde el tamaño exacto hacia arriba para encontrar un grupo que contenga la mesa
             const clavesPax = [numMesas, numMesas + 1, numMesas + 2, numMesas + 3, 8].filter(k => MESA_CONFIG[k]);
             let encontrado = false;
             for (const clave of clavesPax) {
@@ -4159,21 +4156,18 @@ Buenas y Santas`;
               }
               if (encontrado) break;
             }
-            // Si no se encontró un grupo que la contenga, buscar el grupo más cercano de tamaño numMesas
             if (!encontrado) {
-              // Fallback: columnas fijas del local
               const COLUMNAS = [
-                [8, 2, 18, 1],   // columna 1
-                [7, 17, 4, 3],   // columna 2
-                [6, 16, 15, 5],  // columna 3
-                [12, 13, 11, 10],// columna 4
+                [8, 2, 18, 1],
+                [7, 17, 4, 3],
+                [6, 16, 15, 5],
+                [12, 13, 11, 10],
                 [40, 41],
                 [30, 31],
               ];
               for (const col of COLUMNAS) {
                 const idx = col.indexOf(mesaIdN);
                 if (idx !== -1) {
-                  // Tomar desde idx hacia delante, o ajustar si no alcanza
                   const start = Math.min(idx, col.length - numMesas);
                   mesasAOcupar = col.slice(Math.max(0, start), Math.max(0, start) + numMesas);
                   break;
@@ -4181,8 +4175,8 @@ Buenas y Santas`;
               }
             }
           }
-          const horaReserva = esNoche ? "21:00" : "13:30";
-          const notasTexto = `Hasta ${ocupadoHasta} hs`;
+          const horaReserva = modalOcupado.turno === "noche" ? "21:00" : modalOcupado.turno === "t2" ? "15:00" : "13:30";
+          const notasTexto = ocupadoHasta ? `Hasta ${ocupadoHasta} hs` : "OCUPADO";
           const nuevoId = Date.now() * 1000 + Math.floor(Math.random() * 1000);
           const ahora = new Date();
           const cuando = `${String(ahora.getDate()).padStart(2,"0")}/${String(ahora.getMonth()+1).padStart(2,"0")}/${ahora.getFullYear()} ${String(ahora.getHours()).padStart(2,"0")}:${String(ahora.getMinutes()).padStart(2,"0")}`;
@@ -4203,7 +4197,7 @@ Buenas y Santas`;
             cuando,
           };
           await fbSetReserva(nuevaReserva);
-          showToast(`Mesa${mesasAOcupar.length > 1 ? "s" : ""} ${mesasAOcupar.join("+")} → OCUPADO hasta ${ocupadoHasta} ✓`);
+          showToast(`Mesa${mesasAOcupar.length > 1 ? "s" : ""} ${mesasAOcupar.join("+")} → OCUPADO ✓`);
           setModalOcupado(null);
         };
         return (
@@ -4214,8 +4208,9 @@ Buenas y Santas`;
                 Marcar como OCUPADO
               </h2>
               <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a", marginBottom: 24 }}>
-                Mesa <strong>{modalOcupado.mesaId}</strong> · {esNoche ? "Noche" : "Mediodía"}
+                Mesa <strong>{modalOcupado.mesaId}</strong> · {esNoche ? "Noche" : esT2 ? "2º Turno" : "1º Turno"}
               </p>
+              {!esT2 && (
               <div style={{ marginBottom: 20, textAlign: "left" }}>
                 <label style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", display: "block", marginBottom: 8 }}>¿Hasta qué hora?</label>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -4232,6 +4227,7 @@ Buenas y Santas`;
                   ))}
                 </div>
               </div>
+              )}
               <div style={{ marginBottom: 28, textAlign: "left" }}>
                 <label style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", display: "block", marginBottom: 8 }}>¿Cuántos pax?</label>
                 <input
