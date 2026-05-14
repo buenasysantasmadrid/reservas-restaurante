@@ -274,7 +274,7 @@ export default function App() {
     document.head.appendChild(link);
   }, []);
 
-  const [vista, setVista] = useState("reservas");
+  const [vista, setVista] = useState("plano");
   const [reservas, setReservas] = useState([]);
   const [clientesArchivados, setClientesArchivados] = useState([]);
   const [fbCargando, setFbCargando] = useState(true);
@@ -3019,7 +3019,7 @@ Buenas y Santas`;
             } else {
               // Mesa vacía: mostrar modal OCUPADO
               // Detectar turno según filtro activo para ofrecer horas correctas
-              const turnoActivo = planoTurnoFiltro === "noche" ? "noche" : "mediodia";
+              const turnoActivo = planoTurnoFiltro === "noche" ? "noche" : planoTurnoFiltro === "t2" ? "t2" : "t1";
               setOcupadoHasta("");
               setOcupadoPax("");
               setModalOcupado({ mesaId: id, fecha: planoFecha, turno: turnoActivo });
@@ -4130,6 +4130,7 @@ Buenas y Santas`;
       {/* ── MODAL OCUPADO (doble clic mesa vacía en plano) ── */}
       {modalOcupado && (() => {
         const esNoche = modalOcupado.turno === "noche";
+        const esT2 = modalOcupado.turno === "t2";
         const horasOptions = esNoche
           ? ["22:00", "22:15", "22:30", "22:45"]
           : ["15:00", "15:10", "15:15", "15:30"];
@@ -4181,7 +4182,7 @@ Buenas y Santas`;
               }
             }
           }
-          const horaReserva = esNoche ? "21:00" : "13:30";
+          const horaReserva = modalOcupado.turno === "noche" ? "21:00" : modalOcupado.turno === "t2" ? "15:00" : "13:30";
           const notasTexto = `Hasta ${ocupadoHasta} hs`;
           const nuevoId = Date.now() * 1000 + Math.floor(Math.random() * 1000);
           const ahora = new Date();
@@ -4214,7 +4215,7 @@ Buenas y Santas`;
                 Marcar como OCUPADO
               </h2>
               <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a", marginBottom: 24 }}>
-                Mesa <strong>{modalOcupado.mesaId}</strong> · {esNoche ? "Noche" : "Mediodía"}
+                Mesa <strong>{modalOcupado.mesaId}</strong> · {esNoche ? "Noche" : esT2 ? "2º Turno" : "1º Turno"}
               </p>
               <div style={{ marginBottom: 20, textAlign: "left" }}>
                 <label style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", display: "block", marginBottom: 8 }}>¿Hasta qué hora?</label>
