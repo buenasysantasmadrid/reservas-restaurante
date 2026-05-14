@@ -3036,8 +3036,13 @@ Buenas y Santas`;
 
           // Calcular si esta mesa libre es destino válido para el drag activo
           const esDestinoValido = (() => {
-            if (!mesaDragging || mesaDragging.tipo !== "mover" || res || esMobil) return false;
-            const reservaMoviendo = reservas.find(r => r.id === mesaDragging.reservaId);
+            if (!mesaDragging || res || esMobil) return false;
+            let reservaMoviendo = null;
+            if (mesaDragging.tipo === "mover") {
+              reservaMoviendo = reservas.find(r => r.id === mesaDragging.reservaId);
+            } else if (mesaDragging.tipo === "reserva") {
+              reservaMoviendo = reservas.find(r => r.id === mesaDragging.reservaId);
+            }
             if (!reservaMoviendo) return false;
             const paxM = Math.min(Number(reservaMoviendo.personas) || 1, 8);
             const opcionesM = MESA_CONFIG[paxM] || MESA_CONFIG[1];
@@ -3111,6 +3116,11 @@ Buenas y Santas`;
                 e.preventDefault();
                 if (!mesaDragging) return;
                 if (mesaDragging.tipo === "reserva" && !res) {
+                  if (!esDestinoValido) {
+                    showToast("No hay espacio suficiente para esta reserva aquí", "error");
+                    setMesaDragging(null);
+                    return;
+                  }
                   await agregarMesaInline(mesaDragging.reservaId, id);
                   setMesaDragging(null);
                 }
@@ -3302,7 +3312,7 @@ Buenas y Santas`;
                       <path d={`M ${U*0.5} 0 L 0 0 0 ${U*0.5}`} fill="none" stroke="#e0e0e0" strokeWidth="0.5"/>
                     </pattern>
                   </defs>
-                  <rect x={0} y={0} width={VW} height={VH} fill="#f0f0f0" rx={12}/>
+                  <rect x={0} y={0} width={VW} height={VH} fill="#e4e4e4" rx={12}/>
                   <rect x={0} y={0} width={VW} height={VH} fill="url(#floorGrid)" rx={12}/>
                   <line x1={PAD + 0.2*U} y1={PAD + 1.15*U} x2={PAD + 6.5*U} y2={PAD + 1.15*U} stroke="#c8e6c9" strokeWidth={0.8} strokeDasharray="5 5" opacity="0.7"/>
                   {MESAS_POS.map(m => <MesaSVG key={m.id} mesa={m} />)}
