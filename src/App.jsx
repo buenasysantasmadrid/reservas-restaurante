@@ -852,7 +852,10 @@ export default function App() {
     const pasadas = reservas.filter(r => r.fecha < hoy);
     if (pasadas.length === 0) return showToast("No hay reservas pasadas para archivar", "error");
 
-    const filas = pasadas.map(r => ({
+    // Excluir las marcadas como OCUPADO del envío a Sheets
+    const paraSheets = pasadas.filter(r => String(r.nombre || "").toUpperCase() !== "OCUPADO");
+
+    const filas = paraSheets.map(r => ({
       id: r.id || "",
       nombre: r.nombre || "",
       telefono: r.telefono || "",
@@ -876,8 +879,8 @@ export default function App() {
         body: JSON.stringify({ action: "archivarEnViejas", reservas: filas })
       });
       if (!res.ok) throw new Error("Error al conectar con Google Sheets");
-      // Guardar clientes en Firestore
-      pasadas.forEach(r => {
+      // Guardar clientes en Firestore (solo los no-OCUPADO)
+      paraSheets.forEach(r => {
         if (!clientesArchivados.find(c => c.nombre === r.nombre)) {
           fbSetCliente({ nombre: r.nombre, telefono: r.telefono || "", email: r.email || "" });
         }
