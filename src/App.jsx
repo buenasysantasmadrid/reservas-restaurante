@@ -901,8 +901,8 @@ export default function App() {
 
   const MESA_CONFIG = {
     8: [{internas:[5,15,6,16]}, {internas:[3,4,7,17]}, {internas:[1,2,8,18]}, {internas:[13,12,11,10]}, {internas:[40,41]}, {internas:[30,31]}],
-    7: [{internas:[7,17,4]}, {internas:[6,16,15]}, {internas:[8,18,2]}, {internas:[13,12,11]}, {internas:[10,11,12]}, {internas:[40,41]}, {internas:[30,31]}],
-    6: [{internas:[6,16,15]}, {internas:[7,17,4]}, {internas:[8,18,2]}, {internas:[13,12,11]}, {internas:[10,11,12]}, {internas:[1,2,18]}, {internas:[3,4,17]}, {internas:[5,15,16]}, {internas:[40,41]}, {internas:[30,31]}],
+    7: [{internas:[7,17,4]}, {internas:[6,16,15]}, {internas:[8,18,2]}, {internas:[13,12,11]}, {internas:[13,11,10]}, {internas:[40,41]}, {internas:[30,31]}],
+    6: [{internas:[6,16,15]}, {internas:[7,17,4]}, {internas:[8,18,2]}, {internas:[13,12,11]}, {internas:[13,11,10]}, {internas:[1,2,18]}, {internas:[3,4,17]}, {internas:[5,15,16]}, {internas:[40,41]}, {internas:[30,31]}],
     5: [{internas:[1,2]}, {internas:[7,17]}, {internas:[12,13]}, {internas:[8,18]}, {internas:[3,4]}, {internas:[5,15]}, {internas:[6,16]}, {internas:[10,11]}, {internas:[40,41]}, {internas:[30,31]}],
     4: [{internas:[12,13]}, {internas:[5,15]}, {internas:[6,16]}, {internas:[7,17]}, {internas:[1,2]}, {internas:[8,18]}, {internas:[3,4]}, {internas:[10,11]}, {internas:[40,41]}, {internas:[30,31]}],
     3: [{internas:[12,13]}, {internas:[5,15]}, {internas:[6,16]}, {internas:[7,17]}, {internas:[1,2]}, {internas:[8,18]}, {internas:[3,4]}, {internas:[10,11]}, {internas:[40,41]}, {internas:[30,31]}],
