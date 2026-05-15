@@ -3110,32 +3110,32 @@ Buenas y Santas`;
                 });
               } : null}
               onMouseLeave={!modoReasignar && res && res.notas ? () => setHoveredMesa(null) : null}>
-              <rect x={mx+1} y={my+2} width={mw} height={mh} rx={RR+1} fill="rgba(0,0,0,0.06)"/>
+              <rect x={mx+1} y={my+2} width={mw} height={mh} rx={RR+1} fill="rgba(0,0,0,0.04)"/>
               <rect x={mx} y={my} width={mw} height={mh} rx={RR}
                 fill={isDropTarget ? "#e8f5e9" : fill}
                 stroke={isDropTarget ? "#2e7d32" : stroke}
-                strokeWidth={(isDropTarget || esReservaSeleccionada || esMesaDestino) ? 2.5 : ocupada ? 2 : 1.2}
+                strokeWidth={(isDropTarget || esReservaSeleccionada || esMesaDestino) ? 1.5 : ocupada ? 0.8 : 0.6}
                 strokeDasharray={isDropTarget ? "5 3" : esMesaDestino ? "5 3" : "none"}/>
-              {esReservaSeleccionada && <rect x={mx-3} y={my-3} width={mw+6} height={mh+6} rx={RR+3} fill="none" stroke="#ff8f00" strokeWidth={2} opacity={0.5}/>}
+              {esReservaSeleccionada && <rect x={mx-3} y={my-3} width={mw+6} height={mh+6} rx={RR+3} fill="none" stroke="#ff8f00" strokeWidth={1.5} opacity={0.5}/>}
               <text x={mx + mw/2} y={my + lineH} textAnchor="middle"
-                style={{ fontFamily: "'Forum', serif", fontSize: barra ? 11 : 14, fontWeight: 700, fill: textC, letterSpacing: 1 }}>
+                style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: barra ? 13 : 16, fontWeight: 300, fill: textC, letterSpacing: 2 }}>
                 {labelMesa}
               </text>
               {res && res.nombre !== "OCUPADO" && (
                 <text x={mx + mw/2} y={my + mh * (isMerged ? 0.38 : 0.48)} textAnchor="middle"
-                  style={{ fontFamily: "'Forum', serif", fontSize: 8.5, fontWeight: 400, fontStyle: "italic", fill: textC, opacity: 0.9, letterSpacing: 0.3 }}>
+                  style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 9, fontWeight: 300, fontStyle: "italic", fill: textC, opacity: 0.85, letterSpacing: 0.5 }}>
                   {res.hora}
                 </text>
               )}
               {res && (
                 <text x={mx + mw/2} y={my + mh * (isMerged ? 0.58 : 0.68)} textAnchor="middle"
-                  style={{ fontFamily: "'Forum', serif", fontSize: 9, fontWeight: 700, fill: textC, letterSpacing: 0.3 }}>
+                  style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 10, fontWeight: 300, fill: textC, letterSpacing: 0.5 }}>
                   {res.nombre.split(" ")[0]}
                 </text>
               )}
               {res && (
                 <text x={mx + mw/2} y={my + mh * (isMerged ? 0.80 : 0.88)} textAnchor="middle"
-                  style={{ fontFamily: "'Forum', serif", fontSize: 8, fontWeight: 400, fontStyle: "italic", fill: textC, opacity: 0.75, letterSpacing: 0.3 }}>
+                  style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 8.5, fontWeight: 300, fontStyle: "italic", fill: textC, opacity: 0.7, letterSpacing: 0.5 }}>
                   {res.personas}p
                 </text>
               )}
