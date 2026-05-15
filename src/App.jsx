@@ -4304,19 +4304,6 @@ Buenas y Santas`;
                   style={{ padding: "8px 12px", fontSize: 15, width: "100%" }}
                   placeholder="Nº de personas"
                 />
-                {ocupadoPax && Number(ocupadoPax) > 0 && (
-                  <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a", marginTop: 6 }}>
-                    {Number(ocupadoPax) <= 2
-                      ? "→ Solo esta mesa (1 mesa)"
-                      : Number(ocupadoPax) === 6
-                      ? "→ Elige cuántas mesas:"
-                      : Number(ocupadoPax) <= 5
-                      ? "→ 2 mesas de la misma columna"
-                      : Number(ocupadoPax) <= 7
-                      ? "→ 3 mesas de la misma columna"
-                      : "→ 4 mesas de la misma columna"}
-                  </p>
-                )}
                 {Number(ocupadoPax) === 6 && (
                   <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                     {[2, 3].map(n => (
