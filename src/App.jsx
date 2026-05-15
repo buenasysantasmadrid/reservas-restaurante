@@ -4197,11 +4197,10 @@ Buenas y Santas`;
         const esNoche = modalOcupado.turno === "noche";
         const esT2 = modalOcupado.turno === "t2";
         const horasOptions = esNoche
-          ? ["22:00", "22:15", "22:30", "22:45"]
-          : ["15:00", "15:10", "15:15", "15:30"];
+          ? ["22:00", "22:15", "22:30", "22:45", "SIN HORARIO"]
+          : ["15:00", "15:10", "15:15", "15:30", "SIN HORARIO"];
         const confirmOcupado = async () => {
-          if (!esT2 && !esNoche && !ocupadoHasta) return showToast("Selecciona hasta qué hora", "error");
-          if (esNoche && !ocupadoHasta) return showToast("Selecciona hasta qué hora", "error");
+          if (!esT2 && !ocupadoHasta) return showToast("Selecciona hasta qué hora", "error");
           if (!ocupadoPax || Number(ocupadoPax) < 1) return showToast("Indica el número de pax", "error");
           const pax = Number(ocupadoPax);
           if (pax === 6 && !ocupadoNumMesas) return showToast("Elige 2 o 3 mesas", "error");
@@ -4242,7 +4241,7 @@ Buenas y Santas`;
             }
           }
           const horaReserva = modalOcupado.turno === "noche" ? "21:00" : modalOcupado.turno === "t2" ? "15:00" : "13:30";
-          const notasTexto = ocupadoHasta ? `Hasta ${ocupadoHasta} hs` : "OCUPADO";
+          const notasTexto = (!ocupadoHasta || ocupadoHasta === "SIN HORARIO") ? "OCUPADO" : `Hasta ${ocupadoHasta} hs`;
           const nuevoId = Date.now() * 1000 + Math.floor(Math.random() * 1000);
           const ahora = new Date();
           const cuando = `${String(ahora.getDate()).padStart(2,"0")}/${String(ahora.getMonth()+1).padStart(2,"0")}/${ahora.getFullYear()} ${String(ahora.getHours()).padStart(2,"0")}:${String(ahora.getMinutes()).padStart(2,"0")}`;
