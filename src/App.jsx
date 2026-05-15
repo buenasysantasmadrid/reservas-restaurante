@@ -349,6 +349,7 @@ export default function App() {
   const [modalOcupado, setModalOcupado] = useState(null); // { mesaId, fecha, hora_turno }
   const [ocupadoHasta, setOcupadoHasta] = useState("");
   const [ocupadoPax, setOcupadoPax] = useState("");
+  const [ocupadoNumMesas, setOcupadoNumMesas] = useState(null); // solo para 6 pax: 2 o 3
 
   // ── Cargar hoja CERRAMOS de Google Sheets ───────────────────────────────
   useEffect(() => {
@@ -901,7 +902,7 @@ export default function App() {
   const MESA_CONFIG = {
     8: [{internas:[5,15,6,16]}, {internas:[3,4,7,17]}, {internas:[1,2,8,18]}, {internas:[10,11,12,13]}, {internas:[40,41]}, {internas:[30,31]}],
     7: [{internas:[7,17,4]}, {internas:[6,16,15]}, {internas:[8,18,2]}, {internas:[11,12,13]}, {internas:[40,41]}, {internas:[30,31]}],
-    6: [{internas:[6,16,15]}, {internas:[7,17,4]}, {internas:[8,18,2]}, {internas:[11,12,13]}, {internas:[40,41]}, {internas:[30,31]}],
+    6: [{internas:[6,16,15]}, {internas:[7,17,4]}, {internas:[8,18,2]}, {internas:[11,12,13]}, {internas:[1,2,18]}, {internas:[3,4,17]}, {internas:[5,15,16]}, {internas:[10,11,12]}, {internas:[40,41]}, {internas:[30,31]}],
     5: [{internas:[1,2]}, {internas:[7,17]}, {internas:[12,13]}, {internas:[8,18]}, {internas:[3,4]}, {internas:[5,15]}, {internas:[6,16]}, {internas:[10,11]}, {internas:[40,41]}, {internas:[30,31]}],
     4: [{internas:[12,13]}, {internas:[5,15]}, {internas:[6,16]}, {internas:[7,17]}, {internas:[1,2]}, {internas:[8,18]}, {internas:[3,4]}, {internas:[10,11]}, {internas:[40,41]}, {internas:[30,31]}],
     3: [{internas:[12,13]}, {internas:[5,15]}, {internas:[6,16]}, {internas:[7,17]}, {internas:[1,2]}, {internas:[8,18]}, {internas:[3,4]}, {internas:[10,11]}, {internas:[40,41]}, {internas:[30,31]}],
@@ -3023,6 +3024,7 @@ Buenas y Santas`;
               const turnoActivo = planoTurnoFiltro === "noche" ? "noche" : planoTurnoFiltro === "t2" ? "t2" : "t1";
               setOcupadoHasta("");
               setOcupadoPax("");
+              setOcupadoNumMesas(null);
               setModalOcupado({ mesaId: id, fecha: planoFecha, turno: turnoActivo });
             }
           };
@@ -4202,7 +4204,8 @@ Buenas y Santas`;
           if (esNoche && !ocupadoHasta) return showToast("Selecciona hasta qué hora", "error");
           if (!ocupadoPax || Number(ocupadoPax) < 1) return showToast("Indica el número de pax", "error");
           const pax = Number(ocupadoPax);
-          const numMesas = pax > 7 ? 4 : pax > 5 ? 3 : pax > 2 ? 2 : 1;
+          if (pax === 6 && !ocupadoNumMesas) return showToast("Elige 2 o 3 mesas", "error");
+          const numMesas = pax === 6 ? ocupadoNumMesas : pax > 7 ? 4 : pax > 5 ? 3 : pax > 2 ? 2 : 1;
           const mesaIdN = Number(modalOcupado.mesaId);
           let mesasAOcupar = [mesaIdN];
           if (numMesas > 1) {
@@ -4305,12 +4308,29 @@ Buenas y Santas`;
                   <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#4a7a4a", marginTop: 6 }}>
                     {Number(ocupadoPax) <= 2
                       ? "→ Solo esta mesa (1 mesa)"
+                      : Number(ocupadoPax) === 6
+                      ? "→ Elige cuántas mesas:"
                       : Number(ocupadoPax) <= 5
                       ? "→ 2 mesas de la misma columna"
                       : Number(ocupadoPax) <= 7
                       ? "→ 3 mesas de la misma columna"
                       : "→ 4 mesas de la misma columna"}
                   </p>
+                )}
+                {Number(ocupadoPax) === 6 && (
+                  <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                    {[2, 3].map(n => (
+                      <button key={n} onClick={() => setOcupadoNumMesas(n)}
+                        style={{
+                          padding: "8px 18px", fontFamily: "'Jost', sans-serif", fontSize: 13, fontWeight: 600,
+                          cursor: "pointer", borderRadius: 6,
+                          background: ocupadoNumMesas === n ? "#2e7d32" : "#f1f8f1",
+                          color: ocupadoNumMesas === n ? "#fff" : "#2e7d32",
+                          border: `2px solid ${ocupadoNumMesas === n ? "#1b5e20" : "#c8e6c9"}`,
+                          transition: "all 0.15s"
+                        }}>{n} mesas</button>
+                    ))}
+                  </div>
                 )}
               </div>
               <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
