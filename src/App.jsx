@@ -2935,9 +2935,9 @@ Buenas y Santas`;
           } else if (esMesaDestino) {
             fill = "#1565c0"; stroke = "#0d47a1"; textC = "#fff";
           } else {
-            fill   = llego ? "#f5f5f5" : ocupada ? (sinConfirmar ? "#e3f2fd" : "#2e7d32") : "#e8f5e9";
-            stroke = llego ? "#e0e0e0" : ocupada ? (sinConfirmar ? "#90caf9" : "#1b5e20") : "#81c784";
-            textC  = llego ? "#bdbdbd" : ocupada ? (sinConfirmar ? "#1565c0" : "#fff") : "#2e7d32";
+            fill   = llego ? "#f5f5f5" : ocupada ? (sinConfirmar ? "#e3f2fd" : "#f5f5f5") : "#e8f5e9";
+            stroke = llego ? "#e0e0e0" : ocupada ? (sinConfirmar ? "#90caf9" : "#e0e0e0") : "#81c784";
+            textC  = llego ? "#bdbdbd" : ocupada ? (sinConfirmar ? "#1565c0" : "#bdbdbd") : "#2e7d32";
           }
           // En modo reasignar, mesas no relevantes se atenúan un poco
           const opacity = (modoReasignar && hayReservaSeleccionada && !esReservaSeleccionada && !esMesaDestino) ? 0.5 : 1;
