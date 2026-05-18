@@ -2936,8 +2936,8 @@ Buenas y Santas`;
             fill = "#1565c0"; stroke = "#0d47a1"; textC = "#fff";
           } else {
             const confirmada = ocupada && !sinConfirmar && !llego;
-            fill   = llego ? "#f5f5f5" : sinConfirmar ? "#1565c0" : confirmada ? "#757575" : "#145214";
-            stroke = llego ? "#e0e0e0" : sinConfirmar ? "#0d47a1" : confirmada ? "#616161" : "#0a3a0a";
+            fill   = llego ? "#f5f5f5" : sinConfirmar ? "#42a5f5" : confirmada ? "#757575" : "#145214";
+            stroke = llego ? "#e0e0e0" : sinConfirmar ? "#1e88e5" : confirmada ? "#616161" : "#0a3a0a";
             textC  = llego ? "#bdbdbd" : sinConfirmar ? "#fff"    : confirmada ? "#fff"    : "#81c784";
           }
           // En modo reasignar, mesas no relevantes se atenúan un poco
@@ -3260,7 +3260,7 @@ Buenas y Santas`;
                 {[
                   { fill: "#145214", stroke: "#0a3a0a", label: "Libre" },
                   { fill: "#757575", stroke: "#616161", label: "Confirmada" },
-                  { fill: "#1565c0", stroke: "#0d47a1", label: "Sin confirmar" },
+                  { fill: "#42a5f5", stroke: "#1e88e5", label: "Sin confirmar" },
                   { fill: "#f5f5f5", stroke: "#e0e0e0", label: "Llegó / Ocupado" },
                   ...(modoReasignar ? [
                     { fill: "#ff8f00", stroke: "#e65100", label: "Origen" },
