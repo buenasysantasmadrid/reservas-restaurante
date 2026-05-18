@@ -2936,9 +2936,9 @@ Buenas y Santas`;
             fill = "#1565c0"; stroke = "#0d47a1"; textC = "#fff";
           } else {
             const confirmada = ocupada && !sinConfirmar && !llego;
-            fill   = llego ? "#f5f5f5" : sinConfirmar ? "#42a5f5" : confirmada ? "#757575" : "#145214";
-            stroke = llego ? "#e0e0e0" : sinConfirmar ? "#1e88e5" : confirmada ? "#616161" : "#0a3a0a";
-            textC  = llego ? "#bdbdbd" : sinConfirmar ? "#fff"    : confirmada ? "#fff"    : "#81c784";
+            fill   = llego ? "#f5f5f5" : sinConfirmar ? "#9e9e9e" : confirmada ? "#90caf9" : "#145214";
+            stroke = llego ? "#e0e0e0" : sinConfirmar ? "#757575" : confirmada ? "#64b5f6" : "#0a3a0a";
+            textC  = llego ? "#bdbdbd" : sinConfirmar ? "#fff"    : confirmada ? "#1565c0" : "#81c784";
           }
           // En modo reasignar, mesas no relevantes se atenúan un poco
           const opacity = (modoReasignar && hayReservaSeleccionada && !esReservaSeleccionada && !esMesaDestino) ? 0.5 : 1;
@@ -3259,8 +3259,8 @@ Buenas y Santas`;
               <div style={{ display: "flex", gap: 20, marginBottom: 20, flexWrap: "wrap" }}>
                 {[
                   { fill: "#145214", stroke: "#0a3a0a", label: "Libre" },
-                  { fill: "#757575", stroke: "#616161", label: "Confirmada" },
-                  { fill: "#42a5f5", stroke: "#1e88e5", label: "Sin confirmar" },
+                  { fill: "#90caf9", stroke: "#64b5f6", label: "Confirmada" },
+                  { fill: "#9e9e9e", stroke: "#757575", label: "Sin confirmar" },
                   { fill: "#f5f5f5", stroke: "#e0e0e0", label: "Llegó / Ocupado" },
                   ...(modoReasignar ? [
                     { fill: "#ff8f00", stroke: "#e65100", label: "Origen" },
