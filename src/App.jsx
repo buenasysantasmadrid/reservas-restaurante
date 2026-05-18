@@ -3450,8 +3450,31 @@ Buenas y Santas`;
             </div>{/* fin flex row plano + panel */}
 
             {/* ── LISTADO DEBAJO DEL PLANO ── */}
-            {planoFecha && reservasTurno.length > 0 && (
+            {planoFecha && reservasTurno.length > 0 && (() => {
+              const turnoActualStatus = planoTurnoFiltro === "noche" ? "t2" : planoTurnoFiltro === "t2" ? "t2" : "t1";
+              const tStatus = getTurnoStatus(planoFecha, turnoActualStatus);
+              return (
               <div className="card" style={{ marginTop: 16, overflow: "hidden" }}>
+                {tStatus.status !== "ok" && (
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 12,
+                    padding: "12px 20px",
+                    background: tStatus.bg,
+                    borderBottom: `1px solid ${tStatus.labelBg}`,
+                  }}>
+                    <span style={{ fontSize: 18 }}>{tStatus.status === "completo" ? "⛔" : "⚠️"}</span>
+                    <span style={{
+                      fontFamily: "'Jost', sans-serif", fontSize: 12, fontWeight: 700,
+                      letterSpacing: 2, textTransform: "uppercase",
+                      color: tStatus.labelColor,
+                    }}>
+                      {tStatus.status === "completo" ? "COMPLETO" : "CUIDADO"}
+                    </span>
+                    <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: tStatus.labelColor, opacity: 0.8 }}>
+                      · {tStatus.mesas} mesas ocupadas
+                    </span>
+                  </div>
+                )}
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr style={{ borderBottom: "1px solid #c8e6c9" }}>
@@ -3568,7 +3591,8 @@ Buenas y Santas`;
                   </div>
                 </div>
               </div>
-            )}
+              );
+            })()}
           </div>
         );
       })()}
