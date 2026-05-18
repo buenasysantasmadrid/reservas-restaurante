@@ -2935,9 +2935,9 @@ Buenas y Santas`;
           } else if (esMesaDestino) {
             fill = "#1565c0"; stroke = "#0d47a1"; textC = "#fff";
           } else {
-            fill   = llego ? "#f5f5f5" : ocupada ? (sinConfirmar ? "#e3f2fd" : "#f5f5f5") : "#e8f5e9";
-            stroke = llego ? "#e0e0e0" : ocupada ? (sinConfirmar ? "#90caf9" : "#e0e0e0") : "#81c784";
-            textC  = llego ? "#bdbdbd" : ocupada ? (sinConfirmar ? "#1565c0" : "#bdbdbd") : "#2e7d32";
+            fill   = llego ? "#f5f5f5" : ocupada ? (sinConfirmar ? "#e3f2fd" : "#2e7d32") : "#1b5e20";
+            stroke = llego ? "#e0e0e0" : ocupada ? (sinConfirmar ? "#90caf9" : "#1b5e20") : "#145214";
+            textC  = llego ? "#bdbdbd" : ocupada ? (sinConfirmar ? "#1565c0" : "#fff")    : "#a5d6a7";
           }
           // En modo reasignar, mesas no relevantes se atenúan un poco
           const opacity = (modoReasignar && hayReservaSeleccionada && !esReservaSeleccionada && !esMesaDestino) ? 0.5 : 1;
@@ -3273,7 +3273,7 @@ Buenas y Santas`;
                 ))}
               </div>
               <div style={{ position: "relative", display: "inline-block", width: "100%", maxWidth: 640 }}>
-                <svg viewBox={`0 0 ${VW} ${VH}`} style={{ width: "100%", display: "block", borderRadius: 12, boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}
+                <svg key={reservasTurno.map(r => r.id + r.estado).join(",")} viewBox={`0 0 ${VW} ${VH}`} style={{ width: "100%", display: "block", borderRadius: 12, boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}
                   onMouseUp={async (e) => {
                     if (!mesaDragging || mesaDragging.tipo !== "mover") {
                       if (mesaDragging && mesaDragging.tipo === "mover") setMesaDragging(null);
