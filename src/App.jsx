@@ -3070,7 +3070,6 @@ Buenas y Santas`;
               onClick={handleClick}
               onContextMenu={(e) => {
                 e.preventDefault();
-                if (dragTimerRef.current) { clearTimeout(dragTimerRef.current); dragTimerRef.current = null; }
                 setMesaDragging(null);
                 handleDoubleClick();
               }}
@@ -3078,11 +3077,8 @@ Buenas y Santas`;
               onMouseDown={modoEdicionPlano && res && !modoReasignar && !esMobil ? (e) => {
                 if (e.button !== 0) return;
                 if (quitarMesaClickRef.current) return;
-                // Esperar 200ms antes de activar el drag, para no interferir con doble clic
-                dragTimerRef.current = setTimeout(() => {
-                  dragTimerRef.current = null;
-                  setMesaDragging({ tipo: "mover", reservaId: res.id, mesaOrigen: id });
-                }, 200);
+                e.preventDefault();
+                setMesaDragging({ tipo: "mover", reservaId: res.id, mesaOrigen: id });
               } : undefined}
               onDragOver={(e) => e.preventDefault()}
               onDrop={async (e) => {
