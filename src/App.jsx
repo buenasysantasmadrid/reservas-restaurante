@@ -1406,11 +1406,15 @@ export default function App() {
         else if (mES) fechaFila = `${mES[3]}-${mES[2]}-${mES[1]}`;
         if (fechaFila && fechaFila < hoy) return false;
         const telFila = String(fila[1] || "").replace(/\D/g, "").slice(-9);
+        const primerNombreFila = nombreFila.split(" ")[0];
         return !reservas.some(r => {
           const telReserva = String(r.telefono || "").replace(/\D/g, "").slice(-9);
-          return r.nombre.toLowerCase().trim() === nombreFila
-            && r.fecha === fechaFila
-            && telReserva === telFila;
+          const nombreReserva = r.nombre.toLowerCase().trim();
+          const primerNombreReserva = nombreReserva.split(" ")[0];
+          const mismaFecha = r.fecha === fechaFila;
+          const mismoTel = telReserva === telFila && telFila.length >= 7;
+          const mismoNombre = nombreReserva === nombreFila || primerNombreReserva === primerNombreFila;
+          return mismaFecha && (mismoTel || mismoNombre);
         });
       });
 
