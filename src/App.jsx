@@ -1396,25 +1396,35 @@ export default function App() {
       const hoy = getTodayStr();
       const headers = json[0];
       const filasFiltradas = json.slice(1).filter(fila => {
-        const nombreFila = String(fila[0] || "").toLowerCase().trim();
         const raw = String(fila[2] || "").trim();
-        // Soporta "YYYY-MM-DD..." y "DD/MM/YYYY ..."
+        // Soporta "YYYY-MM-DDThh:mm..." y "DD/MM/YYYY hh:mm..."
         let fechaFila = "";
-        const mISO = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
-        const mES  = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
-        if (mISO) fechaFila = `${mISO[1]}-${mISO[2]}-${mISO[3]}`;
-        else if (mES) fechaFila = `${mES[3]}-${mES[2]}-${mES[1]}`;
+        let horaFila = "";
+        const mISO = raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+        const mES  = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
+        if (mISO) {
+          const isoStr = raw.includes("Z") ? raw : raw.replace(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})$/, "$1:00.000Z");
+          const dateObj = new Date(isoStr);
+          fechaFila = `${dateObj.getFullYear()}-${String(dateObj.getMonth()+1).padStart(2,"0")}-${String(dateObj.getDate()).padStart(2,"0")}`;
+          horaFila  = `${String(dateObj.getHours()).padStart(2,"0")}:${String(dateObj.getMinutes()).padStart(2,"0")}`;
+        } else if (mES) {
+          fechaFila = `${mES[3]}-${mES[2]}-${mES[1]}`;
+          horaFila  = `${mES[4]}:${mES[5]}`;
+        } else {
+          const mISOdate = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+          const mESdate  = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+          if (mISOdate) fechaFila = `${mISOdate[1]}-${mISOdate[2]}-${mISOdate[3]}`;
+          else if (mESdate) fechaFila = `${mESdate[3]}-${mESdate[2]}-${mESdate[1]}`;
+        }
         if (fechaFila && fechaFila < hoy) return false;
         const telFila = String(fila[1] || "").replace(/\D/g, "").slice(-9);
-        const primerNombreFila = nombreFila.split(" ")[0];
+        // Solo se considera duplicada si coinciden teléfono + fecha + hora
         return !reservas.some(r => {
           const telReserva = String(r.telefono || "").replace(/\D/g, "").slice(-9);
-          const nombreReserva = r.nombre.toLowerCase().trim();
-          const primerNombreReserva = nombreReserva.split(" ")[0];
+          const mismoTel   = telReserva === telFila && telFila.length >= 7;
           const mismaFecha = r.fecha === fechaFila;
-          const mismoTel = telReserva === telFila && telFila.length >= 7;
-          const mismoNombre = nombreReserva === nombreFila || primerNombreReserva === primerNombreFila;
-          return mismaFecha && (mismoTel || mismoNombre);
+          const mismaHora  = !horaFila || r.hora === horaFila;
+          return mismoTel && mismaFecha && mismaHora;
         });
       });
 
