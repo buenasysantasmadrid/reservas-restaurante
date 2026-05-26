@@ -3462,7 +3462,7 @@ Buenas y Santas`;
 
             {/* ── LISTADO DEBAJO DEL PLANO ── */}
             {planoFecha && reservasTurno.length > 0 && (() => {
-              const turnoActualStatus = planoTurnoFiltro === "noche" ? "t2" : planoTurnoFiltro === "t2" ? "t2" : "t1";
+              const turnoActualStatus = planoTurnoFiltro === "noche" ? "noche" : planoTurnoFiltro === "t2" ? "t2" : "t1";
               const tStatus = getTurnoStatus(planoFecha, turnoActualStatus);
               return (
               <div className="card" style={{ marginTop: 16, overflow: "hidden" }}>
