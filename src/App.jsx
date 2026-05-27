@@ -820,6 +820,32 @@ export default function App() {
       const nuevoId = Date.now() * 1000 + Math.floor(Math.random() * 1000);
       const nuevaReserva = { ...form, estado: estadoAuto, mesa: form.mesas.join("+"), id: nuevoId, cuando };
       await fbSetReserva(nuevaReserva);
+
+      // MESA DOBLE TURNO: si hora entre 14:30-14:59, bloquear también en 2º turno
+      if (form.hora && form.fecha) {
+        const [hh14, mm14] = form.hora.split(":").map(Number);
+        const mins14 = hh14 * 60 + mm14;
+        if (mins14 >= 14 * 60 + 30 && mins14 < 15 * 60) {
+          const notasBase = form.notas ? form.notas + " — MESA DOBLE TURNO" : "MESA DOBLE TURNO";
+          const ocupadoT2 = {
+            nombre: "OCUPADO",
+            telefono: "",
+            email: "",
+            prefijo: "+34",
+            fecha: form.fecha,
+            hora: "14:45",
+            personas: form.personas,
+            mesas: form.mesas,
+            mesa: form.mesas.join("+"),
+            notas: notasBase,
+            estado: estadoAuto,
+            tomadaPor: form.tomadaPor,
+            cuando,
+            id: Date.now() * 1000 + Math.floor(Math.random() * 1000) + 1,
+          };
+          await fbSetReserva(ocupadoT2);
+        }
+      }
       if (pendingSheetIdx !== null) {
         setSheetFilas(fs => [fs[0], ...fs.slice(1).filter((_, idx) => idx + 1 !== pendingSheetIdx)]);
         fetch("https://script.google.com/macros/s/AKfycbxslphHn0GNmCT8PQcmJHPzo4M9_bB1OABaiXEs5ugXAVxHtQNTF2v3u1HiYEi0lRrm/exec", {
@@ -2682,7 +2708,7 @@ Buenas y Santas`;
               {/* Fila 3: Fecha y Hora */}
               <div>
                 <label style={{ fontSize: 9, marginBottom: 3 }}>Fecha *</label>
-                <input type="date" className="input-field" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value, hora: "" }))} autoComplete="off" style={{ padding: "7px 10px", fontSize: 13 }} />
+                <input type="date" className="input-field" value={form.fecha} onChange={e => { const nf = e.target.value; const hv = getHorariosParaFecha(nf); setForm(f => ({ ...f, fecha: nf, hora: hv.includes(f.hora) ? f.hora : "" })); }} autoComplete="off" style={{ padding: "7px 10px", fontSize: 13 }} />
                 {form.fecha && (() => {
                   const { mediodia, noche } = getTurnosBloqueados(form.fecha);
                   if (!mediodia && !noche) return null;
@@ -2768,6 +2794,32 @@ Buenas y Santas`;
                 <label style={{ fontSize: 9, marginBottom: 3 }}>Observaciones</label>
                 <textarea className="input-field" value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} rows={2} style={{ resize: "vertical", padding: "7px 10px", fontSize: 13 }} />
               </div>
+
+              {/* Aviso MESA DOBLE TURNO: hora entre 14:30 y 14:59 */}
+              {form.fecha && form.hora && (() => {
+                const [hh, mm] = form.hora.split(":").map(Number);
+                const mins = hh * 60 + mm;
+                if (mins < 14 * 60 + 30 || mins >= 15 * 60) return null;
+                const t2Status = getTurnoStatus(form.fecha, "t2");
+                return (
+                  <div style={{ gridColumn: "1/-1", borderRadius: 8, overflow: "hidden", border: `1.5px solid ${t2Status.status === "completo" ? "#ef9a9a" : t2Status.status === "cuidado" ? "#ffcc80" : "#a5d6a7"}` }}>
+                    <div style={{ background: "#e8f5e9", padding: "8px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 16 }}>🔁</span>
+                      <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 700, color: "#1b5e20", letterSpacing: 1, textTransform: "uppercase" }}>
+                        Mesa doble turno — se bloqueará también el 2º turno
+                      </span>
+                    </div>
+                    {t2Status.status !== "ok" && (
+                      <div style={{ background: t2Status.status === "completo" ? "#ffebee" : "#fff3e0", padding: "7px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 14 }}>{t2Status.status === "completo" ? "⛔" : "⚠️"}</span>
+                        <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 700, color: t2Status.status === "completo" ? "#b71c1c" : "#e65100", textTransform: "uppercase", letterSpacing: 1 }}>
+                          2º Turno: {t2Status.status === "completo" ? "COMPLETO" : "CUIDADO"} · {t2Status.mesas} mesas
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 14, alignItems: "center" }}>
