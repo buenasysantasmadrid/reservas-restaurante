@@ -479,7 +479,10 @@ export default function App() {
     const pasadas = reservas.filter(r => r.fecha < hoy);
     if (pasadas.length === 0) return;
 
-    const filas = pasadas.map(r => ({
+    // Excluir OCUPADO: no van a Sheets ni se archivan en clientes, pero sí se borran de Firestore
+    const paraSheetAuto = pasadas.filter(r => String(r.nombre || "").toUpperCase() !== "OCUPADO");
+
+    const filas = paraSheetAuto.map(r => ({
       id: r.id || "",
       nombre: r.nombre || "",
       telefono: r.telefono || "",
@@ -501,12 +504,12 @@ export default function App() {
     fetch(url, { method: "POST", body: JSON.stringify(filas) })
       .then(res => { if (!res.ok) throw new Error("sheets_error"); return res; })
       .then(async () => {
-        // Archive clients to Firestore
-        pasadas.forEach(r => {
+        // Archive clients to Firestore (solo los no-OCUPADO)
+        paraSheetAuto.forEach(r => {
           if (!clientesArchivados.find(c => c.nombre === r.nombre))
             fbSetCliente({ nombre: r.nombre, telefono: r.telefono || "", email: r.email || "" });
         });
-        // Solo borrar de Firestore si el envío a Sheets fue OK
+        // Borrar todos de Firestore (incluidos OCUPADO) si el envío a Sheets fue OK
         const batch = writeBatch(db);
         idsAProcesar.forEach(id => batch.delete(doc(db, "reservas", id)));
         await batch.commit();
@@ -918,11 +921,12 @@ export default function App() {
           fbSetCliente({ nombre: r.nombre, telefono: r.telefono || "", email: r.email || "" });
         }
       });
-      // Borrar reservas archivadas de Firestore
+      // Borrar reservas archivadas de Firestore (todas, incluidas OCUPADO que no van a Sheets)
       const batch = writeBatch(db);
       pasadas.forEach(r => batch.delete(doc(db, "reservas", String(r.id))));
       await batch.commit();
-      showToast(`${pasadas.length} reserva${pasadas.length > 1 ? "s" : ""} archivada${pasadas.length > 1 ? "s" : ""} ✓`);
+      const conteoReal = paraSheets.length;
+      showToast(`${conteoReal} reserva${conteoReal > 1 ? "s" : ""} archivada${conteoReal > 1 ? "s" : ""} ✓`);
     } catch (e) {
       showToast("Error al archivar en Google Sheets", "error");
     }
@@ -4361,54 +4365,56 @@ Buenas y Santas`;
 
           // 2 TURNOS: crear también OCUPADO en t2, reasignando mesa si ya está ocupada
           if (esDobleTurno) {
-            const COLUMNAS_PLANO = [
-              [8, 2, 18, 1],
-              [7, 17, 4, 3],
-              [6, 16, 15, 5],
-              [12, 13, 11, 10],
-              [40, 41],
-              [30, 31],
-            ];
-            // Reservas activas en t2 ese día
+            // Reservas activas en t2 ese día (excluir el propio OCUPADO que vamos a crear)
             const reservasT2 = reservas.filter(
               r => r.fecha === modalOcupado.fecha && getTurno(r.hora) === "t2" && r.estado !== "cancelada"
             );
-            // Set de todas las mesas ocupadas en t2 (para buscar libres)
-            const todasOcupadasT2 = new Set(
-              reservasT2.flatMap(r => r.mesas && r.mesas.length > 0 ? r.mesas.map(Number) : [Number(r.mesa)].filter(Boolean))
+            const mesasAOcuparNum = mesasAOcupar.map(Number);
+
+            // Buscar reservas en t2 que usen alguna de las mesas que queremos ocupar
+            const conflictos = reservasT2.filter(r => {
+              const ms = r.mesas && r.mesas.length > 0 ? r.mesas.map(Number) : [Number(r.mesa)].filter(Boolean);
+              return ms.some(m => mesasAOcuparNum.includes(m));
+            });
+
+            // Mesas ocupadas en t2 sin contar las de los conflictos (para reasignarlos)
+            const mesasConflictoIds = new Set(
+              conflictos.flatMap(r => r.mesas && r.mesas.length > 0 ? r.mesas.map(Number) : [Number(r.mesa)].filter(Boolean))
             );
-            // Para cada mesa que queremos ocupar: si hay una reserva en t2 que la usa, moverla a una mesa libre
-            for (const mesaN of mesasAOcupar.map(Number)) {
-              const reservaConflicto = reservasT2.find(r => {
-                const ms = r.mesas && r.mesas.length > 0 ? r.mesas.map(Number) : [Number(r.mesa)].filter(Boolean);
-                return ms.includes(mesaN);
-              });
-              if (!reservaConflicto) continue; // mesa libre en t2, no hay que mover nada
-              // Buscar mesa libre: primero en la misma columna, luego cualquiera
-              const mesasConflicto = reservaConflicto.mesas && reservaConflicto.mesas.length > 0
-                ? reservaConflicto.mesas.map(Number)
-                : [Number(reservaConflicto.mesa)].filter(Boolean);
-              // Quitar las mesas en conflicto del set de ocupadas para encontrar alternativas reales
-              const ocupadasSinEsta = new Set([...todasOcupadasT2].filter(m => !mesasConflicto.includes(m)));
-              // También excluir las mesas que queremos ocupar nosotros
-              mesasAOcupar.map(Number).forEach(m => ocupadasSinEsta.add(m));
-              let mesasNuevas = mesasConflicto.map(mc => {
-                if (!mesasAOcupar.map(Number).includes(mc)) return mc; // esta mesa no tiene conflicto
-                // Buscar alternativa libre en la misma columna
-                for (const col of COLUMNAS_PLANO) {
-                  if (col.includes(mc)) {
-                    const libre = col.find(c => !ocupadasSinEsta.has(c));
-                    if (libre) { ocupadasSinEsta.add(libre); return libre; }
-                  }
+            const mesasBaseOcupadas = new Set(
+              reservasT2
+                .filter(r => !conflictos.find(c => c.id === r.id))
+                .flatMap(r => r.mesas && r.mesas.length > 0 ? r.mesas.map(Number) : [Number(r.mesa)].filter(Boolean))
+            );
+            // Las mesas que vamos a ocupar con el OCUPADO también quedan reservadas
+            mesasAOcuparNum.forEach(m => mesasBaseOcupadas.add(m));
+
+            let sinSitio = false;
+            // Reasignar cada reserva en conflicto usando MESA_CONFIG igual que agregarMesaInline
+            for (const reservaConflicto of conflictos) {
+              const paxC = Math.min(Number(reservaConflicto.personas) || 1, 8);
+              const opciones = MESA_CONFIG[paxC] || MESA_CONFIG[1];
+              let mesasNuevas = null;
+              for (const op of opciones) {
+                if (op.internas.every(m => !mesasBaseOcupadas.has(Number(m)))) {
+                  mesasNuevas = op.internas.map(Number);
+                  break;
                 }
-                // Sin alternativa en columna → primera libre del plano
-                const primeraLibre = MESAS.find(c => !ocupadasSinEsta.has(c));
-                if (primeraLibre) { ocupadasSinEsta.add(primeraLibre); return primeraLibre; }
-                return mc;
-              });
-              // Guardar la reserva de conflicto con sus nuevas mesas
+              }
+              if (!mesasNuevas) {
+                sinSitio = true;
+                break;
+              }
+              mesasNuevas.forEach(m => mesasBaseOcupadas.add(m));
               await fbSetReserva({ ...reservaConflicto, mesas: mesasNuevas, mesa: mesasNuevas[0] });
             }
+
+            if (sinSitio) {
+              showToast("2º Turno completo — sin sitio para reasignar la mesa", "error");
+              setModalOcupado(null);
+              return;
+            }
+
             // Crear OCUPADO en t2 con exactamente las mismas mesas que t1
             const ahora2 = new Date();
             const cuando2 = `${String(ahora2.getDate()).padStart(2,"0")}/${String(ahora2.getMonth()+1).padStart(2,"0")}/${ahora2.getFullYear()} ${String(ahora2.getHours()).padStart(2,"0")}:${String(ahora2.getMinutes()).padStart(2,"0")}`;
@@ -4421,8 +4427,8 @@ Buenas y Santas`;
               fecha: modalOcupado.fecha,
               hora: "15:00",
               personas: pax,
-              mesas: mesasAOcupar.map(Number),
-              mesa: mesasAOcupar[0],
+              mesas: mesasAOcuparNum,
+              mesa: mesasAOcuparNum[0],
               notas: "MESA DOBLE TURNO",
               estado: "llego",
               tomadaPor: "PLANO",
