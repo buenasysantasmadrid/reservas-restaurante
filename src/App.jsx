@@ -1451,12 +1451,14 @@ export default function App() {
         if (fechaFila && fechaFila < hoy) return false;
         const telFila = String(fila[1] || "").replace(/\D/g, "").slice(-9);
         if (telFila.length < 7) return true; // sin teléfono válido, siempre mostrar
+        const turnoFila = horaFila ? getTurno(horaFila) : null;
         return !reservas.some(r => {
           const telReserva = String(r.telefono || "").replace(/\D/g, "").slice(-9);
           const mismoTel   = telReserva === telFila;
           const mismaFecha = r.fecha === fechaFila;
-          const mismaHora  = !horaFila || r.hora === horaFila;
-          return mismoTel && mismaFecha && mismaHora;
+          // Coincide si mismo turno (aunque hora exacta sea distinta), o si no hay hora en la fila
+          const mismoTurno = !turnoFila || getTurno(r.hora) === turnoFila;
+          return mismoTel && mismaFecha && mismoTurno;
         });
       });
 
