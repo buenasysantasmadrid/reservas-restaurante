@@ -497,20 +497,23 @@ export default function App() {
     }));
 
     const url = "https://script.google.com/macros/s/AKfycbxslphHn0GNmCT8PQcmJHPzo4M9_bB1OABaiXEs5ugXAVxHtQNTF2v3u1HiYEi0lRrm/exec";
+    const idsAProcesar = pasadas.map(r => String(r.id));
     fetch(url, { method: "POST", body: JSON.stringify(filas) })
-      .then(res => { if (!res.ok) throw new Error(); })
+      .then(res => { if (!res.ok) throw new Error("sheets_error"); return res; })
       .then(async () => {
         // Archive clients to Firestore
         pasadas.forEach(r => {
           if (!clientesArchivados.find(c => c.nombre === r.nombre))
             fbSetCliente({ nombre: r.nombre, telefono: r.telefono || "", email: r.email || "" });
         });
-        // Delete past reservas from Firestore
+        // Solo borrar de Firestore si el envío a Sheets fue OK
         const batch = writeBatch(db);
-        pasadas.forEach(r => batch.delete(doc(db, "reservas", String(r.id))));
+        idsAProcesar.forEach(id => batch.delete(doc(db, "reservas", id)));
         await batch.commit();
       })
-      .catch(() => {}); // silencioso
+      .catch(() => {
+        // Si falla Sheets, NO borramos de Firestore — se reintentará al reabrir la app
+      });
   }, [fbCargando]); // run once data is loaded
 
   // ── Firestore: listen to reservas in real time ───────────────────────────
@@ -846,8 +849,11 @@ export default function App() {
           await fbSetReserva(ocupadoT2);
         }
       }
+
       if (pendingSheetIdx !== null) {
-        setSheetFilas(fs => [fs[0], ...fs.slice(1).filter((_, idx) => idx + 1 !== pendingSheetIdx)]);
+        const idxAEliminar = pendingSheetIdx;
+        setSheetFilas(fs => [fs[0], ...fs.slice(1).filter((_, idx) => idx + 1 !== idxAEliminar)]);
+        setPendingSheetIdx(null);
         fetch("https://script.google.com/macros/s/AKfycbxslphHn0GNmCT8PQcmJHPzo4M9_bB1OABaiXEs5ugXAVxHtQNTF2v3u1HiYEi0lRrm/exec", {
           method: "POST",
           body: JSON.stringify({
@@ -857,7 +863,6 @@ export default function App() {
             telefono: ((nuevaReserva.prefijo || "+34") + (nuevaReserva.telefono || "")).replace(/\s/g, "")
           })
         }).catch(() => {});
-        setPendingSheetIdx(null);
       }
       toastMsg = "Reserva creada ✓";
     }
@@ -1423,31 +1428,32 @@ export default function App() {
       const headers = json[0];
       const filasFiltradas = json.slice(1).filter(fila => {
         const raw = String(fila[2] || "").trim();
-        // Soporta "YYYY-MM-DDThh:mm..." y "DD/MM/YYYY hh:mm..."
+        // Parsear fecha y hora del sheet (ISO o DD/MM/YYYY)
         let fechaFila = "";
         let horaFila = "";
         const mISO = raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+        const mISOdate = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
         const mES  = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
+        const mESdate = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
         if (mISO) {
           const isoStr = raw.includes("Z") ? raw : raw.replace(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})$/, "$1:00.000Z");
           const dateObj = new Date(isoStr);
           fechaFila = `${dateObj.getFullYear()}-${String(dateObj.getMonth()+1).padStart(2,"0")}-${String(dateObj.getDate()).padStart(2,"0")}`;
           horaFila  = `${String(dateObj.getHours()).padStart(2,"0")}:${String(dateObj.getMinutes()).padStart(2,"0")}`;
+        } else if (mISOdate) {
+          fechaFila = `${mISOdate[1]}-${mISOdate[2]}-${mISOdate[3]}`;
         } else if (mES) {
           fechaFila = `${mES[3]}-${mES[2]}-${mES[1]}`;
           horaFila  = `${mES[4]}:${mES[5]}`;
-        } else {
-          const mISOdate = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
-          const mESdate  = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
-          if (mISOdate) fechaFila = `${mISOdate[1]}-${mISOdate[2]}-${mISOdate[3]}`;
-          else if (mESdate) fechaFila = `${mESdate[3]}-${mESdate[2]}-${mESdate[1]}`;
+        } else if (mESdate) {
+          fechaFila = `${mESdate[3]}-${mESdate[2]}-${mESdate[1]}`;
         }
         if (fechaFila && fechaFila < hoy) return false;
         const telFila = String(fila[1] || "").replace(/\D/g, "").slice(-9);
-        // Solo se considera duplicada si coinciden teléfono + fecha + hora
+        if (telFila.length < 7) return true; // sin teléfono válido, siempre mostrar
         return !reservas.some(r => {
           const telReserva = String(r.telefono || "").replace(/\D/g, "").slice(-9);
-          const mismoTel   = telReserva === telFila && telFila.length >= 7;
+          const mismoTel   = telReserva === telFila;
           const mismaFecha = r.fecha === fechaFila;
           const mismaHora  = !horaFila || r.hora === horaFila;
           return mismoTel && mismaFecha && mismaHora;
@@ -4285,9 +4291,10 @@ Buenas y Santas`;
         const esT2 = modalOcupado.turno === "t2";
         const horasOptions = esNoche
           ? ["22:00", "22:15", "22:30", "22:45", "SIN HORARIO"]
-          : ["15:00", "15:10", "15:15", "15:30", "SIN HORARIO"];
+          : ["15:00", "15:10", "15:15", "15:30", "2 TURNOS"];
         const confirmOcupado = async () => {
           if (!esT2 && !ocupadoHasta) return showToast("Selecciona hasta qué hora", "error");
+          const esDobleTurno = ocupadoHasta === "2 TURNOS";
           if (!ocupadoPax || Number(ocupadoPax) < 1) return showToast("Indica el número de pax", "error");
           const pax = Number(ocupadoPax);
           if (pax === 6 && !ocupadoNumMesas) return showToast("Elige 2 o 3 mesas", "error");
@@ -4328,7 +4335,7 @@ Buenas y Santas`;
             }
           }
           const horaReserva = modalOcupado.turno === "noche" ? "21:00" : modalOcupado.turno === "t2" ? "15:00" : "13:30";
-          const notasTexto = (!ocupadoHasta || ocupadoHasta === "SIN HORARIO") ? "OCUPADO" : `Hasta ${ocupadoHasta} hs`;
+          const notasTexto = esDobleTurno ? "MESA DOBLE TURNO" : (!ocupadoHasta || ocupadoHasta === "SIN HORARIO") ? "OCUPADO" : `Hasta ${ocupadoHasta} hs`;
           const nuevoId = Date.now() * 1000 + Math.floor(Math.random() * 1000);
           const ahora = new Date();
           const cuando = `${String(ahora.getDate()).padStart(2,"0")}/${String(ahora.getMonth()+1).padStart(2,"0")}/${ahora.getFullYear()} ${String(ahora.getHours()).padStart(2,"0")}:${String(ahora.getMinutes()).padStart(2,"0")}`;
@@ -4349,6 +4356,79 @@ Buenas y Santas`;
             cuando,
           };
           await fbSetReserva(nuevaReserva);
+
+          // 2 TURNOS: crear también OCUPADO en t2, reasignando mesa si ya está ocupada
+          if (esDobleTurno) {
+            const COLUMNAS_PLANO = [
+              [8, 2, 18, 1],
+              [7, 17, 4, 3],
+              [6, 16, 15, 5],
+              [12, 13, 11, 10],
+              [40, 41],
+              [30, 31],
+            ];
+            // Reservas activas en t2 ese día
+            const reservasT2 = reservas.filter(
+              r => r.fecha === modalOcupado.fecha && getTurno(r.hora) === "t2" && r.estado !== "cancelada"
+            );
+            // Set de todas las mesas ocupadas en t2 (para buscar libres)
+            const todasOcupadasT2 = new Set(
+              reservasT2.flatMap(r => r.mesas && r.mesas.length > 0 ? r.mesas.map(Number) : [Number(r.mesa)].filter(Boolean))
+            );
+            // Para cada mesa que queremos ocupar: si hay una reserva en t2 que la usa, moverla a una mesa libre
+            for (const mesaN of mesasAOcupar.map(Number)) {
+              const reservaConflicto = reservasT2.find(r => {
+                const ms = r.mesas && r.mesas.length > 0 ? r.mesas.map(Number) : [Number(r.mesa)].filter(Boolean);
+                return ms.includes(mesaN);
+              });
+              if (!reservaConflicto) continue; // mesa libre en t2, no hay que mover nada
+              // Buscar mesa libre: primero en la misma columna, luego cualquiera
+              const mesasConflicto = reservaConflicto.mesas && reservaConflicto.mesas.length > 0
+                ? reservaConflicto.mesas.map(Number)
+                : [Number(reservaConflicto.mesa)].filter(Boolean);
+              // Quitar las mesas en conflicto del set de ocupadas para encontrar alternativas reales
+              const ocupadasSinEsta = new Set([...todasOcupadasT2].filter(m => !mesasConflicto.includes(m)));
+              // También excluir las mesas que queremos ocupar nosotros
+              mesasAOcupar.map(Number).forEach(m => ocupadasSinEsta.add(m));
+              let mesasNuevas = mesasConflicto.map(mc => {
+                if (!mesasAOcupar.map(Number).includes(mc)) return mc; // esta mesa no tiene conflicto
+                // Buscar alternativa libre en la misma columna
+                for (const col of COLUMNAS_PLANO) {
+                  if (col.includes(mc)) {
+                    const libre = col.find(c => !ocupadasSinEsta.has(c));
+                    if (libre) { ocupadasSinEsta.add(libre); return libre; }
+                  }
+                }
+                // Sin alternativa en columna → primera libre del plano
+                const primeraLibre = MESAS.find(c => !ocupadasSinEsta.has(c));
+                if (primeraLibre) { ocupadasSinEsta.add(primeraLibre); return primeraLibre; }
+                return mc;
+              });
+              // Guardar la reserva de conflicto con sus nuevas mesas
+              await fbSetReserva({ ...reservaConflicto, mesas: mesasNuevas, mesa: mesasNuevas[0] });
+            }
+            // Crear OCUPADO en t2 con exactamente las mismas mesas que t1
+            const ahora2 = new Date();
+            const cuando2 = `${String(ahora2.getDate()).padStart(2,"0")}/${String(ahora2.getMonth()+1).padStart(2,"0")}/${ahora2.getFullYear()} ${String(ahora2.getHours()).padStart(2,"0")}:${String(ahora2.getMinutes()).padStart(2,"0")}`;
+            const reservaT2 = {
+              id: Date.now() * 1000 + Math.floor(Math.random() * 1000) + 1,
+              nombre: "OCUPADO",
+              telefono: "",
+              email: "",
+              prefijo: "+34",
+              fecha: modalOcupado.fecha,
+              hora: "15:00",
+              personas: pax,
+              mesas: mesasAOcupar.map(Number),
+              mesa: mesasAOcupar[0],
+              notas: "MESA DOBLE TURNO",
+              estado: "llego",
+              tomadaPor: "PLANO",
+              cuando: cuando2,
+            };
+            await fbSetReserva(reservaT2);
+          }
+
           showToast(`Mesa${mesasAOcupar.length > 1 ? "s" : ""} ${mesasAOcupar.join("+")} → OCUPADO ✓`);
           setModalOcupado(null);
         };
@@ -4378,6 +4458,18 @@ Buenas y Santas`;
                       }}>{h}</button>
                   ))}
                 </div>
+                {ocupadoHasta === "2 TURNOS" && (() => {
+                  const t2St = getTurnoStatus(modalOcupado.fecha, "t2");
+                  if (t2St.status === "ok") return null;
+                  return (
+                    <div style={{ marginTop: 10, padding: "7px 12px", borderRadius: 6, background: t2St.status === "completo" ? "#ffebee" : "#fff3e0", border: `1px solid ${t2St.status === "completo" ? "#ef9a9a" : "#ffcc80"}`, display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 14 }}>{t2St.status === "completo" ? "⛔" : "⚠️"}</span>
+                      <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, fontWeight: 700, color: t2St.status === "completo" ? "#b71c1c" : "#e65100", textTransform: "uppercase", letterSpacing: 1 }}>
+                        2º Turno: {t2St.status === "completo" ? "COMPLETO" : "CUIDADO"} · {t2St.mesas} mesas
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
               )}
               <div style={{ marginBottom: 28, textAlign: "left" }}>
