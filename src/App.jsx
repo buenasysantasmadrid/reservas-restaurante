@@ -3016,7 +3016,7 @@ Buenas y Santas`;
             const confirmada = ocupada && !sinConfirmar && !llego;
             fill   = llego ? "#f5f5f5" : sinConfirmar ? "#9e9e9e" : confirmada ? "#90caf9" : "#145214";
             stroke = llego ? "#e0e0e0" : sinConfirmar ? "#757575" : confirmada ? "#64b5f6" : "#0a3a0a";
-            textC  = "#111";
+            textC  = "#000";
           }
           // En modo reasignar, mesas no relevantes se atenúan un poco
           const opacity = (modoReasignar && hayReservaSeleccionada && !esReservaSeleccionada && !esMesaDestino) ? 0.5 : 1;
@@ -3195,24 +3195,24 @@ Buenas y Santas`;
                 strokeDasharray={isDropTarget ? "5 3" : esMesaDestino ? "5 3" : "none"}/>
               {esReservaSeleccionada && <rect x={mx-3} y={my-3} width={mw+6} height={mh+6} rx={RR+3} fill="none" stroke="#ff8f00" strokeWidth={1.5} opacity={0.5}/>}
               <text x={mx + mw/2} y={my + lineH} textAnchor="middle"
-                style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: barra ? 13 : 16, fontWeight: 300, fill: textC, letterSpacing: 2 }}>
+                style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: barra ? 13 : 16, fontWeight: 600, fill: textC, letterSpacing: 2 }}>
                 {labelMesa}
               </text>
               {res && res.nombre !== "OCUPADO" && (
                 <text x={mx + mw/2} y={my + mh * (isMerged ? 0.38 : 0.48)} textAnchor="middle"
-                  style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 9, fontWeight: 300, fontStyle: "italic", fill: textC, opacity: 0.85, letterSpacing: 0.5 }}>
+                  style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 9, fontWeight: 600, fontStyle: "italic", fill: textC, opacity: 1, letterSpacing: 0.5 }}>
                   {res.hora}
                 </text>
               )}
               {res && (
                 <text x={mx + mw/2} y={my + mh * (isMerged ? 0.58 : 0.68)} textAnchor="middle"
-                  style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 10, fontWeight: 300, fill: textC, letterSpacing: 0.5 }}>
+                  style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 10, fontWeight: 600, fill: textC, letterSpacing: 0.5 }}>
                   {res.nombre.split(" ")[0]}
                 </text>
               )}
               {res && (
                 <text x={mx + mw/2} y={my + mh * (isMerged ? 0.80 : 0.88)} textAnchor="middle"
-                  style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 8.5, fontWeight: 300, fontStyle: "italic", fill: textC, opacity: 0.7, letterSpacing: 0.5 }}>
+                  style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 8.5, fontWeight: 600, fontStyle: "italic", fill: textC, opacity: 1, letterSpacing: 0.5 }}>
                   {res.personas}p
                 </text>
               )}
@@ -3576,7 +3576,7 @@ Buenas y Santas`;
                           <td style={{ padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: "#1b5e20" }}>{r.hora}</td>
                           <td style={{ padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 700, color: "#1a2e1a" }}>
                             <div>{r.nombre}</div>
-                            {r.telefono && <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#1a1a1a", marginTop: 2, fontWeight: 300, letterSpacing: 0.3 }}>{String(r.telefono).trim()}</div>}
+                            {r.telefono && <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 14, color: "#1a1a1a", marginTop: 2, fontWeight: 500, letterSpacing: 0.3 }}>{String(r.telefono).trim()}</div>}
                           </td>
                           <td style={{ padding: "10px 16px", fontFamily: "'Jost', sans-serif", fontSize: 15, fontWeight: 700, color: "#4a7a4a" }}>{r.personas} pax</td>
                           <td style={{ padding: "10px 16px" }}>
