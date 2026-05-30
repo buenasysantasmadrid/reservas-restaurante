@@ -2222,7 +2222,7 @@ Buenas y Santas`;
                     <tr key={r.id} className="row-hover" style={{ borderBottom: "1px solid #e8f5e9", background: trBg }}>
                       <td style={{ padding: "9px 20px" }}>
                         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 700, color: "#111" }}>{r.nombre}</p>
-                        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#555", marginTop: 2 }}>{(() => {
+                        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 14, color: "#333", marginTop: 2, fontWeight: 500 }}>{(() => {
                           return String(r.telefono || "").trim();
                         })()}</p>
                       </td>
@@ -3016,7 +3016,7 @@ Buenas y Santas`;
             const confirmada = ocupada && !sinConfirmar && !llego;
             fill   = llego ? "#f5f5f5" : sinConfirmar ? "#9e9e9e" : confirmada ? "#90caf9" : "#145214";
             stroke = llego ? "#e0e0e0" : sinConfirmar ? "#757575" : confirmada ? "#64b5f6" : "#0a3a0a";
-            textC  = llego ? "#bdbdbd" : sinConfirmar ? "#fff"    : confirmada ? "#1565c0" : "#81c784";
+            textC  = "#111";
           }
           // En modo reasignar, mesas no relevantes se atenúan un poco
           const opacity = (modoReasignar && hayReservaSeleccionada && !esReservaSeleccionada && !esMesaDestino) ? 0.5 : 1;
