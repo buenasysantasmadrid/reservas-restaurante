@@ -3195,7 +3195,7 @@ Buenas y Santas`;
                 strokeDasharray={isDropTarget ? "5 3" : esMesaDestino ? "5 3" : "none"}/>
               {esReservaSeleccionada && <rect x={mx-3} y={my-3} width={mw+6} height={mh+6} rx={RR+3} fill="none" stroke="#ff8f00" strokeWidth={1.5} opacity={0.5}/>}
               <text x={mx + mw/2} y={my + lineH} textAnchor="middle"
-                style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: barra ? 13 : 16, fontWeight: 600, fill: textC, letterSpacing: 2 }}>
+                style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: barra ? 13 : (res ? 8.5 : 16), fontWeight: 600, fill: textC, letterSpacing: 2 }}>
                 {labelMesa}
               </text>
               {res && res.nombre !== "OCUPADO" && (
@@ -3212,7 +3212,7 @@ Buenas y Santas`;
               )}
               {res && (
                 <text x={mx + mw/2} y={my + mh * (isMerged ? 0.80 : 0.88)} textAnchor="middle"
-                  style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 8.5, fontWeight: 600, fontStyle: "italic", fill: textC, opacity: 1, letterSpacing: 0.5 }}>
+                  style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 700, fill: textC, opacity: 1, letterSpacing: 0.5 }}>
                   {res.personas}p
                 </text>
               )}
