@@ -1453,12 +1453,13 @@ export default function App() {
           fechaFila = `${mESdate[3]}-${mESdate[2]}-${mESdate[1]}`;
         }
         if (fechaFila && fechaFila < hoy) return false;
-        const telFila = String(fila[1] || "").replace(/\D/g, "").slice(-9);
+        const telFila = String(fila[1] || "").replace(/\D/g, "");
         if (telFila.length < 7) return true; // sin teléfono válido, siempre mostrar
         const turnoFila = horaFila ? getTurno(horaFila) : null;
         return !reservas.some(r => {
-          const telReserva = String(r.telefono || "").replace(/\D/g, "").slice(-9);
-          const mismoTel   = telReserva === telFila;
+          const telReserva = String(r.telefono || "").replace(/\D/g, "");
+          const minLen = Math.min(telFila.length, telReserva.length);
+          const mismoTel   = minLen >= 7 && telFila.slice(-minLen) === telReserva.slice(-minLen);
           const mismaFecha = r.fecha === fechaFila;
           // Coincide si mismo turno (aunque hora exacta sea distinta), o si no hay hora en la fila
           const mismoTurno = !turnoFila || getTurno(r.hora) === turnoFila;
