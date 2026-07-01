@@ -1513,7 +1513,7 @@ export default function App() {
     setSheetError("");
     setSheetFilas([]);
     try {
-      const url = "https://script.google.com/macros/s/AKfycbxslphHn0GNmCT8PQcmJHPzo4M9_bB1OABaiXEs5ugXAVxHtQNTF2v3u1HiYEi0lRrm/exec";
+      const url = "https://script.google.com/macros/s/AKfycbxslphHn0GNmCT8PQcmJHPzo4M9_bB1OABaiXEs5ugXAVxHtQNTF2v3u1HiYEi0lRrm/exec?revisar=1";
       const res = await fetch(url);
       if (!res.ok) throw new Error("No se pudo conectar con Google Sheets");
       const json = await res.json();
@@ -1713,7 +1713,7 @@ export default function App() {
                 tomadaPor: ""
               };
               setDatosInterpretados(parsed);
-              setForm(f => ({ ...f, ...parsed, mesas: [], estado: "tomada" }));
+              setForm(f => ({ ...f, ...parsed, mesas: [], estado: "tomada", tomadaPor: "" }));
               setPendingPegar(true);
               setModalAbierto(true);
               setInterpretando(false);
@@ -1771,6 +1771,14 @@ export default function App() {
         if (mHora) horaRaw = mHora[1];
         fechaRaw = resto.replace(/Hora\s*:.*$/i, "").trim();
       }
+      // Formato Telegram/Octotable: "Fecha: Miércoles 01/07/2026 13:30" (fecha y hora juntas en una sola línea)
+      if (!fechaRaw) {
+        const mFechaHora = texto.match(/Fecha\s*:\s*(?:[A-Za-zÁÉÍÓÚáéíóúñÑ]+\s+)?(\d{1,2}\/\d{1,2}\/\d{4})(?:\s+(\d{1,2}:\d{2}))?/i);
+        if (mFechaHora) {
+          fechaRaw = mFechaHora[1];
+          if (mFechaHora[2] && !horaRaw) horaRaw = mFechaHora[2];
+        }
+      }
       // Si no se encontró fecha/hora en la misma línea, buscar Día: y Hora: por separado
       if (!fechaRaw) {
         const mDia = texto.match(/D[ií]a\s*:\s*(.+)/i);
@@ -1801,7 +1809,7 @@ export default function App() {
       }
 
       setDatosInterpretados(parsed);
-      setForm(f => ({ ...f, ...parsed, mesas: [], estado: "tomada" }));
+      setForm(f => ({ ...f, ...parsed, mesas: [], estado: "tomada", tomadaPor: "" }));
       setPendingPegar(true);
       setModalAbierto(true);
     } catch (e) {
