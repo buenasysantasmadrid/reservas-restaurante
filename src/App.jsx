@@ -567,8 +567,92 @@ export default function App() {
     return () => unsub();
   }, []);
   const fbSetReserva = async (reserva) => {
-    try { await setDoc(doc(db, "reservas", String(reserva.id)), reserva); }
-    catch (e) { console.error("fbSetReserva:", e); }
+    try {
+      await setDoc(doc(db, "reservas", String(reserva.id)), reserva);
+      if (reserva.parejaId) await sincronizarPareja(reserva);
+    } catch (e) { console.error("fbSetReserva:", e); }
+  };
+
+  // Mantiene sincronizada la mesa entre una reserva "doble turno" y su pareja
+  // (el registro OCUPADO gemelo en el otro turno). Si la mesa nueva está libre
+  // en el turno de la pareja, la copia sin más. Si está ocupada por OTRA
+  // reserva real, reubica esa reserva usando el mismo criterio de MESA_CONFIG
+  // y avisa con un toast.
+  const sincronizarPareja = async (reserva) => {
+    const pareja = reservas.find(r => r.id === reserva.parejaId);
+    if (!pareja) return;
+
+    const mesasNuevas = (reserva.mesas && reserva.mesas.length > 0)
+      ? reserva.mesas.map(Number)
+      : (reserva.mesa ? String(reserva.mesa).split("+").map(Number).filter(Boolean) : []);
+    const mesasActualesPareja = (pareja.mesas && pareja.mesas.length > 0)
+      ? pareja.mesas.map(Number)
+      : (pareja.mesa ? String(pareja.mesa).split("+").map(Number).filter(Boolean) : []);
+
+    const sonIguales = mesasNuevas.length === mesasActualesPareja.length &&
+      [...mesasNuevas].sort().every((m, i) => m === [...mesasActualesPareja].sort()[i]);
+    if (sonIguales) return;
+
+    if (mesasNuevas.length === 0) {
+      await setDoc(doc(db, "reservas", String(pareja.id)), { ...pareja, mesas: [], mesa: "" });
+      return;
+    }
+
+    const turnoPareja = getTurno(pareja.hora);
+
+    const conflictos = reservas.filter(x =>
+      x.id !== pareja.id &&
+      x.id !== reserva.id &&
+      x.fecha === pareja.fecha &&
+      getTurno(x.hora) === turnoPareja &&
+      x.estado !== "cancelada" &&
+      (x.mesas && x.mesas.length > 0 ? x.mesas : x.mesa ? String(x.mesa).split("+").map(Number).filter(Boolean) : [])
+        .some(m => mesasNuevas.includes(Number(m)))
+    );
+
+    if (conflictos.length === 0) {
+      await setDoc(doc(db, "reservas", String(pareja.id)), { ...pareja, mesas: mesasNuevas, mesa: mesasNuevas.join("+") });
+      return;
+    }
+
+    // Mesas ya ocupadas en el turno de la pareja, sin contar los conflictos
+    // (los vamos a mover) y reservando ya las mesasNuevas para la pareja
+    const mesasBaseOcupadas = new Set(
+      reservas
+        .filter(x => x.fecha === pareja.fecha && getTurno(x.hora) === turnoPareja && x.estado !== "cancelada"
+          && x.id !== pareja.id && !conflictos.find(c => c.id === x.id))
+        .flatMap(x => x.mesas && x.mesas.length > 0 ? x.mesas : x.mesa ? String(x.mesa).split("+").map(Number).filter(Boolean) : [])
+        .map(Number)
+    );
+    mesasNuevas.forEach(m => mesasBaseOcupadas.add(m));
+
+    const reubicaciones = [];
+    for (const conflicto of conflictos) {
+      const paxC = Math.min(Number(conflicto.personas) || 1, 8);
+      const opciones = MESA_CONFIG[paxC] || MESA_CONFIG[1];
+      let mesasReubicadas = null;
+      for (const op of opciones) {
+        if (op.internas.every(m => !mesasBaseOcupadas.has(Number(m)))) {
+          mesasReubicadas = op.internas.map(Number);
+          break;
+        }
+      }
+      if (!mesasReubicadas) {
+        showToast(`Sin espacio en 2º turno para reubicar a ${conflicto.nombre.split(" ")[0]} — asigna manualmente`, "error");
+        return; // abortamos toda la sincronización, no dejamos nada a medias
+      }
+      mesasReubicadas.forEach(m => mesasBaseOcupadas.add(m));
+      reubicaciones.push({ conflicto, mesasReubicadas });
+    }
+
+    const batch = writeBatch(db);
+    reubicaciones.forEach(({ conflicto, mesasReubicadas }) => {
+      batch.set(doc(db, "reservas", String(conflicto.id)), { ...conflicto, mesas: mesasReubicadas, mesa: mesasReubicadas.join("+") });
+    });
+    batch.set(doc(db, "reservas", String(pareja.id)), { ...pareja, mesas: mesasNuevas, mesa: mesasNuevas.join("+") });
+    await batch.commit();
+
+    showToast(`Se ha reasignado la mesa que estaba ocupada en el 2º turno (${reubicaciones.map(r => r.conflicto.nombre.split(" ")[0]).join(", ")}) ✓`);
   };
 
   const fbDeleteReserva = async (id) => {
@@ -833,6 +917,7 @@ export default function App() {
         const mins14 = hh14 * 60 + mm14;
         if (mins14 >= 14 * 60 + 30 && mins14 < 15 * 60) {
           const notasBase = form.notas ? form.notas + " — MESA DOBLE TURNO" : "MESA DOBLE TURNO";
+          const ocupadoT2Id = Date.now() * 1000 + Math.floor(Math.random() * 1000) + 1;
           const ocupadoT2 = {
             nombre: "OCUPADO",
             telefono: "",
@@ -847,9 +932,12 @@ export default function App() {
             estado: estadoAuto,
             tomadaPor: form.tomadaPor,
             cuando,
-            id: Date.now() * 1000 + Math.floor(Math.random() * 1000) + 1,
+            id: ocupadoT2Id,
+            parejaId: nuevoId,
           };
           await fbSetReserva(ocupadoT2);
+          // Vincula la reserva original con su gemela del 2º turno
+          await fbSetReserva({ ...nuevaReserva, parejaId: ocupadoT2Id });
         }
       }
 
@@ -952,15 +1040,19 @@ export default function App() {
     const reservasTurno = fuenteReservas.filter(r => r.fecha === fecha && getTurno(r.hora) === turno && r.estado !== "cancelada");
     if (reservasTurno.length === 0) return;
 
+    // Las reservas OCUPADO vinculadas a una pareja (doble turno) no compiten
+    // por mesa propia: su mesa se sincroniza automáticamente desde su pareja.
+    const reservasTurnoConMesaPropia = reservasTurno.filter(r => !(r.nombre === "OCUPADO" && r.parejaId));
+
     // Si hay reservas de 6 pax y no se ha decidido aún, mostrar modal
-    const reservas6 = reservasTurno.filter(r => Number(r.personas) === 6 && !(r.mesas && r.mesas.length > 0) && !r.mesa);
+    const reservas6 = reservasTurnoConMesaPropia.filter(r => Number(r.personas) === 6 && !(r.mesas && r.mesas.length > 0) && !r.mesa);
     if (reservas6.length > 0 && ajuste6 === null) {
       setConfirmarAjuste6({ fecha, turno, count6: reservas6.length });
       return;
     }
 
     // Sort by personas desc, then hora asc
-    const porAsignar = [...reservasTurno].sort((a, b) => { const pd = (b.personas || 0) - (a.personas || 0); return pd !== 0 ? pd : (a.hora || "").localeCompare(b.hora || ""); });
+    const porAsignar = [...reservasTurnoConMesaPropia].sort((a, b) => { const pd = (b.personas || 0) - (a.personas || 0); return pd !== 0 ? pd : (a.hora || "").localeCompare(b.hora || ""); });
     const asignaciones = {}; // id -> mesas[]
     const mesasUsadas = new Set();
     const sinMesa = [];
