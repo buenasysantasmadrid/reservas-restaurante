@@ -479,8 +479,8 @@ export default function App() {
     const pasadas = reservas.filter(r => r.fecha < hoy);
     if (pasadas.length === 0) return;
 
-    // Excluir OCUPADO: no van a Sheets ni se archivan en clientes, pero sí se borran de Firestore
-    const paraSheetAuto = pasadas.filter(r => String(r.nombre || "").toUpperCase() !== "OCUPADO");
+    // Excluir OCUPADO y las gemelas de doble turno: no van a Sheets ni se archivan en clientes, pero sí se borran de Firestore
+    const paraSheetAuto = pasadas.filter(r => String(r.nombre || "").toUpperCase() !== "OCUPADO" && !r.esGemelaDobleTurno);
 
     const filas = paraSheetAuto.map(r => ({
       id: r.id || "",
@@ -911,33 +911,35 @@ export default function App() {
       const nuevaReserva = { ...form, estado: estadoAuto, mesa: form.mesas.join("+"), id: nuevoId, cuando };
       await fbSetReserva(nuevaReserva);
 
-      // MESA DOBLE TURNO: si hora entre 14:30-14:59, bloquear también en 2º turno
+      // MESA DOBLE TURNO: si hora entre 14:30-14:59, la reserva ocupa también el OTRO turno
+      // con el mismo nombre y la misma mesa (antes se marcaba como "OCUPADO" y, además,
+      // para las reservas de 14:45 se creaba por error otra copia en el propio 2º turno,
+      // dejando el 1er turno libre y el 2º con doble reserva).
       if (form.hora && form.fecha) {
         const [hh14, mm14] = form.hora.split(":").map(Number);
         const mins14 = hh14 * 60 + mm14;
         if (mins14 >= 14 * 60 + 30 && mins14 < 15 * 60) {
+          const turnoOriginal = getTurno(form.hora); // "t1" (14:30) o "t2" (14:45)
+          const horaGemela = turnoOriginal === "t1" ? "14:45" : "14:30";
           const notasBase = form.notas ? form.notas + " — MESA DOBLE TURNO" : "MESA DOBLE TURNO";
-          const ocupadoT2Id = Date.now() * 1000 + Math.floor(Math.random() * 1000) + 1;
-          const ocupadoT2 = {
-            nombre: "OCUPADO",
-            telefono: "",
-            email: "",
-            prefijo: "+34",
+          const gemelaId = Date.now() * 1000 + Math.floor(Math.random() * 1000) + 1;
+          const gemela = {
+            ...form,
             fecha: form.fecha,
-            hora: "14:45",
-            personas: form.personas,
+            hora: horaGemela,
             mesas: form.mesas,
             mesa: form.mesas.join("+"),
             notas: notasBase,
             estado: estadoAuto,
             tomadaPor: form.tomadaPor,
             cuando,
-            id: ocupadoT2Id,
+            id: gemelaId,
             parejaId: nuevoId,
+            esGemelaDobleTurno: true,
           };
-          await fbSetReserva(ocupadoT2);
-          // Vincula la reserva original con su gemela del 2º turno
-          await fbSetReserva({ ...nuevaReserva, parejaId: ocupadoT2Id });
+          await fbSetReserva(gemela);
+          // Vincula la reserva original con su gemela del otro turno
+          await fbSetReserva({ ...nuevaReserva, parejaId: gemelaId });
         }
       }
 
@@ -976,8 +978,8 @@ export default function App() {
     const pasadas = reservas.filter(r => r.fecha < hoy);
     if (pasadas.length === 0) return showToast("No hay reservas pasadas para archivar", "error");
 
-    // Excluir las marcadas como OCUPADO del envío a Sheets
-    const paraSheets = pasadas.filter(r => String(r.nombre || "").toUpperCase() !== "OCUPADO");
+    // Excluir las marcadas como OCUPADO y las gemelas de doble turno del envío a Sheets
+    const paraSheets = pasadas.filter(r => String(r.nombre || "").toUpperCase() !== "OCUPADO" && !r.esGemelaDobleTurno);
 
     const filas = paraSheets.map(r => ({
       id: r.id || "",
@@ -1040,9 +1042,9 @@ export default function App() {
     const reservasTurno = fuenteReservas.filter(r => r.fecha === fecha && getTurno(r.hora) === turno && r.estado !== "cancelada");
     if (reservasTurno.length === 0) return;
 
-    // Las reservas OCUPADO vinculadas a una pareja (doble turno) no compiten
-    // por mesa propia: su mesa se sincroniza automáticamente desde su pareja.
-    const reservasTurnoConMesaPropia = reservasTurno.filter(r => !(r.nombre === "OCUPADO" && r.parejaId));
+    // Las gemelas de doble turno no compiten por mesa propia: su mesa se
+    // sincroniza automáticamente desde su pareja (la reserva original).
+    const reservasTurnoConMesaPropia = reservasTurno.filter(r => !r.esGemelaDobleTurno);
 
     // Si hay reservas de 6 pax y no se ha decidido aún, mostrar modal
     const reservas6 = reservasTurnoConMesaPropia.filter(r => Number(r.personas) === 6 && !(r.mesas && r.mesas.length > 0) && !r.mesa);
@@ -4868,6 +4870,7 @@ Buenas y Santas`;
                   x.fecha === fecha &&
                   x.estado === "tomada" &&
                   x.telefono &&
+                  !x.esGemelaDobleTurno &&
                   (op.turno === "mediodia" ? (getTurno(x.hora) === "t1" || getTurno(x.hora) === "t2") : getTurno(x.hora) === op.turno)
                 );
                 return (
