@@ -340,6 +340,8 @@ export default function App() {
   const [modalWaTodos, setModalWaTodos] = useState(null); // { fecha } o null
   // Pregunta 2 o 3 mesas al asignar reserva de 6 pax en drag&drop
   const [pregunta6pax, setPregunta6pax] = useState(null); // { reservaId, mesaDestino }
+  // Misma pregunta pero al arrastrar una reserva de 6 pax desde el panel lateral del Plano
+  const [pregunta6paxPlano, setPregunta6paxPlano] = useState(null); // { reservaId, mesaDestino }
   // Confirmación antes de asignar si ya hay mesas asignadas
   const [confirmarAsignarMesas, setConfirmarAsignarMesas] = useState(null); // { fecha, turno }
   // Fechas cerradas leídas de Google Sheets (hoja CERRAMOS)
@@ -687,6 +689,11 @@ export default function App() {
     return "noche";
   };
 
+  // Hora a MOSTRAR en pantalla/impresiones/mensajes: para las gemelas de doble
+  // turno, "hora" se mantiene en 14:30/14:45 (para que caigan en el turno correcto),
+  // pero horaMostrar guarda la hora real con la que se hizo la reserva.
+  const getHoraMostrar = (r) => (r && r.horaMostrar) ? r.horaMostrar : (r ? r.hora : "");
+
   const TURNO_COLORES = {
     t1:    { bg: "#f4faf4", label: "1º Turno Mediodía" },
     t2:    { bg: "#e8f5e8", label: "2º Turno Mediodía" },
@@ -763,9 +770,26 @@ export default function App() {
     await fbSetReserva({ ...reserva, mesas: [], mesa: "" });
   };
 
+  // Aplica una asignación de mesas ya decidida (usada por agregarMesaInline y
+  // por la pregunta de 2/3 mesas cuando la reserva es de 6 pax)
+  const asignarMesasConcretas = async (reservaId, mesasAsignadas) => {
+    const reserva = reservas.find(r => r.id === reservaId);
+    if (!reserva) return;
+    await fbSetReserva({ ...reserva, mesas: mesasAsignadas, mesa: mesasAsignadas[0] || "" });
+    showToast(`${reserva.nombre.split(" ")[0]} → Mesa${mesasAsignadas.length > 1 ? "s" : ""} ${mesasAsignadas.join("+")} ✓`);
+  };
+
   const agregarMesaInline = async (reservaId, mesaDestino) => {
     const reserva = reservas.find(r => r.id === reservaId);
     if (!reserva) return;
+
+    // Reservas de 6 pax: preguntar si 2 o 3 mesas antes de asignar (igual que en
+    // el modo "Asignar mesas" con drag&drop), en vez de elegir en silencio.
+    if (Number(reserva.personas) === 6) {
+      setPregunta6paxPlano({ reservaId, mesaDestino: Number(mesaDestino) });
+      return;
+    }
+
     const pax = Math.min(Number(reserva.personas) || 1, 8);
     const opciones = MESA_CONFIG[pax] || MESA_CONFIG[1];
 
@@ -798,8 +822,7 @@ export default function App() {
     // Fallback: solo la mesa destino
     if (!mesasAsignadas) mesasAsignadas = [Number(mesaDestino)];
 
-    await fbSetReserva({ ...reserva, mesas: mesasAsignadas, mesa: mesasAsignadas[0] || "" });
-    showToast(`${reserva.nombre.split(" ")[0]} → Mesa${mesasAsignadas.length > 1 ? "s" : ""} ${mesasAsignadas.join("+")} ✓`);
+    await asignarMesasConcretas(reservaId, mesasAsignadas);
   };
 
   const reservasFiltradas = reservas.filter(r => {
@@ -927,6 +950,9 @@ export default function App() {
             ...form,
             fecha: form.fecha,
             hora: horaGemela,
+            // Mantiene la hora real de la reserva para mostrarla en pantalla,
+            // aunque "hora" siga siendo 14:30/14:45 para que el 2º turno la reconozca como suya
+            horaMostrar: form.hora,
             mesas: form.mesas,
             mesa: form.mesas.join("+"),
             notas: notasBase,
@@ -1042,38 +1068,57 @@ export default function App() {
     const reservasTurno = fuenteReservas.filter(r => r.fecha === fecha && getTurno(r.hora) === turno && r.estado !== "cancelada");
     if (reservasTurno.length === 0) return;
 
-    // Las gemelas de doble turno no compiten por mesa propia: su mesa se
-    // sincroniza automáticamente desde su pareja (la reserva original).
-    const reservasTurnoConMesaPropia = reservasTurno.filter(r => !r.esGemelaDobleTurno);
+    const getMesasDe = (r) => (r && r.mesas && r.mesas.length > 0)
+      ? r.mesas.map(Number)
+      : (r && r.mesa ? String(r.mesa).split("+").map(Number).filter(Boolean) : []);
 
-    // Si hay reservas de 6 pax y no se ha decidido aún, mostrar modal
-    const reservas6 = reservasTurnoConMesaPropia.filter(r => Number(r.personas) === 6 && !(r.mesas && r.mesas.length > 0) && !r.mesa);
-    if (reservas6.length > 0 && ajuste6 === null) {
-      setConfirmarAjuste6({ fecha, turno, count6: reservas6.length });
-      return;
-    }
-
-    // Sort by personas desc, then hora asc
-    const porAsignar = [...reservasTurnoConMesaPropia].sort((a, b) => { const pd = (b.personas || 0) - (a.personas || 0); return pd !== 0 ? pd : (a.hora || "").localeCompare(b.hora || ""); });
     const asignaciones = {}; // id -> mesas[]
     const mesasUsadas = new Set();
     const sinMesa = [];
 
-    // First pass: lock in already-assigned mesas
-    for (const r of porAsignar) {
-      const curr = r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : [];
+    // Paso 0 — PRIORIDAD MESA DOBLE TURNO: las reservas que ocupan los 2 turnos
+    // (tienen parejaId, tanto la reserva original como su gemela del otro turno)
+    // se asignan primero, en la MISMA mesa que ya tenga su pareja en el otro
+    // turno, para que no compitan por mesa propia con el resto de reservas.
+    const conPareja = reservasTurno.filter(r => r.parejaId);
+    conPareja.forEach(r => {
+      const pareja = fuenteReservas.find(x => x.id === r.parejaId);
+      const mesasPareja = pareja ? getMesasDe(pareja) : [];
+      if (mesasPareja.length > 0) {
+        asignaciones[r.id] = mesasPareja;
+        mesasPareja.forEach(m => mesasUsadas.add(m));
+      }
+    });
+
+    // First pass: lock in mesas ya asignadas manualmente (lo que no quedó resuelto arriba)
+    for (const r of reservasTurno) {
+      if (asignaciones[r.id]) continue;
+      const curr = getMesasDe(r);
       if (curr.length > 0) {
         asignaciones[r.id] = curr;
         curr.forEach(m => mesasUsadas.add(m));
       }
     }
 
+    // Si hay reservas de 6 pax sin resolver todavía y no se ha decidido aún, mostrar modal
+    const reservas6 = reservasTurno.filter(r => Number(r.personas) === 6 && !asignaciones[r.id]);
+    if (reservas6.length > 0 && ajuste6 === null) {
+      setConfirmarAjuste6({ fecha, turno, count6: reservas6.length });
+      return;
+    }
+
+    // Resto por asignar (incluye la doble turno cuya pareja tampoco tenía mesa aún):
+    // sort by personas desc, then hora asc
+    const porAsignar = reservasTurno
+      .filter(r => !asignaciones[r.id])
+      .sort((a, b) => { const pd = (b.personas || 0) - (a.personas || 0); return pd !== 0 ? pd : (a.hora || "").localeCompare(b.hora || ""); });
+
     // Si ajuste6 = true: pre-asignar reservas de 6 pax con lógica especial
     if (ajuste6) {
       const mesas6Especiales = [[8, 18], [7, 17]];
       let idx6 = 0;
-      const reservas6Sin = reservasTurno
-        .filter(r => Number(r.personas) === 6 && !asignaciones[r.id])
+      const reservas6Sin = porAsignar
+        .filter(r => Number(r.personas) === 6)
         .sort((a, b) => (a.hora || "").localeCompare(b.hora || ""));
       for (const r of reservas6Sin) {
         if (idx6 < mesas6Especiales.length) {
@@ -1113,7 +1158,21 @@ export default function App() {
     reservasTurno.forEach(r => {
       const nuevasMesas = asignaciones[r.id];
       if (nuevasMesas) {
-        batch.set(doc(db, "reservas", String(r.id)), { ...r, mesas: nuevasMesas });
+        batch.set(doc(db, "reservas", String(r.id)), { ...r, mesas: nuevasMesas, mesa: nuevasMesas.join("+") });
+      }
+    });
+    // Propaga la mesa recién calculada a la pareja del otro turno si todavía no
+    // la tenía, para que quede sincronizada sin esperar a asignar allí también.
+    conPareja.forEach(r => {
+      const nuevasMesas = asignaciones[r.id];
+      if (!nuevasMesas) return;
+      const pareja = fuenteReservas.find(x => x.id === r.parejaId);
+      if (!pareja) return;
+      const mesasPareja = getMesasDe(pareja);
+      const igual = mesasPareja.length === nuevasMesas.length &&
+        [...mesasPareja].sort().every((m, i) => m === [...nuevasMesas].sort()[i]);
+      if (!igual) {
+        batch.set(doc(db, "reservas", String(pareja.id)), { ...pareja, mesas: nuevasMesas, mesa: nuevasMesas.join("+") });
       }
     });
     await batch.commit();
@@ -1202,7 +1261,7 @@ export default function App() {
         return `<tr>
           <td class="nombre">${r.nombre}</td>
           <td>${r.telefono || "—"}</td>
-          <td class="hora">${r.hora}</td>
+          <td class="hora">${getHoraMostrar(r)}</td>
           <td style="text-align:center" class="pax">${r.personas}</td>
           <td>${mesas}</td>
           <td style="color:#333">${r.notas || ""}</td>
@@ -1395,7 +1454,7 @@ export default function App() {
       return `<g>
         <rect x="${mx}" y="${my}" width="${mw}" height="${mh}" rx="5" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}" ${strokeDash}/>
         <text x="${mx+mw/2}" y="${my+lineH}" text-anchor="middle" style="font-family:'Cormorant Garamond',serif;font-size:14px;font-style:italic;fill:${textC};font-weight:300">${label}</text>
-        ${res?`<text x="${mx+mw/2}" y="${my+mh*(isMerged?0.38:0.48)}" text-anchor="middle" style="font-family:'Jost',sans-serif;font-size:7.5px;fill:#555;font-weight:300">${res.hora}</text>`:""}
+        ${res?`<text x="${mx+mw/2}" y="${my+mh*(isMerged?0.38:0.48)}" text-anchor="middle" style="font-family:'Jost',sans-serif;font-size:7.5px;fill:#555;font-weight:300">${getHoraMostrar(res)}</text>`:""}
         ${res?`<text x="${mx+mw/2}" y="${my+mh*(isMerged?0.58:0.68)}" text-anchor="middle" style="font-family:'Jost',sans-serif;font-size:8px;fill:#444;font-weight:300">${res.nombre.split(" ")[0]}</text>`:""}
         ${res?`<text x="${mx+mw/2}" y="${my+mh*(isMerged?0.80:0.88)}" text-anchor="middle" style="font-family:'Jost',sans-serif;font-size:7.5px;fill:#666;font-weight:300">${res.personas}p</text>`:""}
       </g>`;
@@ -1413,7 +1472,7 @@ export default function App() {
       const estadoLabel = r.estado==="confirmada"?"Conf.":r.estado==="tomada"?"Tomada":r.estado==="llego"?"Llegó":r.estado;
       return `<tr>
         <td class="nom">${r.nombre}</td><td class="tel">${r.telefono||"—"}</td>
-        <td class="hr2">${r.hora}</td><td class="pax">${r.personas}</td>
+        <td class="hr2">${getHoraMostrar(r)}</td><td class="pax">${r.personas}</td>
         <td class="mesa">${mesas}</td><td><span class="badge">${estadoLabel}</span></td>
         <td class="nota">${r.notas||""}</td>
       </tr>`;
@@ -1841,7 +1900,7 @@ export default function App() {
     if (tipo === "confirmar") {
       msg =
 `Hola ${nombreCapital}!
-Necesitamos por favor que *RECONFIRMES* tu reserva para hoy para *${r.personas}* personas a las *${r.hora}* hs.
+Necesitamos por favor que *RECONFIRMES* tu reserva para hoy para *${r.personas}* personas a las *${getHoraMostrar(r)}* hs.
 
 Esperamos tu respuesta
 
@@ -1860,7 +1919,7 @@ Buenas y Santas`;
 `Hola, ${nombreCapital}
 Te escribimos de Buenas y Santas para confirmar tu reserva.
 
-Día: *${diaSemana}*, ${diaMes}, Hora: *${r.hora}*, Personas: *${r.personas}*
+Día: *${diaSemana}*, ${diaMes}, Hora: *${getHoraMostrar(r)}*, Personas: *${r.personas}*
 
 ${lineaImportante}
 (si no van a venir por favor avisar que guardamos la mesa 10 minutos)
@@ -2132,7 +2191,7 @@ Buenas y Santas`;
                     <div key={r.id} style={{ borderBottom: "1px solid #c8e6c9", padding: "14px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <div>
                         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18 }}>{r.nombre}</p>
-                        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", marginTop: 2 }}>{r.hora} · {r.personas} personas · {r.mesas && r.mesas.length > 0 ? r.mesas.map(getMesaNombre).join("+") : r.mesa ? getMesaNombre(r.mesa) : ""}</p>
+                        <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", marginTop: 2 }}>{getHoraMostrar(r)} · {r.personas} personas · {r.mesas && r.mesas.length > 0 ? r.mesas.map(getMesaNombre).join("+") : r.mesa ? getMesaNombre(r.mesa) : ""}</p>
                         <div style={{ marginTop: 8 }}>
                           <BtnWhatsApp reserva={r} style={{ padding: "4px 10px", fontSize: 10 }} />
                         </div>
@@ -2333,7 +2392,7 @@ Buenas y Santas`;
                         <div>{new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { weekday: "long" }).toUpperCase()}</div>
                         <div style={{ fontSize: 11, color: "#666" }}>{new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}</div>
                       </td>
-                      <td style={{ padding: "9px 20px", fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: "#1b5e20" }}>{r.hora}</td>
+                      <td style={{ padding: "9px 20px", fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: "#1b5e20" }}>{getHoraMostrar(r)}</td>
                       <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 15, fontWeight: 700, color: "#222" }}>{r.personas} pax</td>
                       <td style={{ padding: "9px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -2500,7 +2559,7 @@ Buenas y Santas`;
                             </select>
                           </div>
                           <div style={{ display: "flex", gap: 12, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
-                            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, color: "#1b5e20", fontWeight: 600 }}>{r.hora}</span>
+                            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, color: "#1b5e20", fontWeight: 600 }}>{getHoraMostrar(r)}</span>
                             <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a" }}>{r.personas} pax</span>
                             <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a" }}>
                               <span style={{ display: "block" }}>{new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { weekday: "long" }).toUpperCase()}</span>
@@ -2640,7 +2699,7 @@ Buenas y Santas`;
                 <div key={r.id} style={{ padding: "20px 28px", borderBottom: "1px solid #c8e6c9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
                     <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18 }}>{new Date(r.fecha + "T12:00").toLocaleDateString("es-ES", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
-                    <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", marginTop: 4 }}>{r.hora} · {r.personas} personas · {r.mesas && r.mesas.length > 0 ? r.mesas.map(getMesaNombre).join("+") : r.mesa ? getMesaNombre(r.mesa) : ""}{r.notas ? ` · ${r.notas}` : ""}</p>
+                    <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: "#4a7a4a", marginTop: 4 }}>{getHoraMostrar(r)} · {r.personas} personas · {r.mesas && r.mesas.length > 0 ? r.mesas.map(getMesaNombre).join("+") : r.mesa ? getMesaNombre(r.mesa) : ""}{r.notas ? ` · ${r.notas}` : ""}</p>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <BtnWhatsApp reserva={r} style={{ padding: "4px 10px", fontSize: 10 }} />
@@ -3304,7 +3363,7 @@ Buenas y Santas`;
               {res && res.nombre !== "OCUPADO" && (
                 <text x={mx + mw/2} y={my + mh * (isMerged ? 0.38 : 0.48)} textAnchor="middle"
                   style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 9, fontWeight: 600, fontStyle: "italic", fill: textC, opacity: 1, letterSpacing: 0.5 }}>
-                  {res.hora}
+                  {getHoraMostrar(res)}
                 </text>
               )}
               {res && (
@@ -3608,7 +3667,7 @@ Buenas y Santas`;
                             {r.nombre.split(" ")[0]}
                           </div>
                           <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, color: "#888", marginTop: 2 }}>
-                            {r.hora} · {r.personas} pax
+                            {getHoraMostrar(r)} · {r.personas} pax
                           </div>
                         </div>
                       ))}
@@ -3676,7 +3735,7 @@ Buenas y Santas`;
                       const planoBg = r.estado === "llego" ? "transparent" : "#f4fcf4";
                       return (
                         <tr key={r.id} style={{ borderBottom: "1px solid #d6edd6", background: planoBg }}>
-                          <td style={{ padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: "#1b5e20" }}>{r.hora}</td>
+                          <td style={{ padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontSize: 22, fontWeight: 700, color: "#1b5e20" }}>{getHoraMostrar(r)}</td>
                           <td style={{ padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 700, color: "#1a2e1a" }}>
                             <div>{r.nombre}</div>
                             {r.telefono && <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 14, color: "#1a1a1a", marginTop: 2, fontWeight: 500, letterSpacing: 0.3 }}>{String(r.telefono).trim()}</div>}
@@ -3771,6 +3830,60 @@ Buenas y Santas`;
               </div>
               );
             })()}
+          </div>
+        );
+      })()}
+
+      {/* ── MODAL 6 PAX (drag&drop desde el panel lateral del Plano): 2 o 3 mesas ── */}
+      {pregunta6paxPlano && (() => {
+        const r = reservas.find(x => x.id === pregunta6paxPlano.reservaId);
+        if (!r) { setPregunta6paxPlano(null); return null; }
+        return (
+          <div className="overlay" style={{ zIndex: 70 }}>
+            <div className="modal" style={{ maxWidth: 380, textAlign: "center", padding: "36px 32px" }}>
+              <p style={{ fontFamily: "'Jost',sans-serif", fontSize: 11, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", marginBottom: 8 }}>
+                {r.nombre.split(" ")[0]} · 6 pax
+              </p>
+              <h2 style={{ fontFamily: "'Lora',serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", marginBottom: 24 }}>
+                ¿Cuántas mesas?
+              </h2>
+              <div style={{ display: "flex", gap: 16, justifyContent: "center" }}>
+                {[2, 3].map(nM => (
+                  <button key={nM} onClick={async () => {
+                    const opciones6 = nM === 2
+                      ? [{internas:[8,18]},{internas:[7,17]},{internas:[1,2]},{internas:[12,13]},{internas:[3,4]},{internas:[5,15]},{internas:[6,16]},{internas:[10,11]},{internas:[40,41]},{internas:[30,31]}]
+                      : (MESA_CONFIG[6] || []);
+                    const turnoR = getTurno(r.hora);
+                    const mesasOcupadas = new Set(
+                      reservas
+                        .filter(x => x.id !== r.id && x.fecha === r.fecha && getTurno(x.hora) === turnoR && x.estado !== "cancelada")
+                        .flatMap(x => x.mesas && x.mesas.length > 0 ? x.mesas : x.mesa ? String(x.mesa).split("+").map(Number).filter(Boolean) : [])
+                        .map(Number)
+                    );
+                    let mesasElegidas = null;
+                    for (const op of opciones6) {
+                      if (op.internas.map(Number).includes(Number(pregunta6paxPlano.mesaDestino)) && op.internas.every(m => !mesasOcupadas.has(Number(m)))) {
+                        mesasElegidas = op.internas; break;
+                      }
+                    }
+                    if (!mesasElegidas) {
+                      for (const op of opciones6) {
+                        if (op.internas.every(m => !mesasOcupadas.has(Number(m)))) { mesasElegidas = op.internas; break; }
+                      }
+                    }
+                    if (!mesasElegidas) mesasElegidas = [pregunta6paxPlano.mesaDestino];
+                    await asignarMesasConcretas(pregunta6paxPlano.reservaId, mesasElegidas);
+                    setPregunta6paxPlano(null);
+                  }}
+                  style={{ padding: "14px 32px", fontFamily: "'Jost',sans-serif", fontSize: 18, fontWeight: 700, cursor: "pointer",
+                    background: "#e8f5e9", color: "#1b5e20", border: "2px solid #81c784", borderRadius: 8 }}>
+                    {nM} mesas
+                  </button>
+                ))}
+              </div>
+              <button className="btn-outline" style={{ marginTop: 18, fontSize: 11, color: "#888", borderColor: "#ccc" }}
+                onClick={() => setPregunta6paxPlano(null)}>Cancelar</button>
+            </div>
           </div>
         );
       })()}
@@ -4036,7 +4149,7 @@ Buenas y Santas`;
                 <svg width={sw} height={sh} viewBox={`0 0 ${sw} ${sh}`}>
                   <rect x={1} y={1} width={sw-2} height={sh-2} rx={7} fill={sinMesa?"#e0e0e0":"#e8f5e9"} stroke={sinMesa?"#888":"#81c784"} strokeWidth={1.5}/>
                   <text x={sw/2} y={22} textAnchor="middle" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:14,fontWeight:700,fill:"#111"}}>{r.nombre.split(" ")[0]}</text>
-                  <text x={sw/2} y={38} textAnchor="middle" style={{fontFamily:"'Jost',sans-serif",fontSize:10,fill:"#555"}}>{r.hora}</text>
+                  <text x={sw/2} y={38} textAnchor="middle" style={{fontFamily:"'Jost',sans-serif",fontSize:10,fill:"#555"}}>{getHoraMostrar(r)}</text>
                   <text x={sw/2} y={60} textAnchor="middle" style={{fontFamily:"'Jost',sans-serif",fontSize:16,fill:"#111",fontWeight:700}}>{pax}p</text>
                 </svg>
               </div>
@@ -4097,7 +4210,7 @@ Buenas y Santas`;
               onDragStart={e => { e.dataTransfer.setData("reservaId", String(r.id)); e.dataTransfer.effectAllowed="move"; }}
               onDragEnd={() => setAsignarDragReservaId(null)}
               style={{ cursor:"grab", opacity:isDragging?0.5:1, userSelect:"none" }}
-              title={`${r.nombre} · ${r.hora} · ${pax} pax${mesasR.length>0?" · "+mesasR.join("+"):""}`}>
+              title={`${r.nombre} · ${getHoraMostrar(r)} · ${pax} pax${mesasR.length>0?" · "+mesasR.join("+"):""}`}>
               <svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`}>
                 {/* Cabecera info */}
                 <rect x={0} y={0} width={svgW} height={INFO_H} rx={6} fill={sinMesa?"#f0f0f0":"#f1f8f1"}/>
@@ -4107,7 +4220,7 @@ Buenas y Santas`;
                 </text>
                 <text x={svgW/2} y={29} textAnchor="middle"
                   style={{fontFamily:"'Jost',sans-serif",fontSize:13,fill:"#555",fontWeight:600}}>
-                  {r.hora}
+                  {getHoraMostrar(r)}
                 </text>
                 <text x={svgW/2} y={43} textAnchor="middle"
                   style={{fontFamily:"'Jost',sans-serif",fontSize:16,fill:"#111",fontWeight:700}}>
@@ -4275,7 +4388,7 @@ Buenas y Santas`;
                               </text>
                               <text x={mx+mw/2} y={my+mh*(isMergedPrimary?0.67:0.76)} textAnchor="middle"
                                 style={{fontFamily:"'Jost',sans-serif",fontSize:10,fontWeight:600,fill:"#fff",opacity:0.9}}>
-                                {reservaEnMesa.hora} · {reservaEnMesa.personas}p
+                                {getHoraMostrar(reservaEnMesa)} · {reservaEnMesa.personas}p
                               </text>
                               <text x={mx+mw-4} y={my+12} textAnchor="end"
                                 style={{fontFamily:"'Jost',sans-serif",fontSize:11,fill:"#fff",opacity:0.7}}>✕</text>
