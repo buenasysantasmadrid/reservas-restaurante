@@ -575,14 +575,21 @@ export default function App() {
     } catch (e) { console.error("fbSetReserva:", e); }
   };
 
-  // Mantiene sincronizada la mesa entre una reserva "doble turno" y su pareja
-  // (el registro OCUPADO gemelo en el otro turno). Si la mesa nueva está libre
-  // en el turno de la pareja, la copia sin más. Si está ocupada por OTRA
-  // reserva real, reubica esa reserva usando el mismo criterio de MESA_CONFIG
-  // y avisa con un toast.
+  // Mantiene sincronizada la mesa Y el estado entre una reserva "doble turno" y
+  // su pareja (el registro gemelo en el otro turno). El estado (p.ej. "llegó")
+  // se copia siempre tal cual. Para la mesa: si la mesa nueva está libre en el
+  // turno de la pareja, la copia sin más. Si está ocupada por OTRA reserva
+  // real, reubica esa reserva usando el mismo criterio de MESA_CONFIG y avisa
+  // con un toast.
   const sincronizarPareja = async (reserva) => {
-    const pareja = reservas.find(r => r.id === reserva.parejaId);
+    let pareja = reservas.find(r => r.id === reserva.parejaId);
     if (!pareja) return;
+
+    // Estado (tomada/confirmada/llegó/cancelada): siempre igual en ambos turnos
+    if (reserva.estado && pareja.estado !== reserva.estado) {
+      await setDoc(doc(db, "reservas", String(pareja.id)), { ...pareja, estado: reserva.estado });
+      pareja = { ...pareja, estado: reserva.estado };
+    }
 
     const mesasNuevas = (reserva.mesas && reserva.mesas.length > 0)
       ? reserva.mesas.map(Number)
