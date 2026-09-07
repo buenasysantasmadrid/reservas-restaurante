@@ -932,8 +932,61 @@ export default function App() {
 
     let toastMsg;
     if (reservaEditando) {
+      const original = reservas.find(r => r.id === reservaEditando);
       const updated = { ...form, id: reservaEditando };
       await fbSetReserva(updated);
+
+      // MESA DOBLE TURNO al editar: si al cambiar la hora la reserva queda entre
+      // 14:30-14:59, debe tener (o actualizar) su gemela del otro turno; si al
+      // editar la hora sale de ese rango, hay que borrar la gemela que ya no aplica.
+      // (No aplica si estamos editando directamente la gemela en sí.)
+      if (!original?.esGemelaDobleTurno && form.hora && form.fecha) {
+        const [hhE, mmE] = form.hora.split(":").map(Number);
+        const minsE = hhE * 60 + mmE;
+        const enRangoDobleTurno = minsE >= 14 * 60 + 30 && minsE < 15 * 60;
+        const parejaIdActual = original && original.parejaId;
+
+        if (enRangoDobleTurno) {
+          const turnoNuevo = getTurno(form.hora);
+          const horaGemela = turnoNuevo === "t1" ? "14:45" : "14:30";
+          if (parejaIdActual) {
+            // Ya tenía gemela: solo actualizamos su horario si cambió (14:30 ⇄ 14:45)
+            const gemelaExistente = reservas.find(r => r.id === parejaIdActual);
+            if (gemelaExistente && (gemelaExistente.hora !== horaGemela || gemelaExistente.horaMostrar !== form.hora)) {
+              await fbSetReserva({ ...gemelaExistente, hora: horaGemela, horaMostrar: form.hora });
+            }
+          } else {
+            // No tenía gemela todavía: la creamos ahora, igual que al crear una reserva nueva
+            const notasBase = form.notas ? form.notas + " — MESA DOBLE TURNO" : "MESA DOBLE TURNO";
+            const gemelaId = Date.now() * 1000 + Math.floor(Math.random() * 1000) + 1;
+            const gemela = {
+              ...form,
+              hora: horaGemela,
+              horaMostrar: form.hora,
+              mesas: form.mesas,
+              mesa: form.mesas.join("+"),
+              notas: notasBase,
+              estado: updated.estado,
+              tomadaPor: form.tomadaPor,
+              cuando,
+              id: gemelaId,
+              parejaId: reservaEditando,
+              esGemelaDobleTurno: true,
+            };
+            await fbSetReserva(gemela);
+            // Vincula la reserva editada con su gemela recién creada
+            await fbSetReserva({ ...updated, parejaId: gemelaId });
+          }
+        } else if (parejaIdActual) {
+          // La hora editada ya no cae en el rango de doble turno: la gemela sobra
+          const gemelaExistente = reservas.find(r => r.id === parejaIdActual);
+          if (gemelaExistente && gemelaExistente.esGemelaDobleTurno) {
+            fbDeleteReserva(gemelaExistente.id);
+          }
+          await fbSetReserva({ ...updated, parejaId: null });
+        }
+      }
+
       toastMsg = "Reserva actualizada ✓";
     } else {
       const estadoAuto = calcularEstadoAuto();
@@ -4566,6 +4619,9 @@ Buenas y Santas`;
           const horaReserva = modalOcupado.turno === "noche" ? "21:00" : modalOcupado.turno === "t2" ? "15:00" : "13:30";
           const notasTexto = esDobleTurno ? "MESA DOBLE TURNO" : (!ocupadoHasta || ocupadoHasta === "SIN HORARIO") ? "OCUPADO" : `Hasta ${ocupadoHasta} hs`;
           const nuevoId = Date.now() * 1000 + Math.floor(Math.random() * 1000);
+          // Si es doble turno, calculamos ya el id del OCUPADO gemelo del otro turno
+          // para enlazarlos entre sí (parejaId) y que mesa/estado queden sincronizados.
+          const idGemelaOcupado = esDobleTurno ? (Date.now() * 1000 + Math.floor(Math.random() * 1000) + 1) : null;
           const ahora = new Date();
           const cuando = `${String(ahora.getDate()).padStart(2,"0")}/${String(ahora.getMonth()+1).padStart(2,"0")}/${ahora.getFullYear()} ${String(ahora.getHours()).padStart(2,"0")}:${String(ahora.getMinutes()).padStart(2,"0")}`;
           const nuevaReserva = {
@@ -4583,6 +4639,7 @@ Buenas y Santas`;
             estado: "llego",
             tomadaPor: "PLANO",
             cuando,
+            ...(esDobleTurno ? { parejaId: idGemelaOcupado } : {}),
           };
           await fbSetReserva(nuevaReserva);
 
@@ -4642,7 +4699,7 @@ Buenas y Santas`;
             const ahora2 = new Date();
             const cuando2 = `${String(ahora2.getDate()).padStart(2,"0")}/${String(ahora2.getMonth()+1).padStart(2,"0")}/${ahora2.getFullYear()} ${String(ahora2.getHours()).padStart(2,"0")}:${String(ahora2.getMinutes()).padStart(2,"0")}`;
             const reservaT2 = {
-              id: Date.now() * 1000 + Math.floor(Math.random() * 1000) + 1,
+              id: idGemelaOcupado,
               nombre: "OCUPADO",
               telefono: "",
               email: "",
@@ -4656,6 +4713,7 @@ Buenas y Santas`;
               estado: "llego",
               tomadaPor: "PLANO",
               cuando: cuando2,
+              parejaId: nuevoId,
             };
             await fbSetReserva(reservaT2);
           }
