@@ -575,7 +575,8 @@ export default function App() {
   const audioCtxRef = useRef(null);
 
   // Los navegadores exigen una interacción del usuario antes de permitir sonido.
-  // Con el primer click o tecla que se pulse en la app, queda "desbloqueado".
+  // Con el primer click, tecla o toque que se dé en la app, queda "desbloqueado"
+  // para el resto de la sesión (mientras no se recargue la página).
   useEffect(() => {
     const desbloquear = () => {
       if (audioCtxRef.current) return;
@@ -586,9 +587,13 @@ export default function App() {
     };
     window.addEventListener("click", desbloquear);
     window.addEventListener("keydown", desbloquear);
+    window.addEventListener("touchstart", desbloquear);
+    window.addEventListener("pointerdown", desbloquear);
     return () => {
       window.removeEventListener("click", desbloquear);
       window.removeEventListener("keydown", desbloquear);
+      window.removeEventListener("touchstart", desbloquear);
+      window.removeEventListener("pointerdown", desbloquear);
     };
   }, []);
 
@@ -625,7 +630,8 @@ export default function App() {
 
     const revisarPendientesWeb = async () => {
       try {
-        const res = await fetch("https://script.google.com/macros/s/AKfycbxslphHn0GNmCT8PQcmJHPzo4M9_bB1OABaiXEs5ugXAVxHtQNTF2v3u1HiYEi0lRrm/exec");
+        // Cache-busting: evita que el navegador devuelva una respuesta cacheada
+        const res = await fetch("https://script.google.com/macros/s/AKfycbxslphHn0GNmCT8PQcmJHPzo4M9_bB1OABaiXEs5ugXAVxHtQNTF2v3u1HiYEi0lRrm/exec?_=" + Date.now(), { cache: "no-store" });
         const json = await res.json();
         const pendientes = Math.max(0, (Array.isArray(json) ? json.length : 1) - 1); // -1 por la cabecera
         setPendientesWeb(pendientes);
@@ -639,12 +645,42 @@ export default function App() {
         } else {
           ultimoAvisoRef.current = 0;
         }
-      } catch (e) { /* fallo de red puntual, se reintenta en el próximo chequeo */ }
+      } catch (e) { console.warn("revisarPendientesWeb:", e); /* se reintenta en el próximo chequeo */ }
     };
 
     revisarPendientesWeb();
+
+    // Los navegadores frenan (o directamente congelan) los setInterval de una
+    // pestaña cuando queda en segundo plano, lo que hacía que el aviso sonara
+    // una vez y luego dejara de repetirse si el usuario cambiaba de pestaña.
+    // Un Web Worker no sufre ese freno, así que lo usamos como "reloj" y desde
+    // aquí disparamos el chequeo real (fetch, sonido, etc. siguen en la app).
+    let worker = null;
+    try {
+      const workerBlob = new Blob(
+        [`setInterval(() => postMessage("tick"), ${CINCO_MIN});`],
+        { type: "application/javascript" }
+      );
+      const workerUrl = URL.createObjectURL(workerBlob);
+      worker = new Worker(workerUrl);
+      worker.onmessage = revisarPendientesWeb;
+      URL.revokeObjectURL(workerUrl);
+    } catch (e) {
+      console.warn("No se pudo iniciar el worker del aviso, uso solo setInterval:", e);
+    }
+
+    // Respaldo por si el navegador no soporta Web Workers
     const interval = setInterval(revisarPendientesWeb, CINCO_MIN);
-    return () => clearInterval(interval);
+
+    // Y por si acaso: en cuanto la pestaña vuelve a estar visible, revisar ya
+    const onVisible = () => { if (document.visibilityState === "visible") revisarPendientesWeb(); };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+      if (worker) worker.terminate();
+    };
   }, [usuario]);
 
   const fbSetReserva = async (reserva) => {
