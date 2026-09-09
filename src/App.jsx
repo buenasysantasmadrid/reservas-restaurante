@@ -622,11 +622,11 @@ export default function App() {
   };
 
   // Revisa la hoja de reservas web cada 5 minutos. Mientras haya reservas
-  // sin importar, vuelve a sonar cada 5 minutos y mantiene el cartel escrito.
+  // sin importar, vuelve a sonar cada 15 minutos y mantiene el cartel escrito.
   useEffect(() => {
     if (!usuario) return;
     const CINCO_MIN = 5 * 60 * 1000;
-    const REPETIR_CADA = 5 * 60 * 1000;
+    const QUINCE_MIN = 15 * 60 * 1000;
 
     const revisarPendientesWeb = async () => {
       try {
@@ -638,7 +638,7 @@ export default function App() {
 
         if (pendientes > 0) {
           const ahoraMs = Date.now();
-          if (ultimoAvisoRef.current === 0 || ahoraMs - ultimoAvisoRef.current >= REPETIR_CADA) {
+          if (ultimoAvisoRef.current === 0 || ahoraMs - ultimoAvisoRef.current >= QUINCE_MIN) {
             sonarAvisoReserva();
             ultimoAvisoRef.current = ahoraMs;
           }
