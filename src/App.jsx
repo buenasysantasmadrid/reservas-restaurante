@@ -647,7 +647,11 @@ export default function App() {
     // una vez y luego dejara de repetirse si el usuario cambiaba de pestaña.
     // Un Web Worker no sufre ese freno, así que lo usamos como "reloj" y desde
     // aquí disparamos el chequeo real (fetch, sonido, etc. siguen en la app).
+    // IMPORTANTE: solo debe haber UN reloj activo a la vez — si el Worker y el
+    // setInterval corrieran los dos juntos, dispararían el sonido dos veces
+    // casi al mismo tiempo y podían chocar entre sí (a veces no sonaba nada).
     let worker = null;
+    let workerOk = false;
     try {
       const workerBlob = new Blob(
         [`setInterval(() => postMessage("tick"), ${CINCO_MIN});`],
@@ -657,19 +661,20 @@ export default function App() {
       worker = new Worker(workerUrl);
       worker.onmessage = revisarPendientesWeb;
       URL.revokeObjectURL(workerUrl);
+      workerOk = true;
     } catch (e) {
-      console.warn("No se pudo iniciar el worker del aviso, uso solo setInterval:", e);
+      console.warn("No se pudo iniciar el worker del aviso, uso setInterval:", e);
     }
 
-    // Respaldo por si el navegador no soporta Web Workers
-    const interval = setInterval(revisarPendientesWeb, CINCO_MIN);
+    // setInterval SOLO como respaldo si el Worker no se pudo crear
+    const interval = workerOk ? null : setInterval(revisarPendientesWeb, CINCO_MIN);
 
     // Y por si acaso: en cuanto la pestaña vuelve a estar visible, revisar ya
     const onVisible = () => { if (document.visibilityState === "visible") revisarPendientesWeb(); };
     document.addEventListener("visibilitychange", onVisible);
 
     return () => {
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);
       if (worker) worker.terminate();
     };
