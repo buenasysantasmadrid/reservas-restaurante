@@ -568,6 +568,85 @@ export default function App() {
     });
     return () => unsub();
   }, []);
+
+  // ── AVISO SONORO: reservas nuevas de la web sin importar ──────────────────
+  const [pendientesWeb, setPendientesWeb] = useState(0);
+  const ultimoAvisoRef = useRef(0);
+  const audioCtxRef = useRef(null);
+
+  // Los navegadores exigen una interacción del usuario antes de permitir sonido.
+  // Con el primer click o tecla que se pulse en la app, queda "desbloqueado".
+  useEffect(() => {
+    const desbloquear = () => {
+      if (audioCtxRef.current) return;
+      try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        audioCtxRef.current = new Ctx();
+      } catch {}
+    };
+    window.addEventListener("click", desbloquear);
+    window.addEventListener("keydown", desbloquear);
+    return () => {
+      window.removeEventListener("click", desbloquear);
+      window.removeEventListener("keydown", desbloquear);
+    };
+  }, []);
+
+  const sonarAvisoReserva = () => {
+    try {
+      const ctx = audioCtxRef.current || new (window.AudioContext || window.webkitAudioContext)();
+      audioCtxRef.current = ctx;
+      if (ctx.state === "suspended") ctx.resume();
+      const ahora = ctx.currentTime;
+      for (let rep = 0; rep < 4; rep++) {
+        [880, 660].forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.frequency.value = freq;
+          osc.type = "square";
+          const t0 = ahora + rep * 0.9 + i * 0.22;
+          gain.gain.setValueAtTime(0.0001, t0);
+          gain.gain.exponentialRampToValueAtTime(0.5, t0 + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.22);
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.start(t0);
+          osc.stop(t0 + 0.24);
+        });
+      }
+    } catch (e) { console.warn("No se pudo sonar el aviso:", e); }
+  };
+
+  // Revisa la hoja de reservas web cada 5 minutos. Mientras haya reservas
+  // sin importar, vuelve a sonar cada 15 minutos y mantiene el cartel escrito.
+  useEffect(() => {
+    if (!usuario) return;
+    const CINCO_MIN = 5 * 60 * 1000;
+    const QUINCE_MIN = 15 * 60 * 1000;
+
+    const revisarPendientesWeb = async () => {
+      try {
+        const res = await fetch("https://script.google.com/macros/s/AKfycbxslphHn0GNmCT8PQcmJHPzo4M9_bB1OABaiXEs5ugXAVxHtQNTF2v3u1HiYEi0lRrm/exec");
+        const json = await res.json();
+        const pendientes = Math.max(0, (Array.isArray(json) ? json.length : 1) - 1); // -1 por la cabecera
+        setPendientesWeb(pendientes);
+
+        if (pendientes > 0) {
+          const ahoraMs = Date.now();
+          if (ultimoAvisoRef.current === 0 || ahoraMs - ultimoAvisoRef.current >= QUINCE_MIN) {
+            sonarAvisoReserva();
+            ultimoAvisoRef.current = ahoraMs;
+          }
+        } else {
+          ultimoAvisoRef.current = 0;
+        }
+      } catch (e) { /* fallo de red puntual, se reintenta en el próximo chequeo */ }
+    };
+
+    revisarPendientesWeb();
+    const interval = setInterval(revisarPendientesWeb, CINCO_MIN);
+    return () => clearInterval(interval);
+  }, [usuario]);
+
   const fbSetReserva = async (reserva) => {
     try {
       await setDoc(doc(db, "reservas", String(reserva.id)), reserva);
@@ -2066,7 +2145,6 @@ Buenas y Santas`;
   );
 
 
-
   return (
     <div style={{ minHeight: "100vh", background: "#b8ddb8", fontFamily: "'Georgia', serif", color: "#1a2e1a", position: "relative" }}>
       {/* Hojas marca de agua */}
@@ -2209,6 +2287,21 @@ Buenas y Santas`;
             WhatsApp
           </button>
         </nav>
+      )}
+
+      {/* ── AVISO: reservas nuevas de la web sin importar ── */}
+      {pendientesWeb > 0 && (
+        <div
+          onClick={() => navegarConGuardia(() => setVista("sheet"))}
+          style={{
+            position: "fixed", top: 74, right: 16, zIndex: 99, cursor: "pointer",
+            background: "#b71c1c", color: "#fff", padding: "12px 20px", borderRadius: 8,
+            boxShadow: "0 4px 16px rgba(183,28,28,0.45)", fontFamily: "'Jost', sans-serif",
+            fontSize: 13, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase",
+            animation: "pulseRed 1.4s ease-in-out infinite", maxWidth: 280, lineHeight: 1.4
+          }}>
+          🔔 {pendientesWeb} reserva{pendientesWeb > 1 ? "s" : ""} nueva{pendientesWeb > 1 ? "s" : ""} de la web sin importar
+        </div>
       )}
 
       <main className="main-pad" style={{ padding: "40px", maxWidth: 1360, margin: "0 auto", position: "relative", zIndex: 1 }}>
@@ -3118,7 +3211,6 @@ Buenas y Santas`;
           </div>
         </div>
       )}
-
 
       {/* ── PLANO ── */}
       {vista === "plano" && (() => {
@@ -4942,144 +5034,97 @@ Buenas y Santas`;
 
       {/* ── MODAL AJUSTE MESAS 6 PAX ── */}
       {confirmarAjuste6 && (
-        <div className="overlay" style={{ zIndex: 65 }}>
-          <div className="modal" style={{ maxWidth: 420, textAlign: "center", padding: "40px 36px" }}>
-            <div style={{ fontSize: 32, marginBottom: 14 }}>🪑</div>
-            <h2 style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", marginBottom: 10 }}>
-              ¿Ajustar mesas de 6?
+        <div className="overlay" style={{ zIndex: 70 }}>
+          <div className="modal" style={{ maxWidth: 440, textAlign: "center", padding: "44px 40px" }}>
+            <div style={{ fontSize: 40, marginBottom: 14 }}>🪑</div>
+            <h2 style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", marginBottom: 12 }}>
+              {confirmarAjuste6.count6} reserva{confirmarAjuste6.count6 > 1 ? "s" : ""} de 6 pax
             </h2>
-            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a", lineHeight: 1.7, marginBottom: 16 }}>
-              Hay <strong>{confirmarAjuste6.count6}</strong> reserva{confirmarAjuste6.count6 > 1 ? "s" : ""} de 6 pax sin mesa en este turno.
+            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a", marginBottom: 28, lineHeight: 1.6 }}>
+              ¿Cómo prefieres asignar las mesas para 6 personas?<br/>
+              <span style={{ fontSize: 11, color: "#888" }}>(2 mesas: más compacto · 3 mesas: más espacio)</span>
             </p>
-            <div style={{ background: "#f1f8f1", border: "1px solid #c8e6c9", borderRadius: 8, padding: "14px 20px", marginBottom: 24, textAlign: "left" }}>
-              <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, color: "#2e7d32", marginBottom: 8, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase" }}>Lógica especial para 6 pax:</p>
-              <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#1a2e1a", lineHeight: 1.8, margin: 0 }}>
-                1ª reserva → mesas <strong>8 + 18</strong><br/>
-                2ª reserva → mesas <strong>7 + 17</strong><br/>
-                {confirmarAjuste6.count6 > 2 && <span style={{ color: "#6a9a6a" }}>Resto → asignación normal</span>}
-              </p>
-            </div>
-            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-              <button className="btn-outline"
-                onClick={() => {
-                  const { fecha, turno } = confirmarAjuste6;
-                  setConfirmarAjuste6(null);
-                  asignarMesasTurno(fecha, turno, false);
-                }}
-                style={{ fontSize: 12, padding: "10px 18px" }}>
-                No, asignar normal
+            <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+              <button className="btn-outline" onClick={() => setConfirmarAjuste6(null)}>Cancelar</button>
+              <button
+                style={{ padding: "10px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", background: "#e8f5e9", color: "#1b5e20", border: "1.5px solid #81c784", borderRadius: 4, fontWeight: 600 }}
+                onClick={() => { const { fecha, turno } = confirmarAjuste6; setConfirmarAjuste6(null); asignarMesasTurno(fecha, turno, false); }}>
+                2 mesas (normal)
               </button>
               <button
-                onClick={() => {
-                  const { fecha, turno } = confirmarAjuste6;
-                  setConfirmarAjuste6(null);
-                  asignarMesasTurno(fecha, turno, true);
-                }}
-                style={{ padding: "10px 22px", fontFamily: "'Jost', sans-serif", fontSize: 12, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", borderRadius: 4, background: "#2e7d32", color: "#fff", border: "none", fontWeight: 600 }}>
-                ✓ Sí, ajustar
+                className="btn-gold"
+                onClick={() => { const { fecha, turno } = confirmarAjuste6; setConfirmarAjuste6(null); asignarMesasTurno(fecha, turno, true); }}>
+                3 mesas (especial)
               </button>
             </div>
-            <button className="btn-outline" style={{ marginTop: 14, fontSize: 11, color: "#888", borderColor: "#ccc" }}
-              onClick={() => setConfirmarAjuste6(null)}>
-              Cancelar
-            </button>
           </div>
         </div>
       )}
 
-      {/* ── MODAL CONFIRMAR ASIGNAR MESAS ── */}
+      {/* ── MODAL CONFIRMAR ASIGNAR MESAS (ya hay mesas asignadas) ── */}
       {confirmarAsignarMesas && (
-        <div className="overlay" style={{ zIndex: 65 }}>
-          <div className="modal" style={{ maxWidth: 400, textAlign: "center", padding: "40px 36px" }}>
-            <div style={{ fontSize: 36, marginBottom: 14 }}>🗑️</div>
-            <h2 style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", marginBottom: 10 }}>
+        <div className="overlay" style={{ zIndex: 70 }}>
+          <div className="modal" style={{ maxWidth: 420, textAlign: "center", padding: "44px 40px" }}>
+            <div style={{ fontSize: 40, marginBottom: 14 }}>⚠️</div>
+            <h2 style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", marginBottom: 12 }}>
               Ya hay mesas asignadas
             </h2>
-            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a", lineHeight: 1.7, marginBottom: 24 }}>
-              ¿Quieres borrar las mesas existentes antes de reasignar?
+            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a", marginBottom: 28, lineHeight: 1.6 }}>
+              Este turno ya tiene mesas asignadas manualmente.<br/>¿Quieres reasignar todo automáticamente de todas formas?
             </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button className="btn-outline" onClick={() => setConfirmarAsignarMesas(null)}>Cancelar</button>
               <button
-                onClick={async () => {
-                  const { fecha, turno } = confirmarAsignarMesas;
-                  setConfirmarAsignarMesas(null);
-                  const reservasActualizadas = await borrarMesasTurno(fecha, turno);
-                  asignarMesasTurno(fecha, turno, null, reservasActualizadas);
-                }}
-                style={{ padding: "12px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", borderRadius: 4, background: "#2e7d32", color: "#fff", border: "none", fontWeight: 600 }}>
-                ✓ Borrar y reasignar
-              </button>
-              <button
-                onClick={() => {
-                  const { fecha, turno } = confirmarAsignarMesas;
-                  setConfirmarAsignarMesas(null);
-                  asignarMesasTurno(fecha, turno);
-                }}
-                style={{ padding: "12px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", borderRadius: 4, background: "#e8f5e9", color: "#1b5e20", border: "1.5px solid #81c784", fontWeight: 600 }}>
-                No borrar, solo asignar las sin mesa
-              </button>
-              <button className="btn-outline" style={{ fontSize: 11, color: "#888", borderColor: "#ccc" }}
-                onClick={() => setConfirmarAsignarMesas(null)}>
-                Cancelar
+                className="btn-gold"
+                onClick={() => { const { fecha, turno } = confirmarAsignarMesas; setConfirmarAsignarMesas(null); asignarMesasTurno(fecha, turno); }}>
+                Sí, reasignar todo
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── MODAL WA A TODOS: SELECCIONAR TURNO ── */}
-      {modalWaTodos && (
-        <div className="overlay" style={{ zIndex: 65 }}>
-          <div className="modal" style={{ maxWidth: 400, textAlign: "center", padding: "36px 32px" }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>📲</div>
-            <h2 style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", marginBottom: 8 }}>
-              WhatsApp a todos
-            </h2>
-            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a", marginBottom: 28 }}>
-              ¿A qué turno quieres enviar?
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {[
-                { label: "Mediodía", turno: "mediodia" },
-                { label: "Noche", turno: "noche" },
-              ].map(op => {
-                const fecha = modalWaTodos.fecha;
-                const conTel = reservas.filter(x =>
-                  x.fecha === fecha &&
-                  x.estado === "tomada" &&
-                  x.telefono &&
-                  !x.esGemelaDobleTurno &&
-                  (op.turno === "mediodia" ? (getTurno(x.hora) === "t1" || getTurno(x.hora) === "t2") : getTurno(x.hora) === op.turno)
-                );
-                return (
-                  <button key={op.turno}
-                    onClick={() => {
-                      if (conTel.length === 0) { showToast("No hay teléfonos en este turno", "error"); return; }
-                      conTel.forEach((r, i) => setTimeout(() => enviarWhatsApp(r, "confirmar"), i * 600));
-                      showToast(`Abriendo ${conTel.length} WhatsApp...`);
-                      setModalWaTodos(null);
-                    }}
-                    style={{
-                      padding: "12px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13,
-                      letterSpacing: 1, textTransform: "uppercase", cursor: conTel.length === 0 ? "default" : "pointer",
-                      background: conTel.length === 0 ? "#f5f5f5" : "#25D366",
-                      color: conTel.length === 0 ? "#aaa" : "#fff",
-                      border: "none", borderRadius: 6, fontWeight: 600,
-                      opacity: conTel.length === 0 ? 0.5 : 1
-                    }}>
-                    {op.label}
-                    {conTel.length > 0 && <span style={{ fontSize: 11, marginLeft: 8, opacity: 0.85 }}>({conTel.length})</span>}
-                  </button>
-                );
-              })}
+      {/* ── MODAL WHATSAPP A TODOS ── */}
+      {modalWaTodos && (() => {
+        const reservasDia = reservas.filter(r => r.fecha === modalWaTodos.fecha && r.estado !== "cancelada" && r.telefono);
+        const reservasMediodia = reservasDia.filter(r => { const t = getTurno(r.hora); return t === "t1" || t === "t2"; });
+        const reservasNoche = reservasDia.filter(r => getTurno(r.hora) === "noche");
+        const enviarATurno = (lista) => {
+          if (lista.length === 0) { showToast("No hay reservas con teléfono en ese turno", "error"); return; }
+          lista.forEach((r, i) => {
+            setTimeout(() => enviarWhatsApp(r, "confirmar"), i * 400);
+          });
+          showToast(`Abriendo WhatsApp para ${lista.length} reserva${lista.length > 1 ? "s" : ""}...`);
+          setModalWaTodos(null);
+        };
+        return (
+          <div className="overlay" style={{ zIndex: 70 }} onClick={e => e.target === e.currentTarget && setModalWaTodos(null)}>
+            <div className="modal" style={{ maxWidth: 400, textAlign: "center", padding: "40px 36px" }}>
+              <div style={{ fontSize: 40, marginBottom: 14 }}>📲</div>
+              <h2 style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", marginBottom: 8 }}>
+                WhatsApp a todos
+              </h2>
+              <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a", marginBottom: 28 }}>
+                ¿A qué turno quieres enviar la reconfirmación?
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <button
+                  onClick={() => enviarATurno(reservasMediodia)}
+                  style={{ padding: "12px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", background: "#e8f5e9", color: "#1b5e20", border: "1.5px solid #81c784", borderRadius: 6, fontWeight: 600 }}>
+                  Mediodía ({reservasMediodia.length})
+                </button>
+                <button
+                  onClick={() => enviarATurno(reservasNoche)}
+                  style={{ padding: "12px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", background: "#e8f5e9", color: "#1b5e20", border: "1.5px solid #81c784", borderRadius: 6, fontWeight: 600 }}>
+                  Noche ({reservasNoche.length})
+                </button>
+              </div>
+              <button className="btn-outline" style={{ marginTop: 18, width: "100%", fontSize: 11, color: "#888", borderColor: "#ccc" }}
+                onClick={() => setModalWaTodos(null)}>Cancelar</button>
             </div>
-            <button className="btn-outline" style={{ marginTop: 16, fontSize: 11, color: "#888", borderColor: "#ccc" }}
-              onClick={() => setModalWaTodos(null)}>
-              Cancelar
-            </button>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {toast && <div className={`toast toast-${toast.tipo}`}>{toast.msg}</div>}
     </div>
