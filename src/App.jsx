@@ -571,6 +571,7 @@ export default function App() {
 
   // ── AVISO SONORO: reservas nuevas de la web sin importar ──────────────────
   const [pendientesWeb, setPendientesWeb] = useState(0);
+  const ultimoAvisoRef = useRef(0);
   const audioCtxRef = useRef(null);
 
   // Los navegadores exigen una interacción del usuario antes de permitir sonido.
@@ -621,10 +622,11 @@ export default function App() {
   };
 
   // Revisa la hoja de reservas web cada 5 minutos. Mientras haya reservas
-  // sin importar, suena en cada chequeo (cada 5 min) y mantiene el cartel escrito.
+  // sin importar, vuelve a sonar cada 5 minutos y mantiene el cartel escrito.
   useEffect(() => {
     if (!usuario) return;
     const CINCO_MIN = 5 * 60 * 1000;
+    const REPETIR_CADA = 5 * 60 * 1000;
 
     const revisarPendientesWeb = async () => {
       try {
@@ -635,7 +637,13 @@ export default function App() {
         setPendientesWeb(pendientes);
 
         if (pendientes > 0) {
-          sonarAvisoReserva();
+          const ahoraMs = Date.now();
+          if (ultimoAvisoRef.current === 0 || ahoraMs - ultimoAvisoRef.current >= REPETIR_CADA) {
+            sonarAvisoReserva();
+            ultimoAvisoRef.current = ahoraMs;
+          }
+        } else {
+          ultimoAvisoRef.current = 0;
         }
       } catch (e) { console.warn("revisarPendientesWeb:", e); /* se reintenta en el próximo chequeo */ }
     };
@@ -647,11 +655,7 @@ export default function App() {
     // una vez y luego dejara de repetirse si el usuario cambiaba de pestaña.
     // Un Web Worker no sufre ese freno, así que lo usamos como "reloj" y desde
     // aquí disparamos el chequeo real (fetch, sonido, etc. siguen en la app).
-    // IMPORTANTE: solo debe haber UN reloj activo a la vez — si el Worker y el
-    // setInterval corrieran los dos juntos, dispararían el sonido dos veces
-    // casi al mismo tiempo y podían chocar entre sí (a veces no sonaba nada).
     let worker = null;
-    let workerOk = false;
     try {
       const workerBlob = new Blob(
         [`setInterval(() => postMessage("tick"), ${CINCO_MIN});`],
@@ -661,20 +665,19 @@ export default function App() {
       worker = new Worker(workerUrl);
       worker.onmessage = revisarPendientesWeb;
       URL.revokeObjectURL(workerUrl);
-      workerOk = true;
     } catch (e) {
-      console.warn("No se pudo iniciar el worker del aviso, uso setInterval:", e);
+      console.warn("No se pudo iniciar el worker del aviso, uso solo setInterval:", e);
     }
 
-    // setInterval SOLO como respaldo si el Worker no se pudo crear
-    const interval = workerOk ? null : setInterval(revisarPendientesWeb, CINCO_MIN);
+    // Respaldo por si el navegador no soporta Web Workers
+    const interval = setInterval(revisarPendientesWeb, CINCO_MIN);
 
     // Y por si acaso: en cuanto la pestaña vuelve a estar visible, revisar ya
     const onVisible = () => { if (document.visibilityState === "visible") revisarPendientesWeb(); };
     document.addEventListener("visibilitychange", onVisible);
 
     return () => {
-      if (interval) clearInterval(interval);
+      clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);
       if (worker) worker.terminate();
     };
