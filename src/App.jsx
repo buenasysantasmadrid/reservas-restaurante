@@ -3653,32 +3653,6 @@ Buenas y Santas`;
 
             <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
             <div className="card" style={{ flex: 1, minWidth: 0, padding: esMobil ? "8px 4px" : 24, overflowX: "auto", background: "linear-gradient(135deg, #ffffff 0%, #f7fbf7 100%)", border: "1px solid #e0f0e0", position: "relative" }}>
-              {/* Cartel mesas sin asignar */}
-              {(() => {
-                const sinMesa = reservasTurno.filter(r => r.estado !== "cancelada" && (!r.mesas || r.mesas.length === 0) && !r.mesa);
-                if (sinMesa.length === 0) return null;
-                return (
-                  <div style={{
-                    position: "fixed", top: 80, right: 24, zIndex: 100,
-                    background: "#b71c1c", color: "#fff",
-                    padding: "12px 20px", borderRadius: 8,
-                    boxShadow: "0 4px 16px rgba(183,28,28,0.45)",
-                    display: "flex", alignItems: "center", gap: 10,
-                    animation: "pulseRed 1.4s ease-in-out infinite",
-                    maxWidth: 320
-                  }}>
-                    <span style={{ fontSize: 24, flexShrink: 0 }}>⚠️</span>
-                    <div>
-                      <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 15, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase" }}>
-                        ¡OJO! MESAS SIN ASIGNAR
-                      </div>
-                      <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 11, opacity: 0.85, marginTop: 2 }}>
-                        {sinMesa.length} reserva{sinMesa.length > 1 ? "s" : ""} sin mesa: {sinMesa.map(r => r.nombre.split(" ")[0]).join(", ")}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
               {/* Leyenda */}
               <div style={{ display: "flex", gap: 20, marginBottom: 20, flexWrap: "wrap" }}>
                 {[
@@ -3806,7 +3780,7 @@ Buenas y Santas`;
               <div style={{
                 width: 210, minWidth: 210,
                 background: "#fff",
-                border: `1px solid ${sinMesaPanel.length > 0 ? "#f5c6c6" : "#dfe7df"}`,
+                border: `${sinMesaPanel.length > 0 ? "2px solid #e65100" : "1px solid #dfe7df"}`,
                 borderRadius: 10,
                 padding: 16,
                 display: "flex",
