@@ -569,6 +569,71 @@ export default function App() {
     return () => unsub();
   }, []);
 
+
+  // ── Reservas web: detectar repetidas y moverlas a Pasadas ────────────────
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxslphHn0GNmCT8PQcmJHPzo4M9_bB1OABaiXEs5ugXAVxHtQNTF2v3u1HiYEi0lRrm/exec";
+const reservasRef = useRef([]);
+useEffect(() => { reservasRef.current = reservas; }, [reservas]);
+
+const normNombre = (s) => String(s || "").toLowerCase().normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
+
+// ¿Son la misma reserva? misma fecha + mismo turno + (mismo teléfono, o mismo nombre si no hay teléfono)
+const esMismaReserva = (a, b) => {
+  if (!a.fecha || !b.fecha || a.fecha !== b.fecha) return false;
+  if (a.turno && b.turno && a.turno !== b.turno) return false;
+  const da = a.tel.replace(/\D/g, ""), db = b.tel.replace(/\D/g, "");
+  const n = Math.min(9, da.length, db.length);          // últimos 9 dígitos: ignora prefijos
+  if (n >= 7) return da.slice(-n) === db.slice(-n);
+  return a.nombre !== "" && a.nombre === b.nombre;      // sin teléfono fiable: por nombre
+};
+
+const leerFilaWeb = (fila) => {
+  const raw = String(fila[2] || "").trim();
+  let fecha = "", hora = "";
+  const mISO = raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  const mES  = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  const mD   = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (mISO) {
+    const iso = raw.includes("Z") ? raw : raw.replace(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})$/, "$1:00.000Z");
+    const d = new Date(iso);
+    fecha = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    hora  = `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  } else if (mES) {
+    fecha = `${mES[3]}-${String(mES[2]).padStart(2,"0")}-${String(mES[1]).padStart(2,"0")}`;
+    if (mES[4]) hora = `${String(mES[4]).padStart(2,"0")}:${mES[5]}`;
+  } else if (mD) {
+    fecha = `${mD[1]}-${mD[2]}-${mD[3]}`;
+  }
+  return { tel: String(fila[1] || ""), nombre: normNombre(fila[0]), fecha, turno: hora ? getTurno(hora) : null };
+};
+
+// Separa las filas de la hoja en pendientes (nuevas de verdad) y duplicadas.
+// Compara contra las reservas de la app (menos las canceladas) y también entre las propias filas.
+const analizarFilasWeb = (filasDatos, reservasActuales) => {
+  const hoy = getTodayStr();
+  const conocidas = reservasActuales
+    .filter(r => r.estado !== "cancelada")
+    .map(r => ({ tel: String(r.telefono || ""), nombre: normNombre(r.nombre), fecha: r.fecha, turno: getTurno(r.hora) }));
+  const pendientes = [], duplicadas = [];
+  filasDatos.forEach(fila => {
+    const f = leerFilaWeb(fila);
+    if (f.fecha && f.fecha < hoy) return;                 // ya pasó: ni se muestra ni se cuenta
+    if (conocidas.some(c => esMismaReserva(f, c))) { duplicadas.push(fila); return; }
+    conocidas.push(f);                                    // una 2ª fila igual también cuenta como repetida
+    pendientes.push(fila);
+  });
+  return { pendientes, duplicadas };
+};
+
+const moverDuplicadasAPasadas = (duplicadas) => {
+  if (duplicadas.length === 0) return;
+  fetch(SCRIPT_URL, {
+    method: "POST",
+    body: JSON.stringify({ action: "moverDuplicadasAPasadas", filas: duplicadas })
+  }).catch(() => {});
+};
+  
   // ── AVISO SONORO: reservas nuevas de la web sin importar ──────────────────
   const [pendientesWeb, setPendientesWeb] = useState(0);
   const ultimoAvisoRef = useRef(0);
@@ -624,7 +689,7 @@ export default function App() {
   // Revisa la hoja de reservas web cada 5 minutos. Mientras haya reservas
   // sin importar, vuelve a sonar cada 15 minutos y mantiene el cartel escrito.
   useEffect(() => {
-    if (!usuario) return;
+    if (!usuario || fbCargando) return;
     const CINCO_MIN = 5 * 60 * 1000;
     const QUINCE_MIN = 15 * 60 * 1000;
 
@@ -632,9 +697,11 @@ export default function App() {
       try {
         // Cache-busting: evita que el navegador devuelva una respuesta cacheada
         const res = await fetch("https://script.google.com/macros/s/AKfycbxslphHn0GNmCT8PQcmJHPzo4M9_bB1OABaiXEs5ugXAVxHtQNTF2v3u1HiYEi0lRrm/exec?_=" + Date.now(), { cache: "no-store" });
-        const json = await res.json();
-        const pendientes = Math.max(0, (Array.isArray(json) ? json.length : 1) - 1); // -1 por la cabecera
-        setPendientesWeb(pendientes);
+    const json = await res.json();
+    const { pendientes: nuevas, duplicadas } = analizarFilasWeb(Array.isArray(json) ? json.slice(1) : [], reservasRef.current);
+    moverDuplicadasAPasadas(duplicadas);
+    const pendientes = nuevas.length;
+    setPendientesWeb(pendientes);
 
         if (pendientes > 0) {
           const ahoraMs = Date.now();
@@ -681,7 +748,7 @@ export default function App() {
       document.removeEventListener("visibilitychange", onVisible);
       if (worker) worker.terminate();
     };
-  }, [usuario]);
+  }, [usuario, fbCargando]);
 
   const fbSetReserva = async (reserva) => {
     try {
@@ -1744,7 +1811,7 @@ export default function App() {
     });
   };
 
-  const cargarDesdeSheet = async () => {
+   const cargarDesdeSheet = async () => {
     setSheetCargando(true);
     setSheetError("");
     setSheetFilas([]);
@@ -1755,55 +1822,20 @@ export default function App() {
       const json = await res.json();
       if (!Array.isArray(json) || json.length < 2) throw new Error("No hay datos en la hoja");
 
-      // Filtrar filas ya existentes en reservas Y reservas pasadas
-      const hoy = getTodayStr();
-      const headers = json[0];
-      const filasFiltradas = json.slice(1).filter(fila => {
-        const raw = String(fila[2] || "").trim();
-        // Parsear fecha y hora del sheet (ISO o DD/MM/YYYY)
-        let fechaFila = "";
-        let horaFila = "";
-        const mISO = raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-        const mISOdate = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
-        const mES  = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
-        const mESdate = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
-        if (mISO) {
-          const isoStr = raw.includes("Z") ? raw : raw.replace(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})$/, "$1:00.000Z");
-          const dateObj = new Date(isoStr);
-          fechaFila = `${dateObj.getFullYear()}-${String(dateObj.getMonth()+1).padStart(2,"0")}-${String(dateObj.getDate()).padStart(2,"0")}`;
-          horaFila  = `${String(dateObj.getHours()).padStart(2,"0")}:${String(dateObj.getMinutes()).padStart(2,"0")}`;
-        } else if (mISOdate) {
-          fechaFila = `${mISOdate[1]}-${mISOdate[2]}-${mISOdate[3]}`;
-        } else if (mES) {
-          fechaFila = `${mES[3]}-${mES[2]}-${mES[1]}`;
-          horaFila  = `${mES[4]}:${mES[5]}`;
-        } else if (mESdate) {
-          fechaFila = `${mESdate[3]}-${mESdate[2]}-${mESdate[1]}`;
-        }
-        if (fechaFila && fechaFila < hoy) return false;
-        const telFila = String(fila[1] || "").replace(/\D/g, "");
-        if (telFila.length < 7) return true; // sin teléfono válido, siempre mostrar
-        const turnoFila = horaFila ? getTurno(horaFila) : null;
-        return !reservas.some(r => {
-          const telReserva = String(r.telefono || "").replace(/\D/g, "");
-          const minLen = Math.min(telFila.length, telReserva.length);
-          const mismoTel   = minLen >= 7 && telFila.slice(-minLen) === telReserva.slice(-minLen);
-          const mismaFecha = r.fecha === fechaFila;
-          // Coincide si mismo turno (aunque hora exacta sea distinta), o si no hay hora en la fila
-          const mismoTurno = !turnoFila || getTurno(r.hora) === turnoFila;
-          return mismoTel && mismaFecha && mismoTurno;
-        });
-      });
+      // Separa nuevas de repetidas, y manda las repetidas a "Pasadas"
+      const { pendientes, duplicadas } = analizarFilasWeb(json.slice(1), reservas);
+      moverDuplicadasAPasadas(duplicadas);
+      setPendientesWeb(pendientes.length); // el cartel se actualiza al momento
 
-      if (filasFiltradas.length === 0) throw new Error("No hay reservas nuevas pendientes de importar");
-      setSheetFilas([json[0], ...filasFiltradas]);
+      if (pendientes.length === 0) throw new Error("No hay reservas nuevas pendientes de importar");
+      setSheetFilas([json[0], ...pendientes]);
     } catch (e) {
       setSheetError(e.message || "Error al conectar con Google Sheets");
     } finally {
       setSheetCargando(false);
     }
   };
-
+  
   const importarFilaSheet = (headers, fila) => {
     // A=Nombre, B=Telefono, C="2026-03-11T14:30:00.000Z", D=Pax, E=Comentarios, F=Mail
     const nombre   = String(fila[0] || "");
