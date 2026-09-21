@@ -582,9 +582,9 @@ const normNombre = (s) => String(s || "").toLowerCase().normalize("NFD")
 const esMismaReserva = (a, b) => {
   if (!a.fecha || !b.fecha || a.fecha !== b.fecha) return false;
   if (a.turno && b.turno && a.turno !== b.turno) return false;
-  const da = a.tel.replace(/\D/g, ""), db = b.tel.replace(/\D/g, "");
-  const n = Math.min(9, da.length, db.length);          // últimos 9 dígitos: ignora prefijos
-  if (n >= 7) return da.slice(-n) === db.slice(-n);
+  const da = a.tel.replace(/\D/g, ""), tb = b.tel.replace(/\D/g, "");
+  const n = Math.min(9, da.length, tb.length);          // últimos 9 dígitos: ignora prefijos
+  if (n >= 7) return da.slice(-n) === tb.slice(-n);
   return a.nombre !== "" && a.nombre === b.nombre;      // sin teléfono fiable: por nombre
 };
 
