@@ -615,12 +615,12 @@ const analizarFilasWeb = (filasDatos, reservasActuales) => {
   const conocidas = reservasActuales
     .filter(r => r.estado !== "cancelada")
     .map(r => ({ tel: String(r.telefono || ""), nombre: normNombre(r.nombre), fecha: r.fecha, turno: getTurno(r.hora) }));
-  const pendientes = [], duplicadas = [];
+  const pendientes = [], duplicadas = [];   // "duplicadas" ahora incluye también las viejas
   filasDatos.forEach(fila => {
     const f = leerFilaWeb(fila);
-    if (f.fecha && f.fecha < hoy) return;                 // ya pasó: ni se muestra ni se cuenta
+    if (f.fecha && f.fecha < hoy) { duplicadas.push(fila); return; }   // fecha pasada: se manda a Pasadas
     if (conocidas.some(c => esMismaReserva(f, c))) { duplicadas.push(fila); return; }
-    conocidas.push(f);                                    // una 2ª fila igual también cuenta como repetida
+    conocidas.push(f);
     pendientes.push(fila);
   });
   return { pendientes, duplicadas };
