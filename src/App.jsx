@@ -1115,7 +1115,12 @@ const moverDuplicadasAPasadas = (duplicadas) => {
     let toastMsg;
     if (reservaEditando) {
       const original = reservas.find(r => r.id === reservaEditando);
-      const updated = { ...form, id: reservaEditando };
+      const cambioHora = original && original.hora !== form.hora;
+      const updated = {
+        ...form,
+        id: reservaEditando,
+        ...(cambioHora ? { mesas: [], mesa: "" } : {})
+      };
       await fbSetReserva(updated);
 
       // MESA DOBLE TURNO al editar: si al cambiar la hora la reserva queda entre
