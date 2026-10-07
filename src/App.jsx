@@ -663,6 +663,8 @@ const moverDuplicadasAPasadas = (duplicadas) => {
   }, []);
 
   const sonarAvisoReserva = () => {
+    // En móvil no suena (solo en ordenador)
+    if (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) return;
     try {
       const ctx = audioCtxRef.current || new (window.AudioContext || window.webkitAudioContext)();
       audioCtxRef.current = ctx;
