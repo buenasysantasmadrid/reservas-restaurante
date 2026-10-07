@@ -3706,6 +3706,30 @@ Buenas y Santas`;
               </div>
             </div>
 
+                        {/* ── AVISO SIN MESA (solo móvil) ── */}
+            {planoFecha && esMobil && (() => {
+              const sinMesaMovil = reservasTurno.filter(r => {
+                const tieneMesas = r.mesas && r.mesas.length > 0;
+                const tieneMesaLegacy = r.mesa && String(r.mesa).replace(/\D/g, "").length > 0;
+                return !tieneMesas && !tieneMesaLegacy;
+              });
+              if (sinMesaMovil.length === 0) return null;
+              return (
+                <div style={{ background: "#fff5f5", border: "2px solid #e65100", borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
+                  <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "#b71c1c", marginBottom: 8 }}>
+                    ⚠ Sin mesa ({sinMesaMovil.length})
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {sinMesaMovil.map(r => (
+                      <span key={r.id} style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, fontWeight: 600, background: "#fff", border: "1px solid #f5c6c6", borderRadius: 6, padding: "5px 10px", color: "#1a2e1a" }}>
+                        {r.nombre.split(" ")[0]} · {getHoraMostrar(r)} · {r.personas}p
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+            
             <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
             <div className="card" style={{ flex: 1, minWidth: 0, padding: esMobil ? "8px 4px" : 24, overflowX: "auto", background: "linear-gradient(135deg, #ffffff 0%, #f7fbf7 100%)", border: "1px solid #e0f0e0", position: "relative" }}>
               {/* Leyenda */}
