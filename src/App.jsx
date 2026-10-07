@@ -864,10 +864,16 @@ const moverDuplicadasAPasadas = (duplicadas) => {
     }).catch(() => {});
   };
 
+  const toastTimerRef = useRef(null);
   const showToast = (msg, tipo = "ok") => {
     setToast({ msg, tipo });
-    setTimeout(() => setToast(null), 2800);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToast(null), tipo === "aviso" ? 5000 : 2800);
   };
+
+  // ¿Es una reserva de 6 pax metida en solo 2 mesas?
+  const esSeisEnDosMesas = (reserva, mesas) =>
+    Number(reserva?.personas) === 6 && (mesas || []).length === 2;
 
   const getTurno = (hora) => {
     if (!hora) return "noche";
@@ -961,11 +967,16 @@ const moverDuplicadasAPasadas = (duplicadas) => {
 
   // Aplica una asignación de mesas ya decidida (usada por agregarMesaInline y
   // por la pregunta de 2/3 mesas cuando la reserva es de 6 pax)
-  const asignarMesasConcretas = async (reservaId, mesasAsignadas) => {
+  const asignarMesasConcretas = async (reservaId, mesasAsignadas, avisar6en2 = true) => {
     const reserva = reservas.find(r => r.id === reservaId);
     if (!reserva) return;
     await fbSetReserva({ ...reserva, mesas: mesasAsignadas, mesa: mesasAsignadas[0] || "" });
-    showToast(`${reserva.nombre.split(" ")[0]} → Mesa${mesasAsignadas.length > 1 ? "s" : ""} ${mesasAsignadas.join("+")} ✓`);
+    const texto = `${reserva.nombre.split(" ")[0]} → Mesa${mesasAsignadas.length > 1 ? "s" : ""} ${mesasAsignadas.map(getMesaNombre).join("+")} ✓`;
+    if (avisar6en2 && esSeisEnDosMesas(reserva, mesasAsignadas)) {
+      showToast(`⚠ ${texto} · Mesa de 6 asignada a solo 2 mesas`, "aviso");
+    } else {
+      showToast(texto);
+    }
   };
 
   const agregarMesaInline = async (reservaId, mesaDestino) => {
@@ -1301,7 +1312,10 @@ const moverDuplicadasAPasadas = (duplicadas) => {
   const MESA_CONFIG = {
     8: [{internas:[5,15,6,16]}, {internas:[3,4,7,17]}, {internas:[1,2,8,18]}, {internas:[13,12,11,10]}, {internas:[40,41]}, {internas:[30,31]}],
     7: [{internas:[7,17,4]}, {internas:[6,16,15]}, {internas:[8,18,2]}, {internas:[13,12,11]}, {internas:[13,11,10]}, {internas:[40,41]}, {internas:[30,31]}],
-    6: [{internas:[6,16,15]}, {internas:[7,17,4]}, {internas:[8,18,2]}, {internas:[13,12,11]}, {internas:[13,11,10]}, {internas:[1,2,18]}, {internas:[3,4,17]}, {internas:[5,15,16]}, {internas:[40,41]}, {internas:[30,31]}],
+    6: [{internas:[6,16,15]}, {internas:[7,17,4]}, {internas:[8,18,2]}, {internas:[13,12,11]}, {internas:[13,11,10]}, {internas:[1,2,18]}, {internas:[3,4,17]}, {internas:[5,15,16]},
+        // Si no hay 3 mesas juntas libres, se permite meter la de 6 en 2 mesas (con aviso)
+        {internas:[8,18]}, {internas:[7,17]}, {internas:[6,16]}, {internas:[5,15]}, {internas:[1,2]}, {internas:[3,4]}, {internas:[12,13]}, {internas:[10,11]},
+        {internas:[40,41]}, {internas:[30,31]}],
     5: [{internas:[1,2]}, {internas:[7,17]}, {internas:[12,13]}, {internas:[8,18]}, {internas:[3,4]}, {internas:[5,15]}, {internas:[6,16]}, {internas:[10,11]}, {internas:[40,41]}, {internas:[30,31]}],
     4: [{internas:[12,13]}, {internas:[5,15]}, {internas:[6,16]}, {internas:[7,17]}, {internas:[1,2]}, {internas:[8,18]}, {internas:[3,4]}, {internas:[10,11]}, {internas:[40,41]}, {internas:[30,31]}],
     3: [{internas:[12,13]}, {internas:[5,15]}, {internas:[6,16]}, {internas:[7,17]}, {internas:[1,2]}, {internas:[8,18]}, {internas:[3,4]}, {internas:[10,11]}, {internas:[40,41]}, {internas:[30,31]}],
@@ -1322,7 +1336,7 @@ const moverDuplicadasAPasadas = (duplicadas) => {
 
     const asignaciones = {}; // id -> mesas[]
     const mesasUsadas = new Set();
-    const sinMesa = [];
+    const sinMesa = [];    const seisEnDos = [];
 
     // Paso 0 — PRIORIDAD MESA DOBLE TURNO: las reservas que ocupan los 2 turnos
     // (tienen parejaId, tanto la reserva original como su gemela del otro turno)
@@ -1397,10 +1411,10 @@ const moverDuplicadasAPasadas = (duplicadas) => {
       if (asignada) {
         asignaciones[r.id] = asignada;
         asignada.forEach(m => mesasUsadas.add(m));
+        if (esSeisEnDosMesas(r, asignada)) seisEnDos.push(r.nombre.split(" ")[0]);
       } else {
         sinMesa.push(r.nombre);
       }
-    }
 
     const batch = writeBatch(db);
     reservasTurno.forEach(r => {
@@ -1427,6 +1441,8 @@ const moverDuplicadasAPasadas = (duplicadas) => {
 
     if (sinMesa.length > 0) {
       showToast(`Sin mesa disponible: ${sinMesa.join(", ")}`, "error");
+    } else if (seisEnDos.length > 0) {
+      showToast(`Mesas asignadas ✓ · ⚠ Mesa de 6 en 2 mesas: ${seisEnDos.join(", ")}`, "aviso");
     } else {
       showToast("Mesas asignadas ✓");
     }
@@ -2291,6 +2307,7 @@ Buenas y Santas`;
         .toast { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); padding: 18px 36px; font-family: 'Jost', sans-serif; font-size: 16px; letter-spacing: 1px; z-index: 100; border-radius: 4px; animation: fadeIn 0.3s; text-align: center; white-space: nowrap; box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
         .toast-ok { background: #e8f5e9; border: 1px solid #81c784; color: #1b5e20; }
         .toast-error { background: #ffebee; border: 1px solid #ef9a9a; color: #b71c1c; }
+        .toast-aviso { background: #fff3e0; border: 2px solid #ffb74d; color: #e65100; font-weight: 600; }
         @keyframes pulseRed { 0%,100% { box-shadow: 0 4px 16px rgba(183,28,28,0.45); } 50% { box-shadow: 0 4px 28px rgba(183,28,28,0.85); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         label { display: block; font-family: 'Jost', sans-serif; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #4a7a4a; margin-bottom: 6px; }
@@ -3759,8 +3776,7 @@ Buenas y Santas`;
                       setMesaDragging(null);
                       return;
                     }
-                    await fbSetReserva({ ...reserva, mesas: mesasAsignadas, mesa: mesasAsignadas[0] || "" });
-                    showToast(`${reserva.nombre.split(" ")[0]} → Mesa${mesasAsignadas.length > 1 ? "s" : ""} ${mesasAsignadas.join("+")} ✓`);
+                    await asignarMesasConcretas(reserva.id, mesasAsignadas);
                     setMesaDragging(null);
                   }}
                   onMouseLeave={() => { if (mesaDragging && mesaDragging.tipo === "mover") setMesaDragging(null); }}>
@@ -4072,7 +4088,8 @@ Buenas y Santas`;
                       }
                     }
                     if (!mesasElegidas) mesasElegidas = [pregunta6paxPlano.mesaDestino];
-                    await asignarMesasConcretas(pregunta6paxPlano.reservaId, mesasElegidas);
+                        // Si eligió 2 mesas a propósito no hace falta avisar; si pidió 3 y no cabían, sí
+                    await asignarMesasConcretas(pregunta6paxPlano.reservaId, mesasElegidas, nM === 3);
                     setPregunta6paxPlano(null);
                   }}
                   style={{ padding: "14px 32px", fontFamily: "'Jost',sans-serif", fontSize: 18, fontWeight: 700, cursor: "pointer",
