@@ -21,7 +21,8 @@ const googleProvider = new GoogleAuthProvider();
 
 const EMAILS_PERMITIDOS = [
   "buenasysantasmadrid@gmail.com",
-  "buenasysantas9@gmail.com"
+  "buenasysantas9@gmail.com",
+  "lfisbein@gmail.com"
 ];
 // ─────────────────────────────────────────────────────────────────────────────
 
