@@ -2342,6 +2342,7 @@ Buenas y Santas`;
           .overlay { align-items: flex-end !important; padding: 0 !important; }
           .turnos-wrap { flex-wrap: wrap !important; gap: 6px !important; }
           .page-title { font-size: 32px !important; }
+          .toast { white-space: normal !important; width: 92vw; padding: 14px 18px !important; font-size: 14px !important; }
         }
       `}</style>
 
