@@ -3204,7 +3204,7 @@ Buenas y Santas`;
                   style={{ padding: "7px 10px", fontSize: 13 }}
                 >
                   <option value="">— Seleccionar —</option>
-                  {["RAMIRO","YAMILA","LUCIANA","SHENAY","JESSICA","JULIO","JENNIFER","OTRO"].map(n => (
+                  {["RAMIRO","YAMILA","LUCIANA","SHENAY","JESSICA","JULIO","JENNIFER","SISTEMA","OTRO"].map(n => (
                     <option key={n} value={n}>{n}</option>
                   ))}
                 </select>
