@@ -1415,7 +1415,7 @@ const moverDuplicadasAPasadas = (duplicadas) => {
       } else {
         sinMesa.push(r.nombre);
       }
-
+    }
     const batch = writeBatch(db);
     reservasTurno.forEach(r => {
       const nuevasMesas = asignaciones[r.id];
