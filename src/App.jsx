@@ -62,6 +62,21 @@ function getTodayStr() {
   return new Date().toISOString().split("T")[0];
 }
 
+function getMananaStr() {
+  const d = new Date(getTodayStr() + "T12:00");
+  d.setDate(d.getDate() + 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// Turno que toca ver en el plano según la hora: hasta las 14:30 el 1º,
+// hasta las 17:00 el 2º y desde las 17:00 la noche
+function turnoPorHora(d = new Date()) {
+  const mins = d.getHours() * 60 + d.getMinutes();
+  if (mins < 14 * 60 + 30) return "t1";
+  if (mins < 17 * 60) return "t2";
+  return "noche";
+}
+
 function ClienteInput({ form, setForm }) {
   return (
     <div style={{ gridColumn: "1/-1", position: "relative" }}>
@@ -323,7 +338,7 @@ export default function App() {
   const [confirmarSalidaPagina, setConfirmarSalidaPagina] = useState(null); // guardia para pegar/sheet
   // Estado independiente para el plano (no compartido con reservas)
   const [planoFecha, setPlanoFecha] = useState(getTodayStr());
-  const [planoTurnoFiltro, setPlanoTurnoFiltro] = useState("t1");
+  const [planoTurnoFiltro, setPlanoTurnoFiltro] = useState(() => turnoPorHora());
   const [planoTurnoPersonalizado, setPlanoTurnoPersonalizado] = useState(null);
   const [planoTurnoModalAbierto, setPlanoTurnoModalAbierto] = useState(false);
   const [planoTurnoDesde, setPlanoTurnoDesde] = useState("13:30");
@@ -353,6 +368,30 @@ export default function App() {
   const [ocupadoHasta, setOcupadoHasta] = useState("");
   const [ocupadoPax, setOcupadoPax] = useState("");
   const [ocupadoNumMesas, setOcupadoNumMesas] = useState(null); // solo para 6 pax: 2 o 3
+
+  // ── Turno del plano según la hora ───────────────────────────────────────
+  // Al entrar en el plano se pone el turno que toca ahora. Si se está en el
+  // plano cuando cambia el turno (14:30, 17:00, 00:00), se pasa solo al nuevo,
+  // salvo en medio de mover o asignar mesas (se cambia en cuanto se termine).
+  const turnoAplicadoRef = useRef(turnoPorHora());
+  useEffect(() => {
+    if (vista !== "plano") return;
+    turnoAplicadoRef.current = turnoPorHora();
+    setPlanoTurnoFiltro(turnoAplicadoRef.current);
+  }, [vista]);
+  useEffect(() => {
+    if (vista !== "plano") return;
+    const revisar = () => {
+      const turno = turnoPorHora();
+      if (turno === turnoAplicadoRef.current) return;
+      if (modoReasignar || modoAsignarMesas || mesaDragging) return;
+      turnoAplicadoRef.current = turno;
+      setPlanoTurnoFiltro(turno);
+    };
+    revisar();
+    const intervalo = setInterval(revisar, 20000);
+    return () => clearInterval(intervalo);
+  }, [vista, modoReasignar, modoAsignarMesas, mesaDragging]);
 
   // ── Cargar hoja CERRAMOS de Google Sheets ───────────────────────────────
   useEffect(() => {
@@ -3676,6 +3715,16 @@ Buenas y Santas`;
                   color: planoFecha === getTodayStr() ? "#fff" : "#2e7d32",
                   borderRadius: 4, transition: "all 0.2s", fontWeight: 500
                 }}>Hoy</button>
+              <button
+                onClick={() => setPlanoFecha(getMananaStr())}
+                style={{
+                  padding: "8px 14px", fontSize: 11, cursor: "pointer",
+                  fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase",
+                  border: `1px solid ${planoFecha === getMananaStr() ? "#1b5e20" : "#81c784"}`,
+                  background: planoFecha === getMananaStr() ? "#1b5e20" : "none",
+                  color: planoFecha === getMananaStr() ? "#fff" : "#2e7d32",
+                  borderRadius: 4, transition: "all 0.2s", fontWeight: 500
+                }}>Mañana</button>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {[
                   { key: "t1",    label: "1º Turno" },
