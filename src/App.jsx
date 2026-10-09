@@ -371,8 +371,8 @@ export default function App() {
 
   // ── Turno del plano según la hora ───────────────────────────────────────
   // Al entrar en el plano se pone el turno que toca ahora. Si se está en el
-  // plano cuando cambia el turno (14:30, 17:00, 00:00), se pasa solo al nuevo,
-  // salvo en medio de mover o asignar mesas (se cambia en cuanto se termine).
+  // plano cuando cambia el turno (14:30, 17:00, 00:00), vuelve a hoy y al turno
+  // nuevo, salvo en medio de mover o asignar mesas (se cambia al terminar).
   const turnoAplicadoRef = useRef(turnoPorHora());
   useEffect(() => {
     if (vista !== "plano") return;
@@ -386,6 +386,7 @@ export default function App() {
       if (turno === turnoAplicadoRef.current) return;
       if (modoReasignar || modoAsignarMesas || mesaDragging) return;
       turnoAplicadoRef.current = turno;
+      setPlanoFecha(getTodayStr());
       setPlanoTurnoFiltro(turno);
     };
     revisar();
@@ -2548,6 +2549,16 @@ Buenas y Santas`;
                   color: filtroFecha === getTodayStr() ? "#fff" : "#2e7d32",
                   borderRadius: 4, transition: "all 0.2s", fontWeight: 500
                 }}>Hoy</button>
+              <button
+                onClick={() => setFiltroFecha(getMananaStr())}
+                style={{
+                  padding: "8px 14px", fontSize: 11, cursor: "pointer",
+                  fontFamily: "'Jost', sans-serif", letterSpacing: 1, textTransform: "uppercase",
+                  border: `1px solid ${filtroFecha === getMananaStr() ? "#1b5e20" : "#81c784"}`,
+                  background: filtroFecha === getMananaStr() ? "#1b5e20" : "none",
+                  color: filtroFecha === getMananaStr() ? "#fff" : "#2e7d32",
+                  borderRadius: 4, transition: "all 0.2s", fontWeight: 500
+                }}>Mañana</button>
               <input type="text" className="input-field" style={{ width: 220 }} placeholder="Buscar cliente..." value={busqueda} onChange={e => setBusqueda(e.target.value)} />
               <select className="input-field" style={{ width: 160 }} value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}>
                 <option value="todas">Todos los estados</option>
