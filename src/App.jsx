@@ -3048,16 +3048,15 @@ Buenas y Santas`;
           </div>
 
           {sheetVacio && !sheetError && (
-            <div className="card" style={{ padding: "36px 24px", marginBottom: 24, textAlign: "center", position: "relative" }}>
-              <button onClick={() => setSheetVacio(false)} title="Cerrar"
-                style={{ position: "absolute", top: 10, right: 14, background: "none", border: "none", fontSize: 20, color: "#9bb59b", cursor: "pointer", lineHeight: 1 }}>×</button>
-              <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#e8f5e9", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "10px 14px", marginBottom: 24, background: "#fdecec", border: "1px solid #f5c6c6", borderRadius: 10 }}>
+              <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#f9d4d4", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#b85c5c" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12.5"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               </div>
-              <p style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: "#1a2e1a", marginBottom: 6 }}>Todo al día</p>
-              <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a", lineHeight: 1.6 }}>
-                No hay reservas nuevas de WhatsApp para cargar.<br/>Cuando entre alguna, aparecerá aquí.
-              </p>
+              <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#9a4a4a" }}>
+                No hay reservas nuevas de WhatsApp para cargar
+              </span>
+              <button onClick={() => setSheetVacio(false)} title="Cerrar"
+                style={{ background: "none", border: "none", fontSize: 18, color: "#c98a8a", cursor: "pointer", lineHeight: 1, padding: "0 0 0 4px" }}>×</button>
             </div>
           )}
 
