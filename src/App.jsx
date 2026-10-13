@@ -317,6 +317,7 @@ export default function App() {
   const [sheetCargando, setSheetCargando] = useState(false);
   const [sheetFilas, setSheetFilas] = useState([]);
   const [sheetError, setSheetError] = useState("");
+  const [sheetVacio, setSheetVacio] = useState(false); // true = se consultó y no hay nada nuevo que cargar
   const [turnoModalAbierto, setTurnoModalAbierto] = useState(false);
   const [turnoDesde, setTurnoDesde] = useState("13:30");
   const [turnoHasta, setTurnoHasta] = useState("16:00");
@@ -1366,7 +1367,9 @@ const moverDuplicadasAPasadas = (duplicadas) => {
     1: [{internas:[3]}, {internas:[10]}, {internas:[11]}, {internas:[4]}, {internas:[5]}, {internas:[15]}, {internas:[7]}, {internas:[17]}, {internas:[8]}, {internas:[18]}, {internas:[1]}, {internas:[2]}, {internas:[6]}, {internas:[16]}, {internas:[12]}, {internas:[13]}, {internas:[40]}, {internas:[41]}, {internas:[30]}, {internas:[31]}],
   };
 
-  const asignarMesasTurno = async (fecha, turno, ajuste6 = null, reservasSnapshot = null) => {
+  // reasignarTodo = true → ignora las mesas que ya tienen las reservas del turno y las coloca todas de nuevo.
+  // reasignarTodo = false → respeta las mesas ya puestas y solo coloca las reservas que no tienen mesa.
+  const asignarMesasTurno = async (fecha, turno, ajuste6 = null, reservasSnapshot = null, reasignarTodo = false) => {
     // Get all reservas for this fecha+turno, excluding canceladas
     // Use reservasSnapshot if provided (avoids stale closure when called right after an edit)
     const fuenteReservas = reservasSnapshot || reservas;
@@ -1397,6 +1400,7 @@ const moverDuplicadasAPasadas = (duplicadas) => {
 
     // First pass: lock in mesas ya asignadas manualmente (lo que no quedó resuelto arriba)
     for (const r of reservasTurno) {
+      if (reasignarTodo) break;
       if (asignaciones[r.id]) continue;
       const curr = getMesasDe(r);
       if (curr.length > 0) {
@@ -1408,7 +1412,7 @@ const moverDuplicadasAPasadas = (duplicadas) => {
     // Si hay reservas de 6 pax sin resolver todavía y no se ha decidido aún, mostrar modal
     const reservas6 = reservasTurno.filter(r => Number(r.personas) === 6 && !asignaciones[r.id]);
     if (reservas6.length > 0 && ajuste6 === null) {
-      setConfirmarAjuste6({ fecha, turno, count6: reservas6.length });
+      setConfirmarAjuste6({ fecha, turno, count6: reservas6.length, reasignarTodo });
       return;
     }
 
@@ -1464,6 +1468,9 @@ const moverDuplicadasAPasadas = (duplicadas) => {
       const nuevasMesas = asignaciones[r.id];
       if (nuevasMesas) {
         batch.set(doc(db, "reservas", String(r.id)), { ...r, mesas: nuevasMesas, mesa: nuevasMesas.join("+") });
+      } else if (reasignarTodo && getMesasDe(r).length > 0) {
+        // Al reasignar todo, la que se queda sin sitio pierde su mesa antigua (si no, chocaría con otra)
+        batch.set(doc(db, "reservas", String(r.id)), { ...r, mesas: [], mesa: "" });
       }
     });
     // Propaga la mesa recién calculada a la pareja del otro turno si todavía no
@@ -1510,7 +1517,8 @@ const moverDuplicadasAPasadas = (duplicadas) => {
   const asignarConConfirmacion = (fecha, turno) => {
     const conMesa = reservas.filter(r => r.fecha === fecha && getTurno(r.hora) === turno && r.estado !== "cancelada" && ((r.mesas && r.mesas.length > 0) || r.mesa));
     if (conMesa.length > 0) {
-      setConfirmarAsignarMesas({ fecha, turno });
+      const total = reservas.filter(r => r.fecha === fecha && getTurno(r.hora) === turno && r.estado !== "cancelada").length;
+      setConfirmarAsignarMesas({ fecha, turno, conMesa: conMesa.length, sinMesa: total - conMesa.length });
     } else {
       asignarMesasTurno(fecha, turno);
     }
@@ -1879,20 +1887,21 @@ const moverDuplicadasAPasadas = (duplicadas) => {
    const cargarDesdeSheet = async () => {
     setSheetCargando(true);
     setSheetError("");
+    setSheetVacio(false);
     setSheetFilas([]);
     try {
       const url = "https://script.google.com/macros/s/AKfycbxslphHn0GNmCT8PQcmJHPzo4M9_bB1OABaiXEs5ugXAVxHtQNTF2v3u1HiYEi0lRrm/exec?revisar=1";
       const res = await fetch(url);
       if (!res.ok) throw new Error("No se pudo conectar con Google Sheets");
       const json = await res.json();
-      if (!Array.isArray(json) || json.length < 2) throw new Error("No hay datos en la hoja");
+      if (!Array.isArray(json) || json.length < 2) { setPendientesWeb(0); setSheetVacio(true); return; }
 
       // Separa nuevas de repetidas, y manda las repetidas a "Pasadas"
       const { pendientes, duplicadas } = analizarFilasWeb(json.slice(1), reservas);
       moverDuplicadasAPasadas(duplicadas);
       setPendientesWeb(pendientes.length); // el cartel se actualiza al momento
 
-      if (pendientes.length === 0) throw new Error("No hay reservas nuevas pendientes de importar");
+      if (pendientes.length === 0) { setSheetVacio(true); return; }
       setSheetFilas([json[0], ...pendientes]);
     } catch (e) {
       setSheetError(e.message || "Error al conectar con Google Sheets");
@@ -3037,6 +3046,20 @@ Buenas y Santas`;
                 : "Cargar nueva reserva WhatsApp"}
             </button>
           </div>
+
+          {sheetVacio && !sheetError && (
+            <div className="card" style={{ padding: "36px 24px", marginBottom: 24, textAlign: "center", position: "relative" }}>
+              <button onClick={() => setSheetVacio(false)} title="Cerrar"
+                style={{ position: "absolute", top: 10, right: 14, background: "none", border: "none", fontSize: 20, color: "#9bb59b", cursor: "pointer", lineHeight: 1 }}>×</button>
+              <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#e8f5e9", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <p style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: "#1a2e1a", marginBottom: 6 }}>Todo al día</p>
+              <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a", lineHeight: 1.6 }}>
+                No hay reservas nuevas de WhatsApp para cargar.<br/>Cuando entre alguna, aparecerá aquí.
+              </p>
+            </div>
+          )}
 
           {sheetError && (
             <div style={{ background: "#2e1a1a", border: "1px solid #4a2a2a", color: "#ba5d5d", padding: "14px 20px", fontFamily: "'Jost', sans-serif", fontSize: 13, marginBottom: 24 }}>
@@ -5201,12 +5224,12 @@ Buenas y Santas`;
               <button className="btn-outline" onClick={() => setConfirmarAjuste6(null)}>Cancelar</button>
               <button
                 style={{ padding: "10px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", background: "#e8f5e9", color: "#1b5e20", border: "1.5px solid #81c784", borderRadius: 4, fontWeight: 600 }}
-                onClick={() => { const { fecha, turno } = confirmarAjuste6; setConfirmarAjuste6(null); asignarMesasTurno(fecha, turno, false); }}>
+                onClick={() => { const { fecha, turno, reasignarTodo } = confirmarAjuste6; setConfirmarAjuste6(null); asignarMesasTurno(fecha, turno, false, null, reasignarTodo); }}>
                 2 mesas (normal)
               </button>
               <button
                 className="btn-gold"
-                onClick={() => { const { fecha, turno } = confirmarAjuste6; setConfirmarAjuste6(null); asignarMesasTurno(fecha, turno, true); }}>
+                onClick={() => { const { fecha, turno, reasignarTodo } = confirmarAjuste6; setConfirmarAjuste6(null); asignarMesasTurno(fecha, turno, true, null, reasignarTodo); }}>
                 3 mesas (especial)
               </button>
             </div>
@@ -5215,27 +5238,45 @@ Buenas y Santas`;
       )}
 
       {/* ── MODAL CONFIRMAR ASIGNAR MESAS (ya hay mesas asignadas) ── */}
-      {confirmarAsignarMesas && (
-        <div className="overlay" style={{ zIndex: 70 }}>
-          <div className="modal" style={{ maxWidth: 420, textAlign: "center", padding: "44px 40px" }}>
-            <div style={{ fontSize: 40, marginBottom: 14 }}>⚠️</div>
-            <h2 style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", marginBottom: 12 }}>
-              Ya hay mesas asignadas
-            </h2>
-            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a", marginBottom: 28, lineHeight: 1.6 }}>
-              Este turno ya tiene mesas asignadas manualmente.<br/>¿Quieres reasignar todo automáticamente de todas formas?
-            </p>
-            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-              <button className="btn-outline" onClick={() => setConfirmarAsignarMesas(null)}>Cancelar</button>
-              <button
-                className="btn-gold"
-                onClick={() => { const { fecha, turno } = confirmarAsignarMesas; setConfirmarAsignarMesas(null); asignarMesasTurno(fecha, turno); }}>
-                Sí, reasignar todo
-              </button>
+      {confirmarAsignarMesas && (() => {
+        const { fecha, turno, conMesa, sinMesa } = confirmarAsignarMesas;
+        const lanzar = (todo) => { setConfirmarAsignarMesas(null); asignarMesasTurno(fecha, turno, null, null, todo); };
+        const opcion = (onClick, titulo, detalle, destacada, deshabilitada) => (
+          <button onClick={onClick} disabled={deshabilitada}
+            style={{
+              width: "100%", textAlign: "left", padding: "14px 18px", borderRadius: 10, cursor: deshabilitada ? "not-allowed" : "pointer",
+              border: destacada ? "1px solid #2e7d32" : "1px solid #c8e6c9",
+              background: destacada ? "#2e7d32" : "#fff", opacity: deshabilitada ? 0.45 : 1,
+              display: "flex", flexDirection: "column", gap: 3, transition: "all .15s",
+            }}>
+            <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 14, fontWeight: 600, color: destacada ? "#fff" : "#1a2e1a" }}>{titulo}</span>
+            <span style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: destacada ? "#e8f5e9" : "#4a7a4a", lineHeight: 1.4 }}>{detalle}</span>
+          </button>
+        );
+        return (
+          <div className="overlay" style={{ zIndex: 70 }} onClick={e => { if (e.target === e.currentTarget) setConfirmarAsignarMesas(null); }}>
+            <div className="modal" style={{ maxWidth: 440, textAlign: "center", padding: "40px 36px 32px" }}>
+              <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#e8f5e9", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+              </div>
+              <h2 style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", marginBottom: 8 }}>
+                Ya hay mesas asignadas
+              </h2>
+              <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, color: "#4a7a4a", marginBottom: 24, lineHeight: 1.6 }}>
+                {conMesa} reserva{conMesa !== 1 ? "s" : ""} con mesa · {sinMesa} sin mesa<br/>¿Qué quieres hacer?
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {opcion(() => lanzar(false), "Solo asignar las nuevas",
+                  sinMesa > 0 ? "Respeta las mesas que ya están puestas y coloca solo las que no tienen." : "No hay reservas sin mesa en este turno.",
+                  true, sinMesa === 0)}
+                {opcion(() => lanzar(true), "Reasignar todas las mesas",
+                  "Quita las mesas actuales y vuelve a colocar todas las reservas del turno.", false, false)}
+                <button className="btn-outline" style={{ marginTop: 6 }} onClick={() => setConfirmarAsignarMesas(null)}>Cancelar</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── MODAL WHATSAPP A TODOS ── */}
       {modalWaTodos && (() => {
