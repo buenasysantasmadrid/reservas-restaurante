@@ -308,6 +308,7 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [planoModal, setPlanoModal] = useState(null); // { reservaId, mesaId, nombre }
   const [confirmarWA, setConfirmarWA] = useState(false);
+  const [reservaDuplicada, setReservaDuplicada] = useState(null);
   const [pendingSheetIdx, setPendingSheetIdx] = useState(null);
   const [pendingPegar, setPendingPegar] = useState(false);
   const [textoPegado, setTextoPegado] = useState("");
@@ -1145,6 +1146,21 @@ const moverDuplicadasAPasadas = (duplicadas) => {
       if ((esMedio && mediodia) || (!esMedio && noche)) {
         return showToast("No se pueden tomar reservas — día cerrado", "error");
       }
+    }
+    // ¿Ya hay otra reserva con el mismo teléfono, el mismo día y el mismo turno?
+    const telForm = String(form.telefono || "").replace(/\D/g, "");
+    if (telForm.length >= 7) {
+      const original = reservaEditando ? reservas.find(r => r.id === reservaEditando) : null;
+      const turnoForm = getTurno(form.hora);
+      const repetida = reservas.find(r => {
+        if (r.id === reservaEditando || (original && (r.id === original.parejaId || r.parejaId === original.id))) return false;
+        if (r.estado === "cancelada" || r.fecha !== form.fecha || getTurno(r.hora) !== turnoForm) return false;
+        if (String(r.nombre || "").toUpperCase() === "OCUPADO") return false;
+        const telR = String(r.telefono || "").replace(/\D/g, "");
+        const n = Math.min(9, telForm.length, telR.length);
+        return n >= 7 && telForm.slice(-n) === telR.slice(-n);
+      });
+      if (repetida) return setReservaDuplicada(repetida);
     }
     // Mostrar modal con opciones
     setConfirmarWA(true);
@@ -3349,6 +3365,34 @@ Buenas y Santas`;
                   <button className="btn-outline" style={{ padding: "6px 12px", fontSize: 10 }} onClick={() => navegarConGuardia(() => setModalAbierto(false))}>Cancelar</button>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {reservaDuplicada && (
+        <div className="overlay" style={{ zIndex: 61 }}>
+          <div className="modal" style={{ maxWidth: 440, textAlign: "center", padding: "44px 36px" }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
+            <h2 style={{ fontFamily: "'Lora', serif", fontSize: 28, fontWeight: 700, color: "#b71c1c", marginBottom: 12 }}>
+              RESERVA DUPLICADA
+            </h2>
+            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 15, color: "#1a1a1a", marginBottom: 8, lineHeight: 1.6 }}>
+              Ya hay una reserva con este teléfono para ese día y ese turno:
+            </p>
+            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 15, fontWeight: 600, color: "#4a7a4a", marginBottom: 24, lineHeight: 1.6 }}>
+              {reservaDuplicada.nombre} · {getHoraMostrar(reservaDuplicada)} · {reservaDuplicada.personas} pax
+            </p>
+            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 16, fontWeight: 600, color: "#1a1a1a", marginBottom: 20 }}>
+              ¿Qué quieres hacer?
+            </p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+              <button className="btn-outline" onClick={() => { setReservaDuplicada(null); setModalAbierto(false); }}>
+                Cancelar
+              </button>
+              <button className="btn-gold" onClick={() => setReservaDuplicada(null)}>
+                Volver a editar la reserva
+              </button>
             </div>
           </div>
         </div>
