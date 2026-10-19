@@ -3679,6 +3679,8 @@ Buenas y Santas`;
               onClick={handleClick}
               onContextMenu={(e) => {
                 e.preventDefault();
+                // Con el dedo, mantener pulsado no abre el menú: se abre al soltar sin moverla
+                if (mesaDragging && mesaDragging.tactil) return;
                 setMesaDragging(null);
                 handleDoubleClick();
               }}
@@ -3690,7 +3692,7 @@ Buenas y Santas`;
                 // En pantallas táctiles el dedo queda "atado" a esta mesa; se suelta para
                 // que al levantarlo cuente la mesa que hay debajo
                 if (e.currentTarget.hasPointerCapture?.(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
-                setMesaDragging({ tipo: "mover", reservaId: res.id, mesaOrigen: id });
+                setMesaDragging({ tipo: "mover", reservaId: res.id, mesaOrigen: id, tactil: e.pointerType !== "mouse" });
               } : undefined}
               onDragOver={(e) => e.preventDefault()}
               onDrop={async (e) => {
@@ -3918,9 +3920,14 @@ Buenas y Santas`;
                     if (!mesaDestino) { setMesaDragging(null); return; }
                     const reserva = reservas.find(r => r.id === mesaDragging.reservaId);
                     if (!reserva) { setMesaDragging(null); return; }
-                    // Soltada en su misma mesa (o solo un toque): no se cambia nada
+                    // Soltada en su misma mesa (o solo un toque): no se cambia nada.
+                    // Con el dedo, eso abre el menú de la reserva (llegó, cancelada…)
                     const mesasActuales = (reserva.mesas && reserva.mesas.length > 0 ? reserva.mesas : reserva.mesa ? String(reserva.mesa).split("+") : []).map(Number);
-                    if (mesasActuales.includes(Number(mesaDestino))) { setMesaDragging(null); return; }
+                    if (mesasActuales.includes(Number(mesaDestino))) {
+                      if (mesaDragging.tactil) setPlanoModal({ reservaId: reserva.id, nombre: reserva.nombre, estado: reserva.estado, telefono: reserva.telefono || "", prefijo: reserva.prefijo || "" });
+                      setMesaDragging(null);
+                      return;
+                    }
                     const turnoR = getTurno(reserva.hora);
                     const mesasOcupadas = new Set(
                       reservas
