@@ -5222,6 +5222,13 @@ Buenas y Santas`;
                 </button>
               ))}
             </div>
+            {/* Editar la reserva completa (personas, hora, notas…) */}
+            <button className="btn-outline" style={{ marginTop: 16, width: "100%", padding: "12px 20px", fontSize: 12, letterSpacing: 1, textTransform: "uppercase", color: "#1a2e1a", borderColor: "#1a2e1a", fontWeight: 600 }}
+              onClick={() => {
+                const r = reservas.find(r => r.id === planoModal.reservaId);
+                setPlanoModal(null);
+                if (r) abrirEditar(r);
+              }}>✎ Editar reserva</button>
             <button className="btn-outline" style={{ marginTop: 10, width: "100%", color: "#888", borderColor: "#ccc", fontSize: 11 }} onClick={() => setPlanoModal(null)}>Salir</button>
           </div>
         </div>
