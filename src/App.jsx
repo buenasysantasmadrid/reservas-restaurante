@@ -3901,13 +3901,21 @@ Buenas y Santas`;
                 <div style={{ background: "#fff5f5", border: "2px solid #e65100", borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
                   <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "#b71c1c", marginBottom: 8 }}>
                     ⚠ Sin mesa ({sinMesaMovil.length})
+                    <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0, color: "#6d4c41", marginLeft: 8 }}>toca una y luego su mesa</span>
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {sinMesaMovil.map(r => (
-                      <span key={r.id} style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, fontWeight: 600, background: "#fff", border: "1px solid #f5c6c6", borderRadius: 6, padding: "5px 10px", color: "#1a2e1a" }}>
-                        {r.nombre.split(" ")[0]} · {getHoraMostrar(r)} · {r.personas}p
-                      </span>
-                    ))}
+                    {sinMesaMovil.map(r => {
+                      // Tocarla la elige; al tocar después una mesa libre del plano se le asigna
+                      const elegida = mesaDragging && mesaDragging.toque && mesaDragging.reservaId === r.id;
+                      return (
+                        <span key={r.id}
+                          onClick={() => setMesaDragging(elegida ? null : { tipo: "mover", reservaId: r.id, mesaOrigen: null, toque: true })}
+                          style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer", touchAction: "manipulation",
+                            background: elegida ? "#ff8f00" : "#fff", border: `1px solid ${elegida ? "#e65100" : "#f5c6c6"}`, borderRadius: 6, padding: "5px 10px", color: elegida ? "#fff" : "#1a2e1a" }}>
+                          {r.nombre.split(" ")[0]} · {getHoraMostrar(r)} · {r.personas}p
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               );
