@@ -334,6 +334,8 @@ export default function App() {
   const [mesaDragging, setMesaDragging] = useState(null);
   const [modoEdicionPlano, setModoEdicionPlano] = useState(true);
   const quitarMesaClickRef = useRef(false); // bloquea el handleClick cuando se pulsa la ✕
+  const arrastreRef = useRef(null);         // ratón pulsado sobre una mesa, aún sin moverse
+  const ultimoToqueMesaRef = useRef(null);  // para detectar el doble toque/clic en el plano
   const dragTimerRef = useRef(null); // timer para distinguir drag de doble clic
   const [guardando, setGuardando] = useState(false);
   const [confirmarSalida, setConfirmarSalida] = useState(null); // callback a ejecutar si confirma salir
@@ -3521,6 +3523,27 @@ Buenas y Santas`;
           ids.slice(1).forEach(m => secondaryMesas.add(m));
         });
 
+        // Mueve la reserva a la mesa indicada (y las de al lado que necesite)
+        const moverReservaAMesa = async (reservaId, mesaDestino) => {
+          const reserva = reservas.find(r => r.id === reservaId);
+          if (!reserva) return;
+          // En su misma mesa: no se cambia nada
+          const mesasActuales = (reserva.mesas && reserva.mesas.length > 0 ? reserva.mesas : reserva.mesa ? String(reserva.mesa).split("+") : []).map(Number);
+          if (mesasActuales.includes(Number(mesaDestino))) return;
+          const turnoR = getTurno(reserva.hora);
+          const mesasOcupadas = new Set(
+            reservas
+              .filter(x => x.id !== reserva.id && x.fecha === reserva.fecha && getTurno(x.hora) === turnoR && x.estado !== "cancelada")
+              .flatMap(x => x.mesas && x.mesas.length > 0 ? x.mesas : x.mesa ? String(x.mesa).split("+").map(Number).filter(Boolean) : [])
+              .map(Number)
+          );
+          const pax = Math.min(Number(reserva.personas) || 1, 8);
+          const opciones = MESA_CONFIG[pax] || MESA_CONFIG[1];
+          const op = opciones.find(o => o.internas.map(Number).includes(Number(mesaDestino)) && o.internas.every(m => !mesasOcupadas.has(Number(m))));
+          if (!op) { showToast("No hay espacio suficiente para esta reserva aquí", "error"); return; }
+          await asignarMesasConcretas(reserva.id, op.internas);
+        };
+
         const MesaSVG = ({ mesa }) => {
           const { id, cx, cy, w, h, barra } = mesa;
 
@@ -3618,7 +3641,29 @@ Buenas y Santas`;
                 }
               }
             }
-            // En modo normal: el menú de estado se abre con doble clic (handleDoubleClick)
+            if (modoReasignar) return;
+            // Doble toque/clic → opciones (llegó, cancelada… o mesa vacía)
+            const ahora = Date.now(), ult = ultimoToqueMesaRef.current;
+            ultimoToqueMesaRef.current = { id, t: ahora };
+            if (ult && ult.id === id && ahora - ult.t < 400) {
+              ultimoToqueMesaRef.current = null;
+              setMesaDragging(null);
+              handleDoubleClick();
+              return;
+            }
+            if (!modoEdicionPlano) return;
+            // Un toque/clic elige la reserva; el siguiente, en una mesa libre, la mueve ahí
+            if (mesaDragging && mesaDragging.toque) {
+              if (!res) {
+                ultimoToqueMesaRef.current = null;
+                const reservaId = mesaDragging.reservaId;
+                setMesaDragging(null);
+                moverReservaAMesa(reservaId, id);
+                return;
+              }
+              if (res.id === mesaDragging.reservaId) { setMesaDragging(null); return; }
+            }
+            if (res) setMesaDragging({ tipo: "mover", reservaId: res.id, mesaOrigen: id, toque: true });
           };
 
           const handleDoubleClick = () => {
@@ -3674,25 +3719,22 @@ Buenas y Santas`;
           return (
             <g key={id}
               style={{ cursor: isDraggingThis ? "grabbing" : !res && isDropTarget ? "copy" : !res && !modoReasignar ? "cell" : cursorStyle, opacity: isDraggingThis ? 0.45 : opacity,
-                // Con el dedo: tocar una mesa ocupada la arrastra en vez de mover la pantalla
-                touchAction: modoEdicionPlano && res && !modoReasignar ? "none" : undefined }}
+                // Sin zoom al dar doble toque: el doble toque abre las opciones
+                touchAction: "manipulation" }}
               onClick={handleClick}
               onContextMenu={(e) => {
                 e.preventDefault();
-                // Con el dedo, mantener pulsado no abre el menú: se abre al soltar sin moverla
-                if (mesaDragging && mesaDragging.tactil) return;
                 setMesaDragging(null);
                 handleDoubleClick();
               }}
 
               onPointerDown={modoEdicionPlano && res && !modoReasignar ? (e) => {
-                if (e.button !== 0) return;
+                // Arrastrar solo con ratón; con el dedo se mueve con toques (ver handleClick)
+                if (e.pointerType !== "mouse" || e.button !== 0) return;
                 if (quitarMesaClickRef.current) return;
                 e.preventDefault();
-                // En pantallas táctiles el dedo queda "atado" a esta mesa; se suelta para
-                // que al levantarlo cuente la mesa que hay debajo
-                if (e.currentTarget.hasPointerCapture?.(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
-                setMesaDragging({ tipo: "mover", reservaId: res.id, mesaOrigen: id, tactil: e.pointerType !== "mouse" });
+                // El arrastre empieza cuando el ratón se mueve (así un clic sigue siendo un clic)
+                arrastreRef.current = { x: e.clientX, y: e.clientY, reservaId: res.id, mesaOrigen: id };
               } : undefined}
               onDragOver={(e) => e.preventDefault()}
               onDrop={async (e) => {
@@ -3891,13 +3933,26 @@ Buenas y Santas`;
                   </div>
                 ))}
               </div>
+              {mesaDragging && mesaDragging.toque && (() => {
+                const rm = reservas.find(r => r.id === mesaDragging.reservaId);
+                return (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", background: "#fff8e1", border: "1px solid #ffb300", borderRadius: 8, padding: "8px 12px", marginBottom: 12, fontFamily: "'Jost', sans-serif", fontSize: 14, color: "#5d4037" }}>
+                    <span style={{ flex: 1, minWidth: 0 }}>Moviendo a <b>{rm ? rm.nombre.split(" ")[0] : ""}</b>: toca una mesa libre marcada en verde</span>
+                    <button className="btn-outline" style={{ fontSize: 11, padding: "6px 12px" }} onClick={() => setMesaDragging(null)}>Cancelar</button>
+                  </div>
+                );
+              })()}
               <div style={{ position: "relative", display: "inline-block", width: "100%", maxWidth: 640 }}>
                 <svg key={reservasTurno.map(r => r.id + r.estado).join(",")} viewBox={`0 0 ${VW} ${VH}`} style={{ width: "100%", display: "block", borderRadius: 12, boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}
+                  onPointerMove={(e) => {
+                    const a = arrastreRef.current;
+                    if (!a || (mesaDragging && !mesaDragging.toque)) return;
+                    if (Math.abs(e.clientX - a.x) + Math.abs(e.clientY - a.y) < 6) return;
+                    setMesaDragging({ tipo: "mover", reservaId: a.reservaId, mesaOrigen: a.mesaOrigen });
+                  }}
                   onPointerUp={async (e) => {
-                    if (!mesaDragging || mesaDragging.tipo !== "mover") {
-                      if (mesaDragging && mesaDragging.tipo === "mover") setMesaDragging(null);
-                      return;
-                    }
+                    arrastreRef.current = null;
+                    if (!mesaDragging || mesaDragging.tipo !== "mover" || mesaDragging.toque) return;
                     // Buscar qué mesa hay bajo el cursor usando elementFromPoint
                     const svgEl = e.currentTarget;
                     const svgRect = svgEl.getBoundingClientRect();
@@ -3918,42 +3973,11 @@ Buenas y Santas`;
                       }
                     }
                     if (!mesaDestino) { setMesaDragging(null); return; }
-                    const reserva = reservas.find(r => r.id === mesaDragging.reservaId);
-                    if (!reserva) { setMesaDragging(null); return; }
-                    // Soltada en su misma mesa (o solo un toque): no se cambia nada.
-                    // Con el dedo, eso abre el menú de la reserva (llegó, cancelada…)
-                    const mesasActuales = (reserva.mesas && reserva.mesas.length > 0 ? reserva.mesas : reserva.mesa ? String(reserva.mesa).split("+") : []).map(Number);
-                    if (mesasActuales.includes(Number(mesaDestino))) {
-                      if (mesaDragging.tactil) setPlanoModal({ reservaId: reserva.id, nombre: reserva.nombre, estado: reserva.estado, telefono: reserva.telefono || "", prefijo: reserva.prefijo || "" });
-                      setMesaDragging(null);
-                      return;
-                    }
-                    const turnoR = getTurno(reserva.hora);
-                    const mesasOcupadas = new Set(
-                      reservas
-                        .filter(x => x.id !== reserva.id && x.fecha === reserva.fecha && getTurno(x.hora) === turnoR && x.estado !== "cancelada")
-                        .flatMap(x => x.mesas && x.mesas.length > 0 ? x.mesas : x.mesa ? String(x.mesa).split("+").map(Number).filter(Boolean) : [])
-                        .map(Number)
-                    );
-                    const pax = Math.min(Number(reserva.personas) || 1, 8);
-                    const opciones = MESA_CONFIG[pax] || MESA_CONFIG[1];
-                    let mesasAsignadas = null;
-                    for (const op of opciones) {
-                      if (op.internas.map(Number).includes(Number(mesaDestino)) && op.internas.every(m => !mesasOcupadas.has(Number(m)))) {
-                        mesasAsignadas = op.internas;
-                        break;
-                      }
-                    }
-                    if (!mesasAsignadas) {
-                      showToast("No hay espacio suficiente para esta reserva aquí", "error");
-                      setMesaDragging(null);
-                      return;
-                    }
-                    await asignarMesasConcretas(reserva.id, mesasAsignadas);
+                    await moverReservaAMesa(mesaDragging.reservaId, mesaDestino);
                     setMesaDragging(null);
                   }}
-                  onPointerLeave={() => { if (mesaDragging && mesaDragging.tipo === "mover") setMesaDragging(null); }}
-                  onPointerCancel={() => { if (mesaDragging && mesaDragging.tipo === "mover") setMesaDragging(null); }}>
+                  onPointerLeave={() => { arrastreRef.current = null; if (mesaDragging && mesaDragging.tipo === "mover" && !mesaDragging.toque) setMesaDragging(null); }}
+                  onPointerCancel={() => { arrastreRef.current = null; if (mesaDragging && mesaDragging.tipo === "mover" && !mesaDragging.toque) setMesaDragging(null); }}>
                   <defs>
                     <filter id="mesaShadow" x="-15%" y="-15%" width="130%" height="130%">
                       <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" floodColor="#1b5e20" floodOpacity="0.18"/>
