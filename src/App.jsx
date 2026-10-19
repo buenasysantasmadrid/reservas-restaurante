@@ -3646,7 +3646,7 @@ Buenas y Santas`;
 
           // Calcular si esta mesa libre es destino válido para el drag activo
           const esDestinoValido = (() => {
-            if (!mesaDragging || res || esMobil) return false;
+            if (!mesaDragging || res) return false;
             let reservaMoviendo = null;
             if (mesaDragging.tipo === "mover") {
               reservaMoviendo = reservas.find(r => r.id === mesaDragging.reservaId);
@@ -3673,7 +3673,9 @@ Buenas y Santas`;
 
           return (
             <g key={id}
-              style={{ cursor: isDraggingThis ? "grabbing" : !res && isDropTarget ? "copy" : !res && !modoReasignar ? "cell" : cursorStyle, opacity: isDraggingThis ? 0.45 : opacity }}
+              style={{ cursor: isDraggingThis ? "grabbing" : !res && isDropTarget ? "copy" : !res && !modoReasignar ? "cell" : cursorStyle, opacity: isDraggingThis ? 0.45 : opacity,
+                // Con el dedo: tocar una mesa ocupada la arrastra en vez de mover la pantalla
+                touchAction: modoEdicionPlano && res && !modoReasignar ? "none" : undefined }}
               onClick={handleClick}
               onContextMenu={(e) => {
                 e.preventDefault();
@@ -3681,10 +3683,13 @@ Buenas y Santas`;
                 handleDoubleClick();
               }}
 
-              onMouseDown={modoEdicionPlano && res && !modoReasignar && !esMobil ? (e) => {
+              onPointerDown={modoEdicionPlano && res && !modoReasignar ? (e) => {
                 if (e.button !== 0) return;
                 if (quitarMesaClickRef.current) return;
                 e.preventDefault();
+                // En pantallas táctiles el dedo queda "atado" a esta mesa; se suelta para
+                // que al levantarlo cuente la mesa que hay debajo
+                if (e.currentTarget.hasPointerCapture?.(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
                 setMesaDragging({ tipo: "mover", reservaId: res.id, mesaOrigen: id });
               } : undefined}
               onDragOver={(e) => e.preventDefault()}
@@ -3748,7 +3753,7 @@ Buenas y Santas`;
               {/* Cruz para desasignar mesa */}
               {modoEdicionPlano && res && !modoReasignar && !esMobil && (
                 <g
-                  onMouseDown={(e) => {
+                  onPointerDown={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
                     quitarMesaClickRef.current = true;
@@ -3886,7 +3891,7 @@ Buenas y Santas`;
               </div>
               <div style={{ position: "relative", display: "inline-block", width: "100%", maxWidth: 640 }}>
                 <svg key={reservasTurno.map(r => r.id + r.estado).join(",")} viewBox={`0 0 ${VW} ${VH}`} style={{ width: "100%", display: "block", borderRadius: 12, boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}
-                  onMouseUp={async (e) => {
+                  onPointerUp={async (e) => {
                     if (!mesaDragging || mesaDragging.tipo !== "mover") {
                       if (mesaDragging && mesaDragging.tipo === "mover") setMesaDragging(null);
                       return;
@@ -3913,6 +3918,9 @@ Buenas y Santas`;
                     if (!mesaDestino) { setMesaDragging(null); return; }
                     const reserva = reservas.find(r => r.id === mesaDragging.reservaId);
                     if (!reserva) { setMesaDragging(null); return; }
+                    // Soltada en su misma mesa (o solo un toque): no se cambia nada
+                    const mesasActuales = (reserva.mesas && reserva.mesas.length > 0 ? reserva.mesas : reserva.mesa ? String(reserva.mesa).split("+") : []).map(Number);
+                    if (mesasActuales.includes(Number(mesaDestino))) { setMesaDragging(null); return; }
                     const turnoR = getTurno(reserva.hora);
                     const mesasOcupadas = new Set(
                       reservas
@@ -3937,7 +3945,8 @@ Buenas y Santas`;
                     await asignarMesasConcretas(reserva.id, mesasAsignadas);
                     setMesaDragging(null);
                   }}
-                  onMouseLeave={() => { if (mesaDragging && mesaDragging.tipo === "mover") setMesaDragging(null); }}>
+                  onPointerLeave={() => { if (mesaDragging && mesaDragging.tipo === "mover") setMesaDragging(null); }}
+                  onPointerCancel={() => { if (mesaDragging && mesaDragging.tipo === "mover") setMesaDragging(null); }}>
                   <defs>
                     <filter id="mesaShadow" x="-15%" y="-15%" width="130%" height="130%">
                       <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" floodColor="#1b5e20" floodOpacity="0.18"/>
