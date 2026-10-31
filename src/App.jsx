@@ -1487,24 +1487,19 @@ const moverDuplicadasAPasadas = (duplicadas) => {
       .filter(r => !asignaciones[r.id])
       .sort((a, b) => { const pd = (b.personas || 0) - (a.personas || 0); return pd !== 0 ? pd : (a.hora || "").localeCompare(b.hora || ""); });
 
-    // Si ajuste6 = true: pre-asignar reservas de 6 pax con lógica especial
+    // Si ajuste6 = true: las reservas de 6 pax van en 2 mesas
     if (ajuste6) {
-      const mesas6Especiales = [[8, 18], [7, 17]];
-      let idx6 = 0;
+      const mesas6Especiales = [[8, 18], [7, 17], [1, 2], [12, 13], [3, 4], [5, 15], [6, 16], [10, 11], [40, 41], [30, 31]];
       const reservas6Sin = porAsignar
         .filter(r => Number(r.personas) === 6)
         .sort((a, b) => (a.hora || "").localeCompare(b.hora || ""));
       for (const r of reservas6Sin) {
-        if (idx6 < mesas6Especiales.length) {
-          const mesas = mesas6Especiales[idx6];
-          // Solo si están libres
-          if (mesas.every(m => !mesasUsadas.has(m))) {
-            asignaciones[r.id] = mesas;
-            mesas.forEach(m => mesasUsadas.add(m));
-            idx6++;
-          }
+        const mesas = mesas6Especiales.find(par => par.every(m => !mesasUsadas.has(m)));
+        if (mesas) {
+          asignaciones[r.id] = mesas;
+          mesas.forEach(m => mesasUsadas.add(m));
         }
-        // Las restantes de 6 pax se asignan con lógica normal (caen al second pass)
+        // Si no queda ningún par libre, se queda sin mesa (lo avisa el second pass)
       }
     }
 
@@ -5386,13 +5381,13 @@ Buenas y Santas`;
               <button className="btn-outline" onClick={() => setConfirmarAjuste6(null)}>Cancelar</button>
               <button
                 style={{ padding: "10px 20px", fontFamily: "'Jost', sans-serif", fontSize: 12, letterSpacing: 1, textTransform: "uppercase", cursor: "pointer", background: "#e8f5e9", color: "#1b5e20", border: "1.5px solid #81c784", borderRadius: 4, fontWeight: 600 }}
-                onClick={() => { const { fecha, turno, reasignarTodo } = confirmarAjuste6; setConfirmarAjuste6(null); asignarMesasTurno(fecha, turno, false, null, reasignarTodo); }}>
-                2 mesas (normal)
+                onClick={() => { const { fecha, turno, reasignarTodo } = confirmarAjuste6; setConfirmarAjuste6(null); asignarMesasTurno(fecha, turno, true, null, reasignarTodo); }}>
+                2 mesas
               </button>
               <button
                 className="btn-gold"
-                onClick={() => { const { fecha, turno, reasignarTodo } = confirmarAjuste6; setConfirmarAjuste6(null); asignarMesasTurno(fecha, turno, true, null, reasignarTodo); }}>
-                3 mesas (especial)
+                onClick={() => { const { fecha, turno, reasignarTodo } = confirmarAjuste6; setConfirmarAjuste6(null); asignarMesasTurno(fecha, turno, false, null, reasignarTodo); }}>
+                3 mesas
               </button>
             </div>
           </div>
