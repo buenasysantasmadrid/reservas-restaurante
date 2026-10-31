@@ -29,6 +29,42 @@ const EMAILS_PERMITIDOS = [
 const MESAS = [1, 2, 3, 4, 5, 15, 6, 16, 7, 17, 8, 18, 10, 11, 12, 13, 40, 41, 30, 31];
 const MESA_NOMBRE = { 30: "Barra 1", 31: "Barra 2" };
 const getMesaNombre = (m) => MESA_NOMBRE[m] || `${m}`;
+
+// ── GRUPOS GRANDES ───────────────────────────────────────────────────────────
+// Hasta 10 personas: una sola mesa. 11 y 12: se pregunta si van juntas en 4 mesas
+// o separadas en 2 (5+6 y 6+6). De 13 a 20: 2 mesas. De 21 a 30: 3 mesas.
+// Más de 30: una mesa más por cada 10 personas, para que ninguna pase de 10.
+const repartirPersonas = (pax, partes) => {
+  const base = Math.floor(pax / partes);
+  const resto = pax % partes;
+  return Array.from({ length: partes }, (_, i) => base + (i < resto ? 1 : 0));
+};
+const hayQuePreguntarReparto = (personas) => [11, 12].includes(Number(personas));
+// Devuelve las personas de cada mesa: 13 → [7, 6]. decision: "juntas" | "separadas"
+const repartoDeReserva = (personas, decision) => {
+  const pax = Number(personas) || 1;
+  if (pax <= 10) return [pax];
+  if (pax <= 12) return decision === "separadas" ? repartirPersonas(pax, 2) : [pax];
+  return repartirPersonas(pax, Math.ceil(pax / 10));
+};
+// Dice qué dibujo de mesas unidas toca a cada mesa. Una reserva separada puede
+// tener varios dibujos a la vez (por ejemplo, uno de 3 mesas y otro de 2).
+const fusionesPorMesa = (mesasPorReserva, grupos) => {
+  const mapa = {};
+  mesasPorReserva.forEach(mesas => {
+    const pendientes = new Set(mesas.map(Number));
+    if (pendientes.size < 2) return;
+    for (const grp of grupos) {
+      const ids = Array.isArray(grp) ? grp : grp.ids;
+      const unique = [...new Set(ids)];
+      if (unique.every(m => pendientes.has(m))) {
+        const fusion = Array.isArray(grp) ? unique : { ids: unique, clampToFirst: grp.clampToFirst, clampHeight: grp.clampHeight, anchorBottom: grp.anchorBottom };
+        unique.forEach(m => { mapa[m] = fusion; pendientes.delete(m); });
+      }
+    }
+  });
+  return mapa;
+};
 // Horarios: 13:30-16:00 cada 15 min (mediodía), 20:30-23:30 cada 15 min (noche)
 const HORARIOS_MEDIODIA = (() => {
   const slots = [];
@@ -362,6 +398,8 @@ export default function App() {
   const [pregunta6pax, setPregunta6pax] = useState(null); // { reservaId, mesaDestino }
   // Misma pregunta pero al arrastrar una reserva de 6 pax desde el panel lateral del Plano
   const [pregunta6paxPlano, setPregunta6paxPlano] = useState(null); // { reservaId, mesaDestino }
+  // Reservas de 11 o 12 pax: pregunta si van en 4 mesas juntas o separadas en 2
+  const [preguntaGrande, setPreguntaGrande] = useState(null); // { modo: "turno"|"plano"|"modificar", reservaId, ... }
   // Confirmación antes de asignar si ya hay mesas asignadas
   const [confirmarAsignarMesas, setConfirmarAsignarMesas] = useState(null); // { fecha, turno }
   // Fechas cerradas leídas de Google Sheets (hoja CERRAMOS)
@@ -866,15 +904,7 @@ const moverDuplicadasAPasadas = (duplicadas) => {
 
     const reubicaciones = [];
     for (const conflicto of conflictos) {
-      const paxC = Math.min(Number(conflicto.personas) || 1, 8);
-      const opciones = MESA_CONFIG[paxC] || MESA_CONFIG[1];
-      let mesasReubicadas = null;
-      for (const op of opciones) {
-        if (op.internas.every(m => !mesasBaseOcupadas.has(Number(m)))) {
-          mesasReubicadas = op.internas.map(Number);
-          break;
-        }
-      }
+      const mesasReubicadas = elegirMesasGrupo(conflicto, mesasBaseOcupadas);
       if (!mesasReubicadas) {
         showToast(`Sin espacio en 2º turno para reubicar a ${conflicto.nombre.split(" ")[0]} — asigna manualmente`, "error");
         return; // abortamos toda la sincronización, no dejamos nada a medias
@@ -942,16 +972,12 @@ const moverDuplicadasAPasadas = (duplicadas) => {
     noche: { bg: "#d0e8d0", label: "Noche" },
   };
 
-  const mesasParaPax = (pax) => {
-    if (pax <= 2) return 1;
-    if (pax <= 5) return 2;
-    if (pax <= 7) return 3;
-    return 4;
-  };
+  const mesasParaPax = (pax, decision) => repartoDeReserva(pax, decision)
+    .reduce((suma, p) => suma + (p <= 2 ? 1 : p <= 5 ? 2 : p <= 7 ? 3 : 4), 0);
 
   const getTurnoStatus = (fecha, turno) => {
     const rs = reservas.filter(r => r.fecha === fecha && getTurno(r.hora) === turno && r.estado !== "cancelada");
-    const totalMesas = rs.reduce((sum, r) => sum + mesasParaPax(r.personas || 1), 0);
+    const totalMesas = rs.reduce((sum, r) => sum + mesasParaPax(r.personas || 1, r.repartoMesas), 0);
     if (totalMesas > 13) return { status: "completo", mesas: totalMesas, bg: "#ffebee", labelBg: "#ffcdd2", labelColor: "#b71c1c" };
     if (totalMesas > 11) return { status: "cuidado", mesas: totalMesas, bg: "#fff3e0", labelBg: "#ffe0b2", labelColor: "#e65100" };
     return { status: "ok", mesas: totalMesas, bg: null, labelBg: null, labelColor: null };
@@ -1037,8 +1063,10 @@ const moverDuplicadasAPasadas = (duplicadas) => {
       return;
     }
 
-    const pax = Math.min(Number(reserva.personas) || 1, 8);
-    const opciones = MESA_CONFIG[pax] || MESA_CONFIG[1];
+    if (hayQuePreguntarReparto(reserva.personas)) {
+      setPreguntaGrande({ modo: "plano", reservaId, mesaDestino: Number(mesaDestino) });
+      return;
+    }
 
     // Calcular mesas ya ocupadas en ese turno (excluyendo esta reserva)
     const turnoR = getTurno(reserva.hora);
@@ -1049,22 +1077,11 @@ const moverDuplicadasAPasadas = (duplicadas) => {
         .map(Number)
     );
 
-    // Buscar en MESA_CONFIG el grupo preferido que contenga mesaDestino y esté libre
-    let mesasAsignadas = null;
-    for (const op of opciones) {
-      if (op.internas.map(Number).includes(Number(mesaDestino)) && op.internas.every(m => !mesasOcupadas.has(Number(m)))) {
-        mesasAsignadas = op.internas;
-        break;
-      }
-    }
-    // Si no encontró grupo con mesaDestino, buscar cualquier grupo libre
-    if (!mesasAsignadas) {
-      for (const op of opciones) {
-        if (op.internas.every(m => !mesasOcupadas.has(Number(m)))) {
-          mesasAsignadas = op.internas;
-          break;
-        }
-      }
+    // Grupo preferido que contenga mesaDestino y esté libre; si no, cualquier grupo libre
+    let mesasAsignadas = elegirMesasGrupo(reserva, mesasOcupadas, mesaDestino);
+    if (!mesasAsignadas && repartoDeReserva(reserva.personas, reserva.repartoMesas).length > 1) {
+      showToast("No hay espacio suficiente para esta reserva", "error");
+      return;
     }
     // Fallback: solo la mesa destino
     if (!mesasAsignadas) mesasAsignadas = [Number(mesaDestino)];
@@ -1385,6 +1402,29 @@ const moverDuplicadasAPasadas = (duplicadas) => {
     1: [{internas:[3]}, {internas:[10]}, {internas:[11]}, {internas:[4]}, {internas:[5]}, {internas:[15]}, {internas:[7]}, {internas:[17]}, {internas:[8]}, {internas:[18]}, {internas:[1]}, {internas:[2]}, {internas:[6]}, {internas:[16]}, {internas:[12]}, {internas:[13]}, {internas:[40]}, {internas:[41]}, {internas:[30]}, {internas:[31]}],
   };
 
+  // Elige las mesas libres de una reserva, una tanda por cada parte del reparto.
+  // Si no caben todas las partes devuelve null, para no dejar a medias al grupo.
+  // Con exigirDestino, una de las partes tiene que poder ir en mesaDestino.
+  const elegirMesasGrupo = (r, ocupadas, mesaDestino = null, exigirDestino = false) => {
+    const destino = mesaDestino === null ? null : Number(mesaDestino);
+    const usadas = new Set([...ocupadas].map(Number));
+    const opcionesDe = (p) => MESA_CONFIG[Math.min(p, 8)] || MESA_CONFIG[1];
+    const estaLibre = (op) => op.internas.every(m => !usadas.has(Number(m)));
+    const conDestino = (op) => op.internas.map(Number).includes(destino);
+    const partes = repartoDeReserva(r.personas, r.repartoMesas);
+    const iDestino = destino === null ? -1 : partes.findIndex(p => opcionesDe(p).some(op => conDestino(op) && estaLibre(op)));
+    if (exigirDestino && iDestino < 0) return null;
+    const orden = iDestino < 0 ? partes : [partes[iDestino], ...partes.filter((_, i) => i !== iDestino)];
+    const elegidas = [];
+    for (let i = 0; i < orden.length; i++) {
+      const ops = opcionesDe(orden[i]);
+      const op = (i === 0 && iDestino >= 0 && ops.find(o => conDestino(o) && estaLibre(o))) || ops.find(estaLibre);
+      if (!op) return null;
+      op.internas.forEach(m => { usadas.add(Number(m)); elegidas.push(Number(m)); });
+    }
+    return elegidas;
+  };
+
   // reasignarTodo = true → ignora las mesas que ya tienen las reservas del turno y las coloca todas de nuevo.
   // reasignarTodo = false → respeta las mesas ya puestas y solo coloca las reservas que no tienen mesa.
   const asignarMesasTurno = async (fecha, turno, ajuste6 = null, reservasSnapshot = null, reasignarTodo = false) => {
@@ -1427,6 +1467,13 @@ const moverDuplicadasAPasadas = (duplicadas) => {
       }
     }
 
+    // Reservas de 11 o 12 pax sin decidir: se pregunta una a una y la respuesta queda guardada
+    const grandeSinDecidir = reservasTurno.find(r => hayQuePreguntarReparto(r.personas) && !r.repartoMesas && !asignaciones[r.id]);
+    if (grandeSinDecidir) {
+      setPreguntaGrande({ modo: "turno", reservaId: grandeSinDecidir.id, fecha, turno, ajuste6, reasignarTodo, fuente: fuenteReservas });
+      return;
+    }
+
     // Si hay reservas de 6 pax sin resolver todavía y no se ha decidido aún, mostrar modal
     const reservas6 = reservasTurno.filter(r => Number(r.personas) === 6 && !asignaciones[r.id]);
     if (reservas6.length > 0 && ajuste6 === null) {
@@ -1464,15 +1511,7 @@ const moverDuplicadasAPasadas = (duplicadas) => {
     // Second pass: assign unassigned reservas
     for (const r of porAsignar) {
       if (asignaciones[r.id]) continue; // already assigned
-      const pax = Math.min(r.personas || 1, 8);
-      const opciones = MESA_CONFIG[pax] || MESA_CONFIG[1];
-      let asignada = null;
-      for (const op of opciones) {
-        if (op.internas.every(m => !mesasUsadas.has(m))) {
-          asignada = op.internas;
-          break;
-        }
-      }
+      const asignada = elegirMesasGrupo(r, mesasUsadas);
       if (asignada) {
         asignaciones[r.id] = asignada;
         asignada.forEach(m => mesasUsadas.add(m));
@@ -1727,21 +1766,9 @@ const moverDuplicadasAPasadas = (duplicadas) => {
       const ms = r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : [];
       ms.forEach(m => { mesaReservaP[m] = r; });
     });
-    const reservaMergeGroupP = {};
-    resTurno.forEach(r => {
-      const ms = new Set(r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []);
-      if (ms.size < 2) return;
-      for (const grp of MERGE_GROUPS_P) {
-        const ids = Array.isArray(grp) ? grp : grp.ids;
-        const unique = [...new Set(ids)];
-        if (unique.every(m => ms.has(m))) {
-          reservaMergeGroupP[r.id] = Array.isArray(grp) ? unique : { ids:unique, clampToFirst:grp.clampToFirst, clampHeight:grp.clampHeight, anchorBottom:grp.anchorBottom };
-          break;
-        }
-      }
-    });
+    const mesaMergeGroupP = fusionesPorMesa(resTurno.map(r => r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []), MERGE_GROUPS_P);
     const secondaryMesasP = new Set();
-    Object.values(reservaMergeGroupP).forEach(grp => {
+    Object.values(mesaMergeGroupP).forEach(grp => {
       const ids = Array.isArray(grp) ? grp : grp.ids;
       ids.slice(1).forEach(m => secondaryMesasP.add(m));
     });
@@ -1759,7 +1786,7 @@ const moverDuplicadasAPasadas = (duplicadas) => {
       const strokeW = ocupada ? 0.9 : 0.6;
       const strokeDash = sinConfirmar ? `stroke-dasharray="3 2"` : "";
       const textC  = llego ? "#ccc"   : sinConfirmar ? "#555"    : ocupada ? "#333"    : "#bbb";
-      const mergeGroup = res ? reservaMergeGroupP[res.id] : null;
+      const mergeGroup = res ? mesaMergeGroupP[id] : null;
       const mergeIds = mergeGroup ? (Array.isArray(mergeGroup) ? mergeGroup : mergeGroup.ids) : null;
       const clampToFirst = mergeGroup && !Array.isArray(mergeGroup) && mergeGroup.clampToFirst;
       const clampHeight = mergeGroup && !Array.isArray(mergeGroup) ? mergeGroup.clampHeight : null;
@@ -3271,8 +3298,8 @@ Buenas y Santas`;
                     r.estado !== "cancelada" &&
                     r.id !== reservaEditando
                   );
-                  const mesasExistentes = existing.reduce((sum, r) => sum + mesasParaPax(r.personas || 1), 0);
-                  const mesasNuevas = form.personas ? mesasParaPax(form.personas) : 0;
+                  const mesasExistentes = existing.reduce((sum, r) => sum + mesasParaPax(r.personas || 1, r.repartoMesas), 0);
+                  const mesasNuevas = form.personas ? mesasParaPax(form.personas, form.repartoMesas) : 0;
                   const totalMesas = mesasExistentes + mesasNuevas;
                   let status = "ok";
                   if (totalMesas > 13) status = "completo";
@@ -3503,22 +3530,10 @@ Buenas y Santas`;
           [30, 31],
         ];
 
-        const reservaMergeGroup = {};
-        reservasTurno.forEach(r => {
-          const ms = new Set(r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []);
-          if (ms.size < 2) return;
-          for (const grp of MERGE_GROUPS) {
-            const ids = Array.isArray(grp) ? grp : grp.ids;
-            const unique = [...new Set(ids)];
-            if (unique.every(m => ms.has(m))) {
-              reservaMergeGroup[r.id] = Array.isArray(grp) ? unique : { ids: unique, clampToFirst: grp.clampToFirst, clampHeight: grp.clampHeight, anchorBottom: grp.anchorBottom };
-              break;
-            }
-          }
-        });
+        const mesaMergeGroup = fusionesPorMesa(reservasTurno.map(r => r.mesas && r.mesas.length > 0 ? r.mesas : r.mesa ? [r.mesa] : []), MERGE_GROUPS);
 
         const secondaryMesas = new Set();
-        Object.values(reservaMergeGroup).forEach(grp => {
+        Object.values(mesaMergeGroup).forEach(grp => {
           const ids = Array.isArray(grp) ? grp : grp.ids;
           ids.slice(1).forEach(m => secondaryMesas.add(m));
         });
@@ -3537,11 +3552,9 @@ Buenas y Santas`;
               .flatMap(x => x.mesas && x.mesas.length > 0 ? x.mesas : x.mesa ? String(x.mesa).split("+").map(Number).filter(Boolean) : [])
               .map(Number)
           );
-          const pax = Math.min(Number(reserva.personas) || 1, 8);
-          const opciones = MESA_CONFIG[pax] || MESA_CONFIG[1];
-          const op = opciones.find(o => o.internas.map(Number).includes(Number(mesaDestino)) && o.internas.every(m => !mesasOcupadas.has(Number(m))));
-          if (!op) { showToast("No hay espacio suficiente para esta reserva aquí", "error"); return; }
-          await asignarMesasConcretas(reserva.id, op.internas);
+          const mesasNuevas = elegirMesasGrupo(reserva, mesasOcupadas, mesaDestino, true);
+          if (!mesasNuevas) { showToast("No hay espacio suficiente para esta reserva aquí", "error"); return; }
+          await asignarMesasConcretas(reserva.id, mesasNuevas);
         };
 
         const MesaSVG = ({ mesa }) => {
@@ -3573,7 +3586,7 @@ Buenas y Santas`;
           // En modo reasignar, mesas no relevantes se atenúan un poco
           const opacity = (modoReasignar && hayReservaSeleccionada && !esReservaSeleccionada && !esMesaDestino) ? 0.5 : 1;
 
-          const mergeGroup = res ? reservaMergeGroup[res.id] : null;
+          const mergeGroup = res ? mesaMergeGroup[id] : null;
           const mergeIds = mergeGroup ? (Array.isArray(mergeGroup) ? mergeGroup : mergeGroup.ids) : null;
           const clampToFirst = mergeGroup && !Array.isArray(mergeGroup) && mergeGroup.clampToFirst;
           const clampHeight = mergeGroup && !Array.isArray(mergeGroup) ? mergeGroup.clampHeight : null;
@@ -3699,8 +3712,6 @@ Buenas y Santas`;
               reservaMoviendo = reservas.find(r => r.id === mesaDragging.reservaId);
             }
             if (!reservaMoviendo) return false;
-            const paxM = Math.min(Number(reservaMoviendo.personas) || 1, 8);
-            const opcionesM = MESA_CONFIG[paxM] || MESA_CONFIG[1];
             const turnoM = getTurno(reservaMoviendo.hora);
             const mesasOcupadasM = new Set(
               reservas
@@ -3708,10 +3719,7 @@ Buenas y Santas`;
                 .flatMap(x => x.mesas && x.mesas.length > 0 ? x.mesas : x.mesa ? String(x.mesa).split("+").map(Number).filter(Boolean) : [])
                 .map(Number)
             );
-            return opcionesM.some(op =>
-              op.internas.map(Number).includes(Number(id)) &&
-              op.internas.every(m => !mesasOcupadasM.has(Number(m)))
-            );
+            return elegirMesasGrupo(reservaMoviendo, mesasOcupadasM, id, true) !== null;
           })();
 
           const isDropTarget = esDestinoValido;
@@ -4419,6 +4427,17 @@ Buenas y Santas`;
             setPregunta6pax({ reservaId: r.id, mesaDestino });
             return;
           }
+          if (hayQuePreguntarReparto(r.personas)) {
+            setPreguntaGrande({ modo: "modificar", reservaId: r.id, mesaDestino });
+            return;
+          }
+          if (Number(r.personas) > 12) {
+            const ocupadas = reservasTurno2.filter(x => x.id !== r.id).flatMap(x => getMesasDeReserva(x));
+            const mesasGrupo = elegirMesasGrupo(r, ocupadas, mesaDestino);
+            if (!mesasGrupo) { showToast("No hay espacio suficiente para esta reserva", "error"); return; }
+            setAsignarPendiente(p => ({ ...p, [r.id]: mesasGrupo }));
+            return;
+          }
           const mesasElegidas = elegirMesas(r, mesaDestino, null);
           setAsignarPendiente(p => ({ ...p, [r.id]: mesasElegidas }));
         };
@@ -4724,20 +4743,8 @@ Buenas y Santas`;
                     { ids:[8,18,2], clampToFirst:true, clampHeight:2.1, anchorBottom:true },
                     [1,2],[3,4],[5,15],[12,13],[8,18],[7,17],[6,16],[11,10],[40,41],[30,31],
                   ];
-                  // mergeGroup por reserva
-                  const rmg2 = {};
-                  reservasTurno2.forEach(r => {
-                    const ms2 = new Set(getMesasDeReserva(r));
-                    if (ms2.size < 2) return;
-                    for (const grp of MGROUPS_P) {
-                      const ids2 = Array.isArray(grp) ? grp : grp.ids;
-                      const uniq2 = [...new Set(ids2)];
-                      if (uniq2.every(m => ms2.has(m))) {
-                        rmg2[r.id] = Array.isArray(grp) ? uniq2 : { ids: uniq2, clampToFirst: grp.clampToFirst, clampHeight: grp.clampHeight, anchorBottom: grp.anchorBottom };
-                        break;
-                      }
-                    }
-                  });
+                  // Dibujo de mesas unidas de cada mesa
+                  const rmg2 = fusionesPorMesa(reservasTurno2.map(r => getMesasDeReserva(r)), MGROUPS_P);
                   const sec2 = new Set();
                   Object.values(rmg2).forEach(grp => { const ids2 = Array.isArray(grp) ? grp : grp.ids; ids2.slice(1).forEach(m => sec2.add(m)); });
 
@@ -4763,7 +4770,7 @@ Buenas y Santas`;
                         let mw = w*U2, mh = h*U2;
 
                         if (reservaEnMesa) {
-                          const mg = rmg2[reservaEnMesa.id];
+                          const mg = rmg2[id];
                           if (mg) {
                             const mergeIds2 = Array.isArray(mg) ? mg : mg.ids;
                             if (mergeIds2[0] === id && mergeIds2.length > 1) {
@@ -4793,7 +4800,7 @@ Buenas y Santas`;
                         const fill = reservaEnMesa ? "#2e7d32" : puedeRecibir ? "#fffde7" : "#e8f5e9";
                         const stroke = reservaEnMesa ? "#1b5e20" : puedeRecibir ? "#f9a825" : "#81c784";
                         const textC = reservaEnMesa ? "#fff" : puedeRecibir ? "#e65100" : "#2e7d32";
-                        const isMergedPrimary = reservaEnMesa && (() => { const mg=rmg2[reservaEnMesa.id]; if(!mg) return false; const ids2=Array.isArray(mg)?mg:mg.ids; return ids2[0]===id && ids2.length>1; })();
+                        const isMergedPrimary = reservaEnMesa && (() => { const mg=rmg2[id]; if(!mg) return false; const ids2=Array.isArray(mg)?mg:mg.ids; return ids2[0]===id && ids2.length>1; })();
 
                         return (
                           <g key={id}
@@ -4891,6 +4898,61 @@ Buenas y Santas`;
           </div>
         </div>
       )}
+
+      {/* ── MODAL 11 O 12 PAX: 4 MESAS JUNTAS O SEPARADAS EN 2 ── */}
+      {preguntaGrande && (() => {
+        const pg = preguntaGrande;
+        const fuente = pg.fuente || reservas;
+        const r = fuente.find(x => x.id === pg.reservaId);
+        if (!r) return null;
+        const pax = Number(r.personas);
+        const elegirReparto = async (decision) => {
+          setPreguntaGrande(null);
+          const actualizada = { ...r, repartoMesas: decision };
+          if (pg.modo === "turno") {
+            await fbSetReserva(actualizada);
+            await asignarMesasTurno(pg.fecha, pg.turno, pg.ajuste6, fuente.map(x => x.id === r.id ? actualizada : x), pg.reasignarTodo);
+            return;
+          }
+          const ocupadas = reservas
+            .filter(x => x.id !== r.id && x.fecha === r.fecha && getTurno(x.hora) === getTurno(r.hora) && x.estado !== "cancelada")
+            .flatMap(x => {
+              const pendiente = pg.modo === "modificar" ? asignarPendiente[x.id] : undefined;
+              if (pendiente !== undefined) return pendiente;
+              return x.mesas && x.mesas.length > 0 ? x.mesas : x.mesa ? String(x.mesa).split("+").map(Number).filter(Boolean) : [];
+            });
+          const mesasElegidas = elegirMesasGrupo(actualizada, ocupadas, pg.mesaDestino);
+          if (!mesasElegidas) { showToast("No hay espacio suficiente para esta reserva", "error"); return; }
+          if (pg.modo === "modificar") {
+            await fbSetReserva(actualizada);
+            setAsignarPendiente(p => ({ ...p, [r.id]: mesasElegidas }));
+          } else {
+            await fbSetReserva({ ...actualizada, mesas: mesasElegidas, mesa: mesasElegidas[0] });
+            showToast(`${r.nombre.split(" ")[0]} → Mesas ${mesasElegidas.map(getMesaNombre).join("+")} ✓`);
+          }
+        };
+        const estiloBoton = { padding: "14px 20px", fontFamily: "'Jost',sans-serif", fontSize: 16, fontWeight: 700, cursor: "pointer", background: "#e8f5e9", color: "#1b5e20", border: "2px solid #81c784", borderRadius: 8 };
+        return (
+          <div className="overlay" style={{ zIndex: 70 }}>
+            <div className="modal" style={{ maxWidth: 420, textAlign: "center", padding: "36px 32px" }}>
+              <p style={{ fontFamily: "'Jost',sans-serif", fontSize: 11, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", marginBottom: 8 }}>
+                {r.nombre.split(" ")[0]} · {pax} pax
+              </p>
+              <h2 style={{ fontFamily: "'Lora',serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", marginBottom: 24 }}>
+                ¿Cómo los sentamos?
+              </h2>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <button style={estiloBoton} onClick={() => elegirReparto("juntas")}>4 mesas juntas</button>
+                <button style={estiloBoton} onClick={() => elegirReparto("separadas")}>
+                  {pax === 12 ? "2 mesas de 6" : "2 mesas: una de 5 y otra de 6"}
+                </button>
+              </div>
+              <button className="btn-outline" style={{ marginTop: 18, fontSize: 11, color: "#888", borderColor: "#ccc" }}
+                onClick={() => setPreguntaGrande(null)}>Cancelar</button>
+            </div>
+          </div>
+        );
+      })()}
 
       {turnoModalAbierto && (
         <div className="overlay" style={{ zIndex: 60 }} onClick={e => e.target === e.currentTarget && setTurnoModalAbierto(false)}>
@@ -5041,15 +5103,7 @@ Buenas y Santas`;
             let sinSitio = false;
             // Reasignar cada reserva en conflicto usando MESA_CONFIG igual que agregarMesaInline
             for (const reservaConflicto of conflictos) {
-              const paxC = Math.min(Number(reservaConflicto.personas) || 1, 8);
-              const opciones = MESA_CONFIG[paxC] || MESA_CONFIG[1];
-              let mesasNuevas = null;
-              for (const op of opciones) {
-                if (op.internas.every(m => !mesasBaseOcupadas.has(Number(m)))) {
-                  mesasNuevas = op.internas.map(Number);
-                  break;
-                }
-              }
+              const mesasNuevas = elegirMesasGrupo(reservaConflicto, mesasBaseOcupadas);
               if (!mesasNuevas) {
                 sinSitio = true;
                 break;
