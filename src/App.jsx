@@ -318,6 +318,29 @@ function TelefonoInput({ form, setForm, reservas, clientesArchivados }) {
   );
 }
 
+// Nombre corto para el plano y los avisos: la primera palabra. Si empieza por
+// María y tiene segundo nombre, "Mª Teresa" (25/11/2026: una reserva de
+// María Teresa salía como "Maria" y la clienta la buscaba por Teresa).
+const SEGUNDOS_NOMBRES_MARIA = ["jose", "jesus", "teresa", "carmen", "isabel", "luisa", "angeles", "pilar", "dolores", "elena",
+  "eugenia", "victoria", "cristina", "belen", "rosa", "paz", "mar", "laura", "antonia", "fernanda", "ines", "luz", "paula",
+  "concepcion", "mercedes", "soledad", "asuncion", "lourdes", "rocio", "nieves", "amparo", "begona", "montserrat", "gracia",
+  "esther", "eva", "josefa", "julia", "lucia", "magdalena", "alejandra", "andrea", "camila", "florencia", "sol", "celeste",
+  "emilia", "agustina", "valentina", "lujan", "silvia", "cecilia", "clara", "marta", "ana", "sofia", "inmaculada", "jimena",
+  "milagros", "guadalupe", "candela", "macarena", "consuelo", "esperanza", "estela", "fe", "noelia", "olga", "pia", "rita",
+  "virginia", "auxiliadora", "reyes", "rosario", "carolina", "gabriela", "natalia", "emma", "elisa", "beatriz", "antonieta"];
+function nombreCorto(nombre) {
+  const partes = String(nombre || "").trim().split(/\s+/);
+  const primero = partes[0] || "";
+  const sinTilde = primero.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\.$/, "");
+  if (["maria", "mª", "ma", "m"].includes(sinTilde) || primero === "Mª") {
+    const segundo = partes.slice(1).find(p => !["de", "del", "la", "las", "los", "el"].includes(p.toLowerCase()));
+    // Solo si es un segundo nombre (no un apellido: "María López" sigue "María").
+    const clave = String(segundo || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    if (segundo && SEGUNDOS_NOMBRES_MARIA.includes(clave)) return "Mª " + segundo;
+  }
+  return primero;
+}
+
 export default function App() {
   useEffect(() => {
     document.title = "Reservas · Buenas y Santas";
@@ -906,7 +929,7 @@ const moverDuplicadasAPasadas = (duplicadas) => {
     for (const conflicto of conflictos) {
       const mesasReubicadas = elegirMesasGrupo(conflicto, mesasBaseOcupadas);
       if (!mesasReubicadas) {
-        showToast(`Sin espacio en 2º turno para reubicar a ${conflicto.nombre.split(" ")[0]} — asigna manualmente`, "error");
+        showToast(`Sin espacio en 2º turno para reubicar a ${nombreCorto(conflicto.nombre)} — asigna manualmente`, "error");
         return; // abortamos toda la sincronización, no dejamos nada a medias
       }
       mesasReubicadas.forEach(m => mesasBaseOcupadas.add(m));
@@ -920,7 +943,7 @@ const moverDuplicadasAPasadas = (duplicadas) => {
     batch.set(doc(db, "reservas", String(pareja.id)), { ...pareja, mesas: mesasNuevas, mesa: mesasNuevas.join("+") });
     await batch.commit();
 
-    showToast(`Se ha reasignado la mesa que estaba ocupada en el 2º turno (${reubicaciones.map(r => r.conflicto.nombre.split(" ")[0]).join(", ")}) ✓`);
+    showToast(`Se ha reasignado la mesa que estaba ocupada en el 2º turno (${reubicaciones.map(r => r.nombreCorto(conflicto.nombre)).join(", ")}) ✓`);
   };
 
   const fbDeleteReserva = async (id) => {
@@ -1044,7 +1067,7 @@ const moverDuplicadasAPasadas = (duplicadas) => {
     const reserva = reservas.find(r => r.id === reservaId);
     if (!reserva) return;
     await fbSetReserva({ ...reserva, mesas: mesasAsignadas, mesa: mesasAsignadas[0] || "" });
-    const texto = `${reserva.nombre.split(" ")[0]} → Mesa${mesasAsignadas.length > 1 ? "s" : ""} ${mesasAsignadas.map(getMesaNombre).join("+")} ✓`;
+    const texto = `${nombreCorto(reserva.nombre)} → Mesa${mesasAsignadas.length > 1 ? "s" : ""} ${mesasAsignadas.map(getMesaNombre).join("+")} ✓`;
     if (avisar6en2 && esSeisEnDosMesas(reserva, mesasAsignadas)) {
       showToast(`⚠ ${texto} · Mesa de 6 asignada a solo 2 mesas`, "aviso");
     } else {
@@ -1510,7 +1533,7 @@ const moverDuplicadasAPasadas = (duplicadas) => {
       if (asignada) {
         asignaciones[r.id] = asignada;
         asignada.forEach(m => mesasUsadas.add(m));
-        if (esSeisEnDosMesas(r, asignada)) seisEnDos.push(r.nombre.split(" ")[0]);
+        if (esSeisEnDosMesas(r, asignada)) seisEnDos.push(nombreCorto(r.nombre));
       } else {
         sinMesa.push(r.nombre);
       }
@@ -1812,7 +1835,7 @@ const moverDuplicadasAPasadas = (duplicadas) => {
         <rect x="${mx}" y="${my}" width="${mw}" height="${mh}" rx="5" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}" ${strokeDash}/>
         <text x="${mx+mw/2}" y="${my+lineH}" text-anchor="middle" style="font-family:'Cormorant Garamond',serif;font-size:14px;font-style:italic;fill:${textC};font-weight:300">${label}</text>
         ${res?`<text x="${mx+mw/2}" y="${my+mh*(isMerged?0.38:0.48)}" text-anchor="middle" style="font-family:'Jost',sans-serif;font-size:7.5px;fill:#555;font-weight:300">${getHoraMostrar(res)}</text>`:""}
-        ${res?`<text x="${mx+mw/2}" y="${my+mh*(isMerged?0.58:0.68)}" text-anchor="middle" style="font-family:'Jost',sans-serif;font-size:8px;fill:#444;font-weight:300">${res.nombre.split(" ")[0]}</text>`:""}
+        ${res?`<text x="${mx+mw/2}" y="${my+mh*(isMerged?0.58:0.68)}" text-anchor="middle" style="font-family:'Jost',sans-serif;font-size:8px;fill:#444;font-weight:300">${nombreCorto(res.nombre)}</text>`:""}
         ${res?`<text x="${mx+mw/2}" y="${my+mh*(isMerged?0.80:0.88)}" text-anchor="middle" style="font-family:'Jost',sans-serif;font-size:7.5px;fill:#666;font-weight:300">${res.personas}p</text>`:""}
       </g>`;
     }).join("");
@@ -3760,7 +3783,7 @@ Buenas y Santas`;
                 setHoveredMesa({
                   x: mx + mw / 2, y: my,
                   nota: res.notas,
-                  nombre: res.nombre.split(" ")[0],
+                  nombre: nombreCorto(res.nombre),
                   svgOffsetX: svgRect.left - containerRect.left,
                   svgOffsetY: svgRect.top - containerRect.top,
                   scaleX: svgRect.width / VW,
@@ -3788,7 +3811,7 @@ Buenas y Santas`;
               {res && (
                 <text x={mx + mw/2} y={my + mh * (isMerged ? 0.58 : 0.68)} textAnchor="middle"
                   style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 10, fontWeight: 600, fill: textC, letterSpacing: 0.5 }}>
-                  {res.nombre.split(" ")[0]}
+                  {nombreCorto(res.nombre)}
                 </text>
               )}
               {res && (
@@ -3823,7 +3846,7 @@ Buenas y Santas`;
           const reserva = reservas.find(r => r.id === reasignarReservaId);
           if (!reserva) return;
           await fbSetReserva({ ...reserva, mesas: reasignarMesasDestino, mesa: reasignarMesasDestino[0] });
-          showToast(`${reserva.nombre.split(" ")[0]} → Mesa${reasignarMesasDestino.length > 1 ? "s" : ""} ${reasignarMesasDestino.join("+")} ✓`);
+          showToast(`${nombreCorto(reserva.nombre)} → Mesa${reasignarMesasDestino.length > 1 ? "s" : ""} ${reasignarMesasDestino.join("+")} ✓`);
           setReasignarReservaId(null);
           setReasignarMesasDestino([]);
         };
@@ -3915,7 +3938,7 @@ Buenas y Santas`;
                           onClick={() => setMesaDragging(elegida ? null : { tipo: "mover", reservaId: r.id, mesaOrigen: null, toque: true })}
                           style={{ fontFamily: "'Jost', sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer", touchAction: "manipulation",
                             background: elegida ? "#ff8f00" : "#fff", border: `1px solid ${elegida ? "#e65100" : "#f5c6c6"}`, borderRadius: 6, padding: "5px 10px", color: elegida ? "#fff" : "#1a2e1a" }}>
-                          {r.nombre.split(" ")[0]} · {getHoraMostrar(r)} · {r.personas}p
+                          {nombreCorto(r.nombre)} · {getHoraMostrar(r)} · {r.personas}p
                         </span>
                       );
                     })}
@@ -3948,7 +3971,7 @@ Buenas y Santas`;
                 const rm = reservas.find(r => r.id === mesaDragging.reservaId);
                 return (
                   <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", background: "#fff8e1", border: "1px solid #ffb300", borderRadius: 8, padding: "8px 12px", marginBottom: 12, fontFamily: "'Jost', sans-serif", fontSize: 14, color: "#5d4037" }}>
-                    <span style={{ flex: 1, minWidth: 0 }}>Moviendo a <b>{rm ? rm.nombre.split(" ")[0] : ""}</b>: toca una mesa libre marcada en verde</span>
+                    <span style={{ flex: 1, minWidth: 0 }}>Moviendo a <b>{rm ? nombreCorto(rm.nombre) : ""}</b>: toca una mesa libre marcada en verde</span>
                     <button className="btn-outline" style={{ fontSize: 11, padding: "6px 12px" }} onClick={() => setMesaDragging(null)}>Cancelar</button>
                   </div>
                 );
@@ -4089,7 +4112,7 @@ Buenas y Santas`;
                           }}
                         >
                           <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 16, fontWeight: 700, color: "#1a2e1a" }}>
-                            {r.nombre.split(" ")[0]}
+                            {nombreCorto(r.nombre)}
                           </div>
                           <div style={{ fontFamily: "'Jost', sans-serif", fontSize: 10, color: "#888", marginTop: 2 }}>
                             {getHoraMostrar(r)} · {r.personas} pax
@@ -4152,7 +4175,7 @@ Buenas y Santas`;
                       const preDigits = prefijo.replace(/\D/g, "");
                       const numDigits = raw.replace(/\D/g, "");
                       const tel = preDigits ? preDigits + numDigits : "34" + numDigits;
-                      const firstName = r.nombre.split(" ")[0];
+                      const firstName = r.nombre.split(" ")[0]; // WhatsApp: el primer nombre tal cual
                       const msg = encodeURIComponent(`Hola ${firstName}!\n\nTe escribimos porque en este momento *tenemos una mesa disponible.*\nSi te interesa venir antes de tu horario, respóndenos a este mensaje y te la guardamos.\nDe lo contrario, nos vemos a la hora de tu reserva\n\n \n¡Buenas y santas!`);
                       const turnoR = getTurno(r.hora);
                       const mesasOcupadasEnTurno = reservas.filter(x => x.id !== r.id && getTurno(x.hora) === turnoR && x.fecha === r.fecha && x.estado !== "cancelada").flatMap(x => x.mesas || (x.mesa ? [x.mesa] : []));
@@ -4267,7 +4290,7 @@ Buenas y Santas`;
           <div className="overlay" style={{ zIndex: 70 }}>
             <div className="modal" style={{ maxWidth: 380, textAlign: "center", padding: "36px 32px" }}>
               <p style={{ fontFamily: "'Jost',sans-serif", fontSize: 11, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", marginBottom: 8 }}>
-                {r.nombre.split(" ")[0]} · 6 pax
+                {nombreCorto(r.nombre)} · 6 pax
               </p>
               <h2 style={{ fontFamily: "'Lora',serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", marginBottom: 24 }}>
                 ¿Cuántas mesas?
@@ -4589,7 +4612,7 @@ Buenas y Santas`;
                 style={{ cursor:"grab", opacity:isDragging?0.5:1, userSelect:"none" }}>
                 <svg width={sw} height={sh} viewBox={`0 0 ${sw} ${sh}`}>
                   <rect x={1} y={1} width={sw-2} height={sh-2} rx={7} fill={sinMesa?"#e0e0e0":"#e8f5e9"} stroke={sinMesa?"#888":"#81c784"} strokeWidth={1.5}/>
-                  <text x={sw/2} y={22} textAnchor="middle" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:14,fontWeight:700,fill:"#111"}}>{r.nombre.split(" ")[0]}</text>
+                  <text x={sw/2} y={22} textAnchor="middle" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:14,fontWeight:700,fill:"#111"}}>{nombreCorto(r.nombre)}</text>
                   <text x={sw/2} y={38} textAnchor="middle" style={{fontFamily:"'Jost',sans-serif",fontSize:10,fill:"#555"}}>{getHoraMostrar(r)}</text>
                   <text x={sw/2} y={60} textAnchor="middle" style={{fontFamily:"'Jost',sans-serif",fontSize:16,fill:"#111",fontWeight:700}}>{pax}p</text>
                 </svg>
@@ -4657,7 +4680,7 @@ Buenas y Santas`;
                 <rect x={0} y={0} width={svgW} height={INFO_H} rx={6} fill={sinMesa?"#f0f0f0":"#f1f8f1"}/>
                 <text x={svgW/2} y={15} textAnchor="middle"
                   style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:700,fill:"#111"}}>
-                  {r.nombre.split(" ")[0]}
+                  {nombreCorto(r.nombre)}
                 </text>
                 <text x={svgW/2} y={29} textAnchor="middle"
                   style={{fontFamily:"'Jost',sans-serif",fontSize:13,fill:"#555",fontWeight:600}}>
@@ -4815,7 +4838,7 @@ Buenas y Santas`;
                             {reservaEnMesa && <>
                               <text x={mx+mw/2} y={my+mh*(isMergedPrimary?0.48:0.55)} textAnchor="middle"
                                 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:700,fill:"#fff"}}>
-                                {reservaEnMesa.nombre.split(" ")[0]}
+                                {nombreCorto(reservaEnMesa.nombre)}
                               </text>
                               <text x={mx+mw/2} y={my+mh*(isMergedPrimary?0.67:0.76)} textAnchor="middle"
                                 style={{fontFamily:"'Jost',sans-serif",fontSize:10,fontWeight:600,fill:"#fff",opacity:0.9}}>
@@ -4856,7 +4879,7 @@ Buenas y Santas`;
         <div className="overlay" style={{ zIndex: 70 }}>
           <div className="modal" style={{ maxWidth: 380, textAlign: "center", padding: "36px 32px" }}>
             <p style={{ fontFamily:"'Jost',sans-serif", fontSize:11, letterSpacing:2, color:"#4a7a4a", textTransform:"uppercase", marginBottom:8 }}>
-              {reservas.find(x=>x.id===pregunta6pax.reservaId)?.nombre.split(" ")[0]} · 6 pax
+              {nombreCorto(reservas.find(x=>x.id===pregunta6pax.reservaId)?.nombre)} · 6 pax
             </p>
             <h2 style={{ fontFamily:"'Lora',serif", fontSize:22, fontWeight:700, color:"#1a1a1a", marginBottom:24 }}>
               ¿Cuántas mesas?
@@ -4923,7 +4946,7 @@ Buenas y Santas`;
             setAsignarPendiente(p => ({ ...p, [r.id]: mesasElegidas }));
           } else {
             await fbSetReserva({ ...actualizada, mesas: mesasElegidas, mesa: mesasElegidas[0] });
-            showToast(`${r.nombre.split(" ")[0]} → Mesas ${mesasElegidas.map(getMesaNombre).join("+")} ✓`);
+            showToast(`${nombreCorto(r.nombre)} → Mesas ${mesasElegidas.map(getMesaNombre).join("+")} ✓`);
           }
         };
         const estiloBoton = { padding: "14px 20px", fontFamily: "'Jost',sans-serif", fontSize: 16, fontWeight: 700, cursor: "pointer", background: "#e8f5e9", color: "#1b5e20", border: "2px solid #81c784", borderRadius: 8 };
@@ -4931,7 +4954,7 @@ Buenas y Santas`;
           <div className="overlay" style={{ zIndex: 70 }}>
             <div className="modal" style={{ maxWidth: 420, textAlign: "center", padding: "36px 32px" }}>
               <p style={{ fontFamily: "'Jost',sans-serif", fontSize: 11, letterSpacing: 2, color: "#4a7a4a", textTransform: "uppercase", marginBottom: 8 }}>
-                {r.nombre.split(" ")[0]} · {pax} pax
+                {nombreCorto(r.nombre)} · {pax} pax
               </p>
               <h2 style={{ fontFamily: "'Lora',serif", fontSize: 22, fontWeight: 700, color: "#1a1a1a", marginBottom: 24 }}>
                 ¿Cómo los sentamos?
